@@ -1,0 +1,36 @@
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import rateLimit from 'express-rate-limit';
+import { loadUser } from './middleware/auth.js';
+import adminRoutes from './routes/admin.js';
+import trackRoutes from './routes/track.js';
+
+const app = express();
+const PORT = process.env.PORT || 4000;
+const origins = (process.env.CORS_ORIGIN || 'http://localhost:3000').split(',').map((s) => s.trim());
+
+app.set('trust proxy', 1); // behind Nginx on the VPS
+app.use(helmet());
+app.use(cors({ origin: origins, credentials: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
+app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'studyearnstay-api', time: new Date().toISOString() }));
+
+app.use('/api', loadUser);
+app.use('/api/track', trackRoutes);
+app.use('/api/admin', rateLimit({ windowMs: 60_000, limit: 300 }), adminRoutes);
+
+app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
+
+// eslint-disable-next-line no-unused-vars
+app.use((err, _req, res, _next) => {
+  console.error('[error]', err);
+  const status = err.status || (err.code === 'LIMIT_FILE_SIZE' ? 413 : 500);
+  res.status(status).json({ error: err.message || 'Server error' });
+});
+
+app.listen(PORT, () => console.log(`StudyEarnstay API running on http://localhost:${PORT}`));
