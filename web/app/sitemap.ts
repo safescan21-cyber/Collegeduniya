@@ -10,7 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
   if (!hasSupabase) return base;
   const sb = supabasePublic();
-  const [c, h, j, e, a, q, ct] = await Promise.all([
+  const [c, h, j, e, a, q, ct, qs, qc] = await Promise.all([
     sb.from('colleges_public').select('slug, updated_at').eq('is_published', true).limit(5000),
     sb.from('hostels').select('id, updated_at').eq('is_published', true).limit(5000),
     sb.from('jobs').select('id, updated_at').eq('is_published', true).eq('status', 'open').limit(5000),
@@ -18,6 +18,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     sb.from('articles').select('slug, updated_at').eq('is_published', true).lte('published_at', new Date().toISOString()).limit(5000),
     sb.from('questions_public').select('id, created_at').limit(5000),
     sb.from('cities').select('slug').order('population', { ascending: false }).limit(10000),
+    sb.from('quota_seats_public').select('id, created_at').eq('status', 'open').limit(5000),
+    sb.rpc('quota_countries'),
   ]);
   return [
     ...base,
@@ -28,5 +30,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...(a.data || []).map((r) => ({ url: `${SITE_URL}/news/${r.slug}`, lastModified: r.updated_at, priority: 0.7 })),
     ...(q.data || []).map((r) => ({ url: `${SITE_URL}/questions/${r.id}`, lastModified: r.created_at, priority: 0.5 })),
     ...(ct.data || []).map((r) => ({ url: `${SITE_URL}/city/${r.slug}`, priority: 0.6 })),
+    ...((qs.data || []) as any[]).map((r) => ({ url: `${SITE_URL}/management-quota/${r.id}`, lastModified: r.created_at, priority: 0.7 })),
+    ...((qc.data || []) as any[]).map((r) => ({ url: `${SITE_URL}/management-quota?country=${r.country_code}`, priority: 0.7 })),
   ];
 }

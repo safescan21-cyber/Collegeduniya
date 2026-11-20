@@ -98,7 +98,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
 
   const tabs: [string, string][] = [
     ['overview', 'Overview'],
-    ...(show('quota') && quotaList.length ? [['quota', `Management quota (${quotaList.length})`] as [string, string]] : []),
+    ...(show('quota') && quotaList.length ? [['quota', `${c.country === 'India' ? 'Management quota' : 'Direct admission'} (${quotaList.length})`] as [string, string]] : []),
     ...(show('courses') ? [['courses', `Courses & Fees (${courseList.length})`] as [string, string]] : []),
     ...(show('placements') && placementList.length ? [['placements', 'Placements'] as [string, string]] : []),
     ...(show('cutoffs') && cutoffList.length ? [['cutoffs', 'Cutoffs'] as [string, string]] : []),
@@ -209,10 +209,10 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             <section id="quota" className="scroll-mt-32">
               <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">Management quota admission</h2>
-                  <p className="text-sm text-slate-500">Official fee, seats left and last date. Apply free; fees are paid only to the college.</p>
+                  <h2 className="text-xl font-bold text-slate-900">{c.country === 'India' ? 'Management quota admission' : 'Direct admission seats'}</h2>
+                  <p className="text-sm text-slate-500">Official fee, seats left and last date. Apply free; fees are paid only to the institution.</p>
                 </div>
-                <Link href="/management-quota" className="text-sm font-semibold text-brand-700">All colleges →</Link>
+                <Link href={`/management-quota${(c as any).country_code ? `?country=${(c as any).country_code}` : ''}`} className="text-sm font-semibold text-brand-700">More in {c.country} →</Link>
               </div>
               <div className="grid gap-4 md:grid-cols-2">{quotaList.map((q) => <QuotaSeatCard key={q.id} s={q} showCollege={false} />)}</div>
             </section>
@@ -357,7 +357,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             <p className="text-2xl font-extrabold text-slate-900">{range(c.fees_min, c.fees_max, c.currency)}</p>
             {show('quota') && quotaList.some((q) => q.status === 'open') && (
               <a href="#quota" className="mt-4 block rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-900 hover:bg-amber-100">
-                {quotaList.filter((q) => q.status === 'open').length} management quota seat listing{quotaList.filter((q) => q.status === 'open').length > 1 ? 's' : ''} open → Apply
+                {quotaList.filter((q) => q.status === 'open').length} admission seat listing{quotaList.filter((q) => q.status === 'open').length > 1 ? 's' : ''} open → Apply
               </a>
             )}
             {c.accepts_applications && (

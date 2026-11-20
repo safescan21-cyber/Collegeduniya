@@ -74,6 +74,7 @@ Browser ──► Next.js (web) ──► Supabase  (public reads, OTP login, re
 7. Run **`supabase/migrations/004_visibility_import.sql`** (per-college show/hide + import fields).
 8. Run **`supabase/migrations/005_wiki_enrich.sql`** (Wikipedia text + Wikimedia Commons photos with credits).
 9. Run **`supabase/migrations/006_management_quota.sql`** (management / NRI quota seats + student applications).
+10. Run **`supabase/migrations/007_quota_global.sql`** (direct admission & quota seats for every country, any currency).
 8. Load full college lists:
    ```bash
    npm run import:sheet -- ./All_Colleges.xlsx IN aishe   # India: official AISHE "All Colleges" list (~48k colleges)
@@ -235,6 +236,19 @@ Google Places photos are **not** free (billed per request and they must not be s
 - Students can only withdraw; they can't change their own status or note.
 - Hiding the *Management quota seats* section of a college hides its seats and blocks new applications.
 - Hiding *fees* hides the quota fee too.
+
+**Worldwide (migration 007):**
+- **Admission routes:** India's Management / NRI / Institutional quota, plus International, Direct admission, Self-financed, Private / fee-paying and Scholarship seats for any country.
+- **Seat fields:** intake (e.g. "September 2027"), fee period (year / semester / term / month / total), English requirement (IELTS/TOEFL/PTE), scholarship note, and *who can apply* (all / domestic / international).
+- **Currency:** leave it blank and it is taken from the college, then the college's country (`countries.currency_code`), then USD.
+- **Converted fees:** visitors also see an approximate fee in their own currency. It is guessed from the browser locale and they can change it. The API serves it at `GET /api/fx?base=GBP`, using free daily rates from open.er-api.com, cached for 12 hours. Set a different source with `FX_API_URL`.
+- **Browsing:** `/management-quota` has country chips with seat counts, plus continent, country, region, city, level, admission-route and "open to international students" filters.
+  - `?country=GB` pages are indexed and listed in the sitemap.
+- **Application form:** it adapts to the seat's country.
+  - India: reservation category.
+  - Everywhere else: nationality, English test and score, and "needs a student visa".
+  - It also records the site language the student used, so counsellors can reply in it.
+- **Languages:** all page text, the form and the "how it works" steps are in the site dictionary, so they appear in all 39 languages. Eligibility, fee details, English requirement, scholarship and description have a *Translate* button.
 
 **Fee wording:** every page states that applying is free, that fees are paid only to the college against an official receipt, and that no donation or capitation money is taken. Several Indian states ban capitation fees, so keep listings to official fees only.
 

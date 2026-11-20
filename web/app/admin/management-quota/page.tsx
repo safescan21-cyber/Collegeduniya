@@ -9,7 +9,7 @@ export default function AdminManagementQuota() {
       <div className="card flex flex-wrap items-center justify-between gap-3 p-5">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900">Management quota seats</h1>
-          <p className="text-sm text-slate-500">Post management / NRI quota seats with the college&apos;s official fee. Students apply on the website; applications arrive in <Link href="/admin/quota-applications" className="text-brand-700 underline">Quota applications</Link>.</p>
+          <p className="text-sm text-slate-500">Post seats for any country: India&apos;s management / NRI quota, or direct-admission and international-student seats anywhere, with the official fee in local currency. Students apply on the website; applications arrive in <Link href="/admin/quota-applications" className="text-brand-700 underline">Quota applications</Link>.</p>
         </div>
         <a href="/management-quota" target="_blank" className="btn-ghost">View public page</a>
       </div>

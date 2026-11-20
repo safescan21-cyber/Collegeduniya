@@ -273,8 +273,8 @@ const crudConfig = {
   articles:           { search: ['title', 'excerpt'], filters: ['category', 'is_published'], order: 'published_at' },
   college_placements: { search: ['course'], filters: ['college_id', 'year'], order: 'year' },
   cutoffs:            { search: ['course'], filters: ['college_id', 'exam_slug', 'year', 'category'], order: 'year' },
-  quota_seats:        { search: ['course', 'academic_year'], filters: ['college_id', 'status', 'quota_type', 'level', 'is_published'], order: 'created_at',
-                        select: '*, colleges(name, slug, city)' },
+  quota_seats:        { search: ['course', 'academic_year'], filters: ['college_id', 'status', 'quota_type', 'level', 'is_published', 'open_to'], order: 'created_at',
+                        select: '*, colleges(name, slug, city, country)' },
 };
 
 for (const [table, cfg] of Object.entries(crudConfig)) {
@@ -346,8 +346,8 @@ const modConfig = {
     search: ['full_name', 'email', 'phone', 'course'],
   },
   quota_applications: {
-    select: '*, quota_seats(course, quota_type, academic_year, fee_per_year, currency), colleges(name, slug, city)',
-    filters: ['status', 'college_id', 'seat_id'], search: ['full_name', 'email', 'phone', 'city'],
+    select: '*, quota_seats(course, quota_type, academic_year, intake, fee_per_year, fee_period, currency), colleges(name, slug, city, country)',
+    filters: ['status', 'college_id', 'seat_id', 'nationality'], search: ['full_name', 'email', 'phone', 'city', 'nationality'],
   },
   questions: { select: '*, colleges(name, slug), profiles(full_name, email)', filters: ['status', 'college_id'], search: ['title'] },
   answers: { select: '*, questions(title), profiles(full_name, email)', filters: ['status', 'question_id'], search: ['body'] },

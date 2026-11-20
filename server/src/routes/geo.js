@@ -5,12 +5,19 @@ import { searchCities, reverseCity, nearbyPlaces, NEARBY_KINDS, geocode } from '
 import { localJobs, providersStatus } from '../services/jobs.js';
 import { translateMany, LANGUAGES, isSupported, providerName } from '../services/translate.js';
 import { supabase } from '../supabase.js';
+import { ratesFor } from '../services/fx.js';
 
 const router = Router();
 const limit = (n) => rateLimit({ windowMs: 60_000, limit: n, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many requests, slow down a little.' } });
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const num = (v) => (v === undefined || v === '' ? NaN : Number(v));
 const validLatLng = (lat, lng) => Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+
+// GET /api/fx?base=GBP → { base, rates:{INR:…}, updated }  (cached 12 h, for "≈ fee in your currency")
+router.get('/fx', limit(120), wrap(async (req, res) => {
+  try { res.set('Cache-Control', 'public, max-age=21600').json({ data: await ratesFor(req.query.base) }); }
+  catch (e) { res.status(503).json({ error: e.message }); }
+}));
 
 // GET /api/cities?q=pun&country=IN
 router.get('/cities', limit(120), wrap(async (req, res) => {

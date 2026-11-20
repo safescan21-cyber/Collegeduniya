@@ -4,21 +4,30 @@ import Link from 'next/link';
 import { CheckCircle2, Loader2, Paperclip, X, Send } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { supabaseBrowser } from '@/lib/supabase/client';
+import { useLang } from '@/components/LangProvider';
 
 const MAX_FILES = 6;
 const MAX_MB = 5;
 const OK_TYPES = /^(application\/pdf|image\/(jpeg|png|webp))$/;
 
-export default function QuotaApplyForm({ seatId, course, college, open, documents, minPercentage }: {
+const QUALIFICATIONS = ['Secondary school (10th / GCSE / O-level)', 'High school (12th / A-level / IB / HSC)', 'Diploma', "Bachelor's degree", "Master's degree", 'Doctorate', 'Other'];
+const ENGLISH = ['None yet', 'IELTS Academic', 'TOEFL iBT', 'PTE Academic', 'Duolingo English Test', 'Cambridge (C1/C2)', 'Native / English-medium schooling'];
+
+export default function QuotaApplyForm({ seatId, course, college, open, documents, minPercentage, countryCode, openTo }: {
   seatId: string; course: string; college: string; open: boolean; documents: string[]; minPercentage: number | null;
+  countryCode: string | null; openTo: 'all' | 'domestic' | 'international';
 }) {
   const { user, profile, loading } = useAuth();
+  const { t, lang } = useLang();
+  const isIndia = countryCode === 'IN';
   const supabase = supabaseBrowser();
   const [existing, setExisting] = useState<{ status: string; created_at: string } | null | undefined>(undefined);
   const [f, setF] = useState<Record<string, string>>({
     full_name: '', email: '', phone: '', dob: '', gender: '', city: '', state: '', parent_name: '', parent_phone: '',
-    qualification: '12th', board_or_university: '', percentage: '', passing_year: '', entrance_exam: '', entrance_score: '', category: '', message: '',
+    qualification: QUALIFICATIONS[1], board_or_university: '', percentage: '', passing_year: '', entrance_exam: '', entrance_score: '', category: '', message: '',
+    nationality: '', country: '', english_test: '', english_score: '',
   });
+  const [visa, setVisa] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [ack, setAck] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -32,7 +41,7 @@ export default function QuotaApplyForm({ seatId, course, college, open, document
 
   useEffect(() => {
     if (user || profile) setF((p) => ({ ...p, full_name: p.full_name || profile?.full_name || '', email: p.email || user?.email || '',
-      phone: p.phone || profile?.phone || '', city: p.city || profile?.city || '' }));
+      phone: p.phone || profile?.phone || '', city: p.city || profile?.city || '', country: p.country || profile?.country || '' }));
   }, [user, profile]);
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
@@ -50,9 +59,9 @@ export default function QuotaApplyForm({ seatId, course, college, open, document
   if (!user) {
     return (
       <div className="card p-6 text-center">
-        <p className="font-semibold text-slate-900">Apply for this seat</p>
-        <p className="mt-1 text-sm text-slate-500">Log in with your email (one-time code) to apply. It&apos;s free.</p>
-        <Link href={`/login?next=/management-quota/${seatId}`} className="btn-primary mt-4 w-full">Login / Register to apply</Link>
+        <p className="font-semibold text-slate-900">{t('quota.applyTitle')}: {course}</p>
+        <p className="mt-1 text-sm text-slate-500">{t('quota.loginText')}</p>
+        <Link href={`/login?next=/management-quota/${seatId}`} className="btn-primary mt-4 w-full">{t('quota.login')}</Link>
       </div>
     );
   }
@@ -61,19 +70,19 @@ export default function QuotaApplyForm({ seatId, course, college, open, document
     return (
       <div className="card p-6 text-center">
         <CheckCircle2 className="mx-auto text-emerald-600" size={40} />
-        <p className="mt-2 font-semibold text-slate-900">You applied {new Date(existing.created_at).toLocaleDateString()}</p>
-        <p className="mt-1 text-sm text-slate-500">Status: <span className="font-semibold capitalize">{existing.status.replace('_', ' ')}</span></p>
-        <Link href="/dashboard?tab=colleges" className="btn-ghost mt-4 w-full">Track in dashboard</Link>
+        <p className="mt-2 font-semibold text-slate-900">{t('quota.applied')} {new Date(existing.created_at).toLocaleDateString(lang)}</p>
+        <p className="mt-1 text-sm text-slate-500">{t('quota.status')}: <span className="font-semibold capitalize">{existing.status.replace('_', ' ')}</span></p>
+        <Link href="/dashboard?tab=colleges" className="btn-ghost mt-4 w-full">{t('quota.track')}</Link>
       </div>
     );
   }
 
-  if (!open) return <div className="card p-6 text-center text-sm text-slate-500">Applications for this seat are closed. <Link href="/management-quota" className="font-semibold text-brand-700 underline">See open seats</Link></div>;
+  if (!open) return <div className="card p-6 text-center text-sm text-slate-500">{t('quota.closedText')} <Link href="/management-quota" className="font-semibold text-brand-700 underline">{t('quota.seeOpen')}</Link></div>;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr('');
-    if (!ack) return setErr('Please confirm the fee note.');
+    if (!ack) return setErr('Please tick the confirmation box.');
     if (!/^[+\d][\d\s-]{6,18}$/.test(f.phone.trim())) return setErr('Enter a valid phone number.');
     if (minPercentage && f.percentage && Number(f.percentage) < minPercentage) {
       if (!confirm(`This seat asks for at least ${minPercentage}%. Apply anyway?`)) return;
@@ -92,6 +101,7 @@ export default function QuotaApplyForm({ seatId, course, college, open, document
     for (const [k, v] of Object.entries(f)) row[k] = v.trim() === '' ? null : v.trim();
     row.percentage = num(f.percentage); row.passing_year = num(f.passing_year);
     row.email = row.email || user.email;
+    row.needs_visa = visa; row.preferred_lang = lang;
     const { error } = await supabase.from('quota_applications').insert(row);
     setBusy(false);
     if (error) {
@@ -109,38 +119,48 @@ export default function QuotaApplyForm({ seatId, course, college, open, document
   return (
     <form onSubmit={submit} className="card space-y-4 p-5" id="apply">
       <div>
-        <p className="text-lg font-bold text-slate-900">Apply: {course}</p>
-        <p className="text-sm text-slate-500">{college} · management quota</p>
+        <p className="text-lg font-bold text-slate-900">{t('quota.applyTitle')}: {course}</p>
+        <p className="text-sm text-slate-500">{college}</p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        {input('full_name', 'Student name *', { required: true, minLength: 2 })}
-        {input('phone', 'Mobile *', { required: true, inputMode: 'tel' })}
-        {input('email', 'Email *', { required: true, type: 'email' })}
-        {input('dob', 'Date of birth', { type: 'date' })}
-        <div><label className="label" htmlFor="q-gender">Gender</label>
-          <select id="q-gender" value={f.gender} onChange={set('gender')} className="input"><option value="">—</option><option>Female</option><option>Male</option><option>Other</option></select></div>
-        <div><label className="label" htmlFor="q-category">Category</label>
-          <select id="q-category" value={f.category} onChange={set('category')} className="input"><option value="">—</option>{['General', 'OBC', 'SC', 'ST', 'EWS', 'NRI', 'Foreign national'].map((c) => <option key={c}>{c}</option>)}</select></div>
-        {input('city', 'City')}
-        {input('state', 'State')}
-        {input('parent_name', 'Parent / guardian name')}
-        {input('parent_phone', 'Parent mobile', { inputMode: 'tel' })}
+        {input('full_name', `${t('quota.f.name')} *`, { required: true, minLength: 2 })}
+        {input('phone', `${t('quota.f.phone')} *`, { required: true, inputMode: 'tel', placeholder: '+44 7700 900123' })}
+        {input('email', `${t('quota.f.email')} *`, { required: true, type: 'email' })}
+        {input('dob', t('quota.f.dob'), { type: 'date' })}
+        <div><label className="label" htmlFor="q-gender">{t('quota.f.gender')}</label>
+          <select id="q-gender" value={f.gender} onChange={set('gender')} className="input"><option value="">—</option><option>Female</option><option>Male</option><option>Other</option><option>Prefer not to say</option></select></div>
+        {isIndia
+          ? <div><label className="label" htmlFor="q-category">{t('quota.f.category')}</label>
+              <select id="q-category" value={f.category} onChange={set('category')} className="input"><option value="">—</option>{['General', 'OBC', 'SC', 'ST', 'EWS', 'NRI', 'Foreign national'].map((c) => <option key={c}>{c}</option>)}</select></div>
+          : input('nationality', t('quota.f.nationality'), { placeholder: 'e.g. Nigerian, Indian, Vietnamese' })}
+        {isIndia && input('nationality', t('quota.f.nationality'), { placeholder: 'Indian' })}
+        {input('country', t('quota.f.country'))}
+        {input('city', t('quota.f.city'))}
+        {input('state', t('quota.f.state'))}
+        {input('parent_name', t('quota.f.parent'))}
+        {input('parent_phone', t('quota.f.parentPhone'), { inputMode: 'tel' })}
       </div>
-      <p className="border-t border-slate-100 pt-3 text-sm font-semibold text-slate-900">Academics</p>
+      <p className="border-t border-slate-100 pt-3 text-sm font-semibold text-slate-900">{t('quota.f.academics')}</p>
       <div className="grid gap-3 sm:grid-cols-2">
-        <div><label className="label" htmlFor="q-qual">Last qualification</label>
-          <select id="q-qual" value={f.qualification} onChange={set('qualification')} className="input">{['10th', '12th', 'Diploma', 'Graduation', 'Post-graduation'].map((c) => <option key={c}>{c}</option>)}</select></div>
-        {input('board_or_university', 'Board / university')}
-        {input('percentage', `Percentage / CGPA${minPercentage ? ` (min ${minPercentage}%)` : ''}`, { type: 'number', step: '0.01', min: 0, max: 100 })}
-        {input('passing_year', 'Passing year', { type: 'number', min: 1990, max: 2100 })}
-        {input('entrance_exam', 'Entrance exam (if any)', { placeholder: 'JEE Main, NEET, CAT…' })}
-        {input('entrance_score', 'Score / rank')}
+        <div className="sm:col-span-2"><label className="label" htmlFor="q-qual">{t('quota.f.qualification')}</label>
+          <select id="q-qual" value={f.qualification} onChange={set('qualification')} className="input">{QUALIFICATIONS.map((c) => <option key={c}>{c}</option>)}</select></div>
+        {input('board_or_university', t('quota.f.board'))}
+        {input('percentage', `${t('quota.f.marks')}${minPercentage ? ` (min ${minPercentage}%)` : ''}`, { type: 'number', step: '0.01', min: 0, max: 100 })}
+        {input('passing_year', t('quota.f.year'), { type: 'number', min: 1980, max: 2100 })}
+        {input('entrance_exam', t('quota.f.exam'), { placeholder: isIndia ? 'JEE Main, NEET, CAT…' : 'SAT, ACT, GRE, GMAT, Gaokao…' })}
+        {input('entrance_score', t('quota.f.score'))}
+        {!isIndia && <>
+          <div><label className="label" htmlFor="q-eng">{t('quota.f.englishTest')}</label>
+            <select id="q-eng" value={f.english_test} onChange={set('english_test')} className="input"><option value="">—</option>{ENGLISH.map((c) => <option key={c}>{c}</option>)}</select></div>
+          {input('english_score', t('quota.f.englishScore'), { placeholder: 'e.g. 6.5 / 95' })}
+          {openTo !== 'domestic' && <label className="flex items-center gap-2 text-sm text-slate-600 sm:col-span-2"><input type="checkbox" checked={visa} onChange={(e) => setVisa(e.target.checked)} />{t('quota.f.visa')}</label>}
+        </>}
       </div>
       <div>
-        <label className="label">Documents (PDF/JPG, up to {MAX_FILES})</label>
-        {!!documents.length && <p className="mb-2 text-xs text-slate-500">This college asks for: {documents.join(', ')}</p>}
+        <label className="label">{t('quota.f.docs')} · max {MAX_FILES}</label>
+        {!!documents.length && <p className="mb-2 text-xs text-slate-500">{t('quota.f.docsAsk')}: {documents.join(', ')}</p>}
         <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 p-3 text-sm text-slate-600 hover:bg-slate-50">
-          <Paperclip size={16} />Attach marksheets, ID, etc.
+          <Paperclip size={16} />{t('quota.f.attach')}
           <input type="file" multiple accept="application/pdf,image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }} />
         </label>
         {!!files.length && (
@@ -153,16 +173,16 @@ export default function QuotaApplyForm({ seatId, course, college, open, document
             ))}
           </ul>
         )}
-        <p className="mt-1 text-xs text-slate-400">Only our admissions team can see your documents.</p>
+        <p className="mt-1 text-xs text-slate-400">{t('quota.f.private')}</p>
       </div>
-      <div><label className="label" htmlFor="q-msg">Anything we should know?</label>
+      <div><label className="label" htmlFor="q-msg">{t('quota.f.message')}</label>
         <textarea id="q-msg" value={f.message} onChange={set('message')} rows={3} className="input" placeholder="Preferred branch, hostel need, best time to call…" /></div>
       <label className="flex items-start gap-2 text-sm text-slate-600">
         <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="mt-1" />
-        <span>I understand that applying is free. Admission fees are paid only to the college, against an official receipt, and no donation or capitation fee is charged. A counsellor may call me about this application.</span>
+        <span>{t('quota.f.ack')}</span>
       </label>
       {err && <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{err}</p>}
-      <button disabled={busy} className="btn-primary w-full">{busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}Submit application</button>
+      <button disabled={busy} className="btn-primary w-full">{busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}{t('quota.f.submit')}</button>
     </form>
   );
 }
