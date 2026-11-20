@@ -5,9 +5,10 @@ import { ArrowLeft, Eye, EyeOff, Save, Loader2, ExternalLink, Star, Trash2 } fro
 import ResourceManager, { FieldInput } from '@/components/admin/ResourceManager';
 import { api } from '@/lib/api';
 import { money } from '@/lib/format';
+import WikiEnrich from '@/components/admin/WikiEnrich';
 import { COLLEGE_FIELDS, HIDEABLE_FIELDS, HIDEABLE_SECTIONS, CURRENCIES } from '@/lib/adminFields';
 
-type Tab = 'details' | 'visibility' | 'courses' | 'placements' | 'cutoffs' | 'nearby';
+type Tab = 'details' | 'visibility' | 'courses' | 'placements' | 'cutoffs' | 'nearby' | 'wiki';
 
 function Toggle({ on, onChange, label, hint }: { on: boolean; onChange: (v: boolean) => void; label: string; hint?: string }) {
   return (
@@ -64,7 +65,7 @@ export default function CollegeEditor({ params }: { params: Promise<{ id: string
   const toggleIn = (key: 'hidden_fields' | 'hidden_sections', v: string, shown: boolean) =>
     setDraft((d: any) => ({ ...d, [key]: shown ? d[key].filter((x: string) => x !== v) : Array.from(new Set([...d[key], v])) }));
   const dirty = JSON.stringify(draft) !== JSON.stringify({ ...college, hidden_fields: college.hidden_fields || [], hidden_sections: college.hidden_sections || [] });
-  const TABS: [Tab, string][] = [['details', 'Details'], ['visibility', 'Show / hide'], ['courses', 'Courses & fees'], ['placements', 'Placements'], ['cutoffs', 'Cutoffs'], ['nearby', 'Nearby places']];
+  const TABS: [Tab, string][] = [['details', 'Details'], ['visibility', 'Show / hide'], ['courses', 'Courses & fees'], ['placements', 'Placements'], ['cutoffs', 'Cutoffs'], ['nearby', 'Nearby places'], ['wiki', 'Wikipedia & photos']];
 
   return (
     <div className="space-y-5">
@@ -211,6 +212,10 @@ export default function CollegeEditor({ params }: { params: Promise<{ id: string
             { key: 'category', label: 'Category', render: (r) => `${r.category}${r.quota ? ` · ${r.quota}` : ''}` },
             { key: 'closing_rank', label: 'Closing', render: (r) => r.closing_rank?.toLocaleString() },
           ]} />
+      )}
+
+      {tab === 'wiki' && (
+        <WikiEnrich college={college} onSaved={(c) => { setCollege(c); setDraft({ ...c, hidden_fields: c.hidden_fields || [], hidden_sections: c.hidden_sections || [] }); }} />
       )}
 
       {tab === 'nearby' && (

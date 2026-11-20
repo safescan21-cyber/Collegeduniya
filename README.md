@@ -72,10 +72,12 @@ Browser ──► Next.js (web) ──► Supabase  (public reads, OTP login, re
    ```
    Or use **Admin → Import & APIs** to preview/import one country at a time.
 7. Run **`supabase/migrations/004_visibility_import.sql`** (per-college show/hide + import fields).
+8. Run **`supabase/migrations/005_wiki_enrich.sql`** (Wikipedia text + Wikimedia Commons photos with credits).
 8. Load full college lists:
    ```bash
    npm run import:sheet -- ./All_Colleges.xlsx IN aishe   # India: official AISHE "All Colleges" list (~48k colleges)
    npm run import:us                                      # USA: College Scorecard, real tuition (COLLEGE_SCORECARD_API_KEY)
+   npm run enrich -- IN --limit 500                       # free About text, logo & real campus photos (Wikipedia/Commons)
    npm run import:universities -- --all                   # rest of the world: Hipolabs + Wikidata
    ```
    The AISHE sheet can also be uploaded in **Admin → Import & APIs → Import a college list** (column matching is shown before import).
@@ -184,6 +186,31 @@ GET|PATCH /api/admin/users[/:id]
 ```
 
 ---
+
+## 5b. College details & photos (free — Wikidata, Wikipedia, Wikimedia Commons)
+
+No API key needed. For each college the API:
+
+1. **Finds it on Wikidata.** It uses the saved Wikidata ID, or searches by name and scores the results on type, country, website domain and name. It never matches on country alone.
+2. **Takes facts from Wikidata:** year founded, website, map location, student count, logo (P154), main image (P18) and Commons category (P373).
+3. **Gets the About text** from the Wikipedia summary. This text is CC BY-SA, so the college page shows a "Text from Wikipedia" credit with a link back to the article.
+4. **Collects campus photos** from Wikimedia Commons (category + main image, JPEG/PNG only, ≥600 px). Logos, maps and seals are filtered out. Each photo keeps its **author + licence + source link** in `colleges.photo_credits`. The gallery, lightbox and cover photo show that credit, which the CC licences require.
+
+**Using it:**
+
+- **One college:** Admin → Colleges → open a college → **Wikipedia & photos** tab → *Find details & photos*.
+  - Tick the fields and photos you want; the first ticked photo becomes the cover. Then press Save.
+  - If the wrong college was matched, paste the correct Q-number.
+- **Many at once:** Admin → Import & APIs → *Fill details & real photos*, or `npm run enrich -- IN --limit 500`.
+  - This runs only for colleges without a cover photo that haven't been checked yet.
+  - It only fills empty fields.
+- **Speed:** Wikimedia rate-limits anonymous use, so it runs at about 5–10 s per college.
+  - A free personal token in `WIKIMEDIA_ACCESS_TOKEN` (from api.wikimedia.org) raises the limit.
+  - Set `HTTP_USER_AGENT` to your real contact email.
+- **Coverage:** big universities almost always have photos. Many small affiliated colleges have no Wikipedia page, so for those, upload photos in the Details tab or ask the college/PG owner.
+- **Hiding:** hiding "Photos" in Show/hide also hides the credits.
+
+Google Places photos are **not** free (billed per request and they must not be stored), so they are not used.
 
 ## 6. Deploy on your own VPS (Ubuntu + Nginx + PM2)
 

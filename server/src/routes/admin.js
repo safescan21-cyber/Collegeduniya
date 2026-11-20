@@ -6,6 +6,7 @@ import { requireAdmin, requireSuperAdmin } from '../middleware/auth.js';
 import { importCountry } from '../services/universities.js';
 import { parseSheet, guessMapping, stashUpload, importSheet, TARGETS } from '../services/sheetImport.js';
 import { importScorecard, scorecardEnabled } from '../services/scorecard.js';
+import { lookupCollege, applyLookup, enrichMany } from '../services/wikimedia.js';
 import { providersStatus } from '../services/jobs.js';
 import { providerName } from '../services/translate.js';
 import {
@@ -164,6 +165,42 @@ router.post('/import/scorecard', wrap(async (req, res) => {
   if (!scorecardEnabled()) return fail(res, new Error('Set COLLEGE_SCORECARD_API_KEY in server/.env (free at api.data.gov/signup)'));
   importScorecard({ startedBy: req.user.id, log: (m) => console.log(`[scorecard] ${m}`) }).catch((e) => console.error('[scorecard]', e.message));
   res.status(202).json({ ok: true, message: 'US import started (≈6,000 colleges, a few minutes).' });
+}));
+
+// Free details & photos from Wikidata / Wikipedia / Wikimedia Commons
+// GET  → preview what was found (nothing saved)   POST → save { overwrite, photoFiles:[…], fields:[…] }
+const lastLookup = new Map();
+router.get('/colleges/:id/enrich', wrap(async (req, res) => {
+  const { data: c, error } = await supabase.from('colleges').select('id, name, short_name, website, country_code, city, wikidata_id').eq('id', req.params.id).single();
+  if (error) return fail(res, error, 404);
+  const wanted = req.query.wikidata_id ? { ...c, wikidata_id: String(req.query.wikidata_id).trim() } : c;
+  const found = await lookupCollege(wanted);
+  lastLookup.set(req.params.id, { found, at: Date.now() });
+  res.json({ data: found });
+}));
+
+router.post('/colleges/:id/enrich', wrap(async (req, res) => {
+  const cachedLookup = lastLookup.get(req.params.id);
+  let found = cachedLookup && Date.now() - cachedLookup.at < 30 * 60e3 ? cachedLookup.found : null;
+  if (!found) {
+    const { data: c } = await supabase.from('colleges').select('id, name, short_name, website, country_code, city, wikidata_id').eq('id', req.params.id).single();
+    found = await lookupCollege(c);
+  }
+  const { overwrite = false, photoFiles = null, fields = null } = req.body || {};
+  const r = await applyLookup(req.params.id, found, { overwrite, photoFiles, fields });
+  lastLookup.delete(req.params.id);
+  const { data } = await supabase.from('colleges').select('*').eq('id', req.params.id).single();
+  res.json({ data, applied: Object.keys(r.patch) });
+}));
+
+router.post('/enrich/batch', wrap(async (req, res) => {
+  const { country = null, limit = 200, onlyMissingPhotos = true } = req.body || {};
+  const { data: running } = await supabase.from('import_runs').select('id').eq('status', 'running').eq('kind', 'enrich')
+    .gte('created_at', new Date(Date.now() - 6 * 3600e3).toISOString()).limit(1);
+  if (running?.length) return fail(res, new Error('A photo/details batch is already running'), 409);
+  enrichMany({ country, limit: Math.min(Number(limit) || 200, 5000), onlyMissingPhotos, startedBy: req.user.id, log: (m) => console.log(`[enrich] ${m}`) })
+    .catch((e) => console.error('[enrich]', e.message));
+  res.status(202).json({ ok: true, message: `Fetching details & photos for up to ${limit} colleges (about 5–10 seconds each).` });
 }));
 
 // Bulk actions on many colleges at once (publish / hide / feature / hide fields or sections / delete)

@@ -11,7 +11,8 @@
     "import:cities": "node scripts/import-cities.js",
     "import:universities": "node scripts/import-universities.js",
     "import:us": "node scripts/import-us.js",
-    "import:sheet": "node scripts/import-sheet.js"
+    "import:sheet": "node scripts/import-sheet.js",
+    "enrich": "node scripts/enrich.js"
   },
   "engines": {
     "node": ">=20"

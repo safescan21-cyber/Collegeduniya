@@ -121,6 +121,9 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={c.cover_url || FALLBACK_IMG} alt={c.name} className="absolute inset-0 h-full w-full object-cover opacity-50" />
         <div className="absolute inset-0 bg-gradient-to-t from-brand-950 via-brand-950/60 to-transparent" />
+        {(() => { const cr = ((c as any).photo_credits || []).find((x: any) => x.url === c.cover_url); return cr ? (
+          <p className="absolute bottom-1 end-2 z-10 max-w-[60%] truncate text-[10px] text-white/60">Photo: <a href={cr.page} target="_blank" rel="noopener" className="underline">{cr.author}</a> · {cr.license_url ? <a href={cr.license_url} target="_blank" rel="noopener license" className="underline">{cr.license}</a> : cr.license}</p>
+        ) : null; })()}
         <div className="container-x relative flex h-full items-end pb-8">
           <div className="flex w-full flex-wrap items-end justify-between gap-4">
             <div className="flex items-end gap-5">
@@ -164,6 +167,9 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
               <ShareButtons title={`${c.name} — fees, courses & reviews`} path={`/colleges/${c.slug}`} />
             </div>
             <TranslateText text={c.description || 'Details coming soon.'} className="mt-3 whitespace-pre-line leading-relaxed text-slate-600" />
+            {(c as any).description_source === 'wikipedia' && (c as any).wikipedia_url && (
+              <p className="mt-2 text-xs text-slate-400">Text from <a href={(c as any).wikipedia_url} target="_blank" rel="noopener" className="underline">Wikipedia</a>, licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener license" className="underline">CC BY-SA 4.0</a>.</p>
+            )}
             {(c as any).source && (c as any).source !== 'admin' && (
               <p className="mt-3 text-xs text-slate-400">Profile from public data ({({ hipolabs: 'Hipolabs university list', wikidata: 'Wikidata', aishe: 'AISHE, Govt. of India', scorecard: 'U.S. College Scorecard' } as Record<string, string>)[(c as any).source] || (c as any).source}{(c as any).wikidata_id ? ' + Wikidata' : ''}). <Link href="/counselling" className="underline">Ask us</Link> for current fees and admission details.</p>
             )}
@@ -323,7 +329,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
           {show('gallery') && c.photos?.length ? (
             <section id="gallery" className="scroll-mt-32">
               <h2 className="mb-4 text-xl font-bold text-slate-900">Gallery</h2>
-              <Gallery photos={c.photos} alt={c.name} />
+              <Gallery photos={c.photos} alt={c.name} credits={(c as any).photo_credits || []} />
             </section>
           ) : null}
         </div>

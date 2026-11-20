@@ -23,6 +23,8 @@ export default function AdminImport() {
   const [preview, setPreview] = useState<any>(null);
   const [busy, setBusy] = useState<'' | 'preview' | 'import'>('');
   const [msg, setMsg] = useState('');
+  const [enCountry, setEnCountry] = useState('IN');
+  const [enLimit, setEnLimit] = useState(200);
 
   const loadRuns = useCallback(() => api('/api/admin/import/runs').then((r) => setRuns(r.data)).catch(() => {}), []);
   useEffect(() => {
@@ -103,6 +105,21 @@ export default function AdminImport() {
             <li>Rest of the world: Hipolabs + Wikidata (country import above, or <code>--all</code>)</li>
           </ul>
         </div>
+      </div>
+
+      <div className="card p-5">
+        <h2 className="font-bold text-slate-900">📸 Fill details &amp; real photos (Wikipedia + Wikimedia Commons, free)</h2>
+        <p className="mt-1 text-sm text-slate-500">For colleges that have no cover photo yet: finds each one on Wikidata and adds the Wikipedia “About” text, logo, campus photos (with author &amp; licence credit), website, year founded and map location. It only fills empty fields. Big universities usually match; small colleges often have no Wikipedia page, so add those photos by hand. It runs in the background at roughly 5–10 seconds per college.</p>
+        <div className="mt-4 flex flex-wrap items-end gap-2">
+          <label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-500">Country code (blank = all)</span>
+            <input value={enCountry} onChange={(e) => setEnCountry(e.target.value.toUpperCase().slice(0, 2))} className="input w-28" placeholder="IN" /></label>
+          <label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-500">How many</span>
+            <input type="number" min={1} max={5000} value={enLimit} onChange={(e) => setEnLimit(Number(e.target.value))} className="input w-28" /></label>
+          <button className="btn-primary" onClick={async () => {
+            try { const r = await api('/api/admin/enrich/batch', { method: 'POST', body: JSON.stringify({ country: enCountry || null, limit: enLimit }) }); setMsg(r.message); loadRuns(); } catch (e: any) { setMsg(e.message); }
+          }}><Download size={16} />Start</button>
+        </div>
+        <p className="mt-3 text-xs text-slate-400">To check one college and choose its photos yourself, open it in Colleges → “Wikipedia &amp; photos” tab. From the server: <code>npm run enrich -- IN --limit 500</code></p>
       </div>
 
       <div className="card overflow-x-auto">
