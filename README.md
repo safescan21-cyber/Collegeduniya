@@ -395,6 +395,7 @@ Everything is already built. It stays switched off until you connect a WhatsApp 
 | Your own model on the VPS (Ollama) | `curl -fsSL https://ollama.com/install.sh \| sh` → `ollama pull qwen2.5:14b-instruct` → `LLM_PROVIDER=openai`, `LLM_BASE_URL=http://localhost:11434/v1`, `LLM_MODEL=qwen2.5:14b-instruct` |
 | Any OpenAI-compatible API (vLLM, Groq, OpenRouter…) | `LLM_PROVIDER=openai`, `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` |
 | Different model for the double-check | `LLM_CHECK_MODEL=…` |
+| **Free: Gemini writes, Groq checks** (no card) | `LLM_PROVIDER=openai`, `LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai`, `LLM_API_KEY=<AI Studio key>`, `LLM_MODEL=<current Gemini Flash model>` · `LLM_CHECK_BASE_URL=https://api.groq.com/openai/v1`, `LLM_CHECK_API_KEY=<Groq key>`, `LLM_CHECK_MODEL=openai/gpt-oss-120b`. Set the autopilot daily budget to about 100–200 to stay inside free limits. |
 
 **Notes**
 - **Model size:** a 14B model needs about 10 GB RAM (better with a GPU). Small local models make more mistakes, so keep manual review on and use the double-check.
