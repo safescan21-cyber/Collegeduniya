@@ -8,7 +8,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 // Upload official counselling cutoffs (JoSAA / MCC / state) or NIRF ranking tables
 export default function OfficialDataImport() {
   const [kind, setKind] = useState<'cutoffs' | 'rankings'>('cutoffs');
-  const [f, setF] = useState({ exam: 'jee-main', year: String(new Date().getFullYear()), round: 'Final', category: 'Overall', source_url: '' });
+  const [f, setF] = useState({ exam: 'josaa', year: String(new Date().getFullYear()), round: 'Final', category: 'Overall', source_url: '' });
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState<any>(null);
@@ -40,7 +40,9 @@ export default function OfficialDataImport() {
       </div>
       <form onSubmit={go} className="mt-3 grid gap-2 sm:grid-cols-4">
         {kind === 'cutoffs' ? <>
-          <label className="text-sm"><span className="label">Exam slug</span><input className="input" value={f.exam} onChange={(e) => setF({ ...f, exam: e.target.value })} /></label>
+          <label className="text-sm"><span className="label">Exam</span><input className="input" list="exam-slugs" value={f.exam} onChange={(e) => setF({ ...f, exam: e.target.value })} />
+            <datalist id="exam-slugs">{['josaa', 'jee-main', 'jee-advanced', 'neet-ug', 'neet-pg', 'mht-cet', 'kcet', 'wbjee', 'ap-eapcet', 'ts-eapcet', 'cuet-ug', 'cat', 'clat', 'gate', 'bitsat'].map((x) => <option key={x} value={x} />)}</datalist>
+            <span className="mt-1 block text-[11px] text-slate-400">JoSAA file → “josaa” (IITs = JEE Advanced, rest = JEE Main)</span></label>
           <label className="text-sm"><span className="label">Year</span><input className="input" value={f.year} onChange={(e) => setF({ ...f, year: e.target.value })} /></label>
           <label className="text-sm"><span className="label">Round</span><input className="input" value={f.round} onChange={(e) => setF({ ...f, round: e.target.value })} /></label>
         </> : <>

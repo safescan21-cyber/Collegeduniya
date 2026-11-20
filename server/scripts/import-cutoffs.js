@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Import official cutoffs (JoSAA / MCC / state counselling opening-closing rank sheets, exported to .xlsx/.csv).
 //   npm run import:cutoffs -- josaa-2026-round6.xlsx jee-advanced 2026 "Round 6"
-//   npm run import:cutoffs -- josaa-2026-round6.xlsx jee-main 2026 Final
+//   npm run import:cutoffs -- josaa-2026-round5.xlsx josaa 2026 "Round 5"   (josaa = IITs→JEE Advanced, others→JEE Main)
+//   npm run import:cutoffs -- mcc-neet-2026-round3.xlsx neet-ug 2026 "Round 3"
 // Columns used: Institute | Academic Program Name | Quota (AI/HS/OS) | Seat Type | Gender | Opening Rank | Closing Rank
 import 'dotenv/config';
 import fs from 'node:fs';

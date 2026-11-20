@@ -41,9 +41,14 @@ const CATEGORY = (s) => {
 };
 
 // JoSAA-style columns: Institute | Academic Program Name | Quota | Seat Type | Gender | Opening Rank | Closing Rank
+// exam = 'josaa' → IIT rows are saved as jee-advanced, all other institutes as jee-main (one JoSAA file has both)
 export async function importCutoffs({ headers, rows, exam, year, round = 'Final', country = 'IN', source = null, log = () => {} }) {
-  const { data: ex } = await supabase.from('exams').select('slug').eq('slug', exam).maybeSingle();
-  if (!ex) throw new Error(`Exam "${exam}" not found — add it in Admin → Exams first`);
+  const exams = exam === 'josaa' ? ['jee-advanced', 'jee-main'] : [exam];
+  for (const e of exams) {
+    const { data: ex } = await supabase.from('exams').select('slug').eq('slug', e).maybeSingle();
+    if (!ex) throw new Error(`Exam "${e}" not found — add it in Admin → Exams first`);
+  }
+  const examFor = (inst) => (exam === 'josaa' ? (/indian institute of technology|^iit\b/i.test(String(inst)) ? 'jee-advanced' : 'jee-main') : exam);
   const c = {
     inst: col(headers, /^(institute|institution|college)( name)?$/i) || col(headers, /institute|college/i),
     course: col(headers, /program|course|branch/i),
@@ -56,12 +61,13 @@ export async function importCutoffs({ headers, rows, exam, year, round = 'Final'
   for (const r of rows) {
     const college = match(r[c.inst]);
     if (!college) { unmatched.set(r[c.inst], (unmatched.get(r[c.inst]) || 0) + 1); continue; }
+    if (/p\s*$/i.test(String(r[c.close] ?? '')) || /p\s*$/i.test(String(r[c.open] ?? ''))) continue;   // "1234P" = preparatory rank list
     const closing = num(r[c.close]);
     if (!closing) continue;
     const q = String(r[c.quota] || 'AI').trim();
     const quota = QUOTA[q.toUpperCase()] || q;
     out.push({
-      college_id: college.id, exam_slug: exam, year: Number(year), round: String(round), course: String(r[c.course]).trim().slice(0, 200),
+      college_id: college.id, exam_slug: examFor(r[c.inst]), year: Number(year), round: String(round), course: String(r[c.course]).trim().slice(0, 200),
       category: CATEGORY(r[c.seat]), quota, gender: r[c.gender] ? String(r[c.gender]).trim() : 'Gender-Neutral',
       home_state: quota === 'Home State' || quota === 'Other State' ? (r[c.state] || college.state || null) : null,
       opening_rank: num(r[c.open]), closing_rank: closing, source,
@@ -69,8 +75,10 @@ export async function importCutoffs({ headers, rows, exam, year, round = 'Final'
   }
   // replace this exam/year/round's rows for the matched colleges, then insert
   const ids = Array.from(new Set(out.map((o) => o.college_id)));
-  for (let i = 0; i < ids.length; i += 200) {
-    await supabase.from('cutoffs').delete().eq('exam_slug', exam).eq('year', Number(year)).eq('round', String(round)).in('college_id', ids.slice(i, i + 200));
+  for (const e of exams) {
+    for (let i = 0; i < ids.length; i += 200) {
+      await supabase.from('cutoffs').delete().eq('exam_slug', e).eq('year', Number(year)).eq('round', String(round)).in('college_id', ids.slice(i, i + 200));
+    }
   }
   for (let i = 0; i < out.length; i += 1000) {
     const { error } = await supabase.from('cutoffs').insert(out.slice(i, i + 1000));
