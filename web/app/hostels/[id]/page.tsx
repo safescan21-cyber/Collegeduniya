@@ -9,6 +9,9 @@ import { LiveNearby } from '@/components/LiveData';
 import TranslateText from '@/components/TranslateText';
 import { money } from '@/lib/format';
 import EnquiryForm from '@/components/EnquiryForm';
+import VisitBooking from '@/components/VisitBooking';
+import { safetyLabel, embedUrl } from '@/lib/pgSafety';
+import { ShieldCheck, PlayCircle, Rotate3d } from 'lucide-react';
 import { SaveButton, ShareButtons } from '@/components/ActionButtons';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { FALLBACK_IMG, range } from '@/lib/format';
@@ -57,7 +60,7 @@ export default async function HostelPage({ params }: { params: Promise<{ id: str
             <img src={photos[0]} alt={h.name} className="aspect-[16/8] w-full object-cover" />
           </div>
           <div>
-            <div className="flex flex-wrap gap-2"><span className="chip-brand">{h.type}</span><span className="chip">{h.gender}</span>{h.is_verified && <span className="chip-green"><BadgeCheck size={12} />Verified</span>}</div>
+            <div className="flex flex-wrap gap-2"><span className="chip-brand">{h.type}</span><span className="chip">{h.gender}</span>{h.is_verified && <span className="chip-green" title={(h as any).verified_note || ''}><BadgeCheck size={12} />Verified{(h as any).verified_at ? ` · ${new Date((h as any).verified_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}` : ''}</span>}</div>
             <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
               <h1 className="text-3xl font-extrabold text-slate-900">{h.name}</h1>
               <SaveButton type="hostel" id={h.id} variant="button" />
@@ -69,6 +72,7 @@ export default async function HostelPage({ params }: { params: Promise<{ id: str
           <div className="card p-6">
             <h2 className="font-bold text-slate-900">About this stay</h2>
             <TranslateText text={h.description || 'Contact the owner for details.'} className="mt-2 whitespace-pre-line text-slate-600" />
+            {h.is_verified && (h as any).verified_note && <p className="mt-3 flex items-start gap-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900"><BadgeCheck size={16} className="mt-0.5 shrink-0" />{(h as any).verified_note}</p>}
             {h.amenities?.length ? (
               <><p className="label mt-5">Amenities</p>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{h.amenities.map((a) => <span key={a} className="flex items-center gap-2 text-sm"><CheckCircle2 size={16} className="text-emerald-600" />{a}</span>)}</div></>
@@ -97,6 +101,25 @@ export default async function HostelPage({ params }: { params: Promise<{ id: str
               {roomsUpdated && <p className="px-5 py-2 text-xs text-slate-400">Availability updated by owner {new Date(roomsUpdated).toLocaleDateString()}</p>}
             </div>
           )}
+          {(() => { const v = embedUrl((h as any).video_url); return v || (h as any).video_url || (h as any).tour_url ? (
+            <div className="card p-5">
+              <h2 className="mb-3 flex items-center gap-2 font-bold text-slate-900"><PlayCircle size={18} />Video tour</h2>
+              {v ? <div className="aspect-video overflow-hidden rounded-xl"><iframe src={v} title={`${h.name} video tour`} className="h-full w-full" allow="encrypted-media; picture-in-picture" allowFullScreen loading="lazy" /></div>
+                : (h as any).video_url ? <a href={(h as any).video_url} target="_blank" rel="noopener" className="btn-ghost">Watch video</a> : null}
+              {(h as any).tour_url && <a href={(h as any).tour_url} target="_blank" rel="noopener" className="btn-ghost mt-3"><Rotate3d size={16} />Open 360° tour</a>}
+            </div>) : null; })()}
+          {(((h as any).safety || []).length > 0 || (h as any).deposit_amount != null || (h as any).notice_days != null || (h as any).house_rules) && (
+            <div className="card p-5">
+              <h2 className="mb-3 flex items-center gap-2 font-bold text-slate-900"><ShieldCheck size={18} />Safety & terms</h2>
+              {((h as any).safety || []).length > 0 && <div className="mb-3 flex flex-wrap gap-2">{(h as any).safety.map((k: string) => <span key={k} className="chip-green">{safetyLabel(k)}</span>)}</div>}
+              <dl className="grid gap-3 text-sm sm:grid-cols-3">
+                {(h as any).deposit_amount != null && <div><dt className="text-xs text-slate-500">Security deposit</dt><dd className="font-semibold">{range((h as any).deposit_amount, null, h.currency)}</dd></div>}
+                {(h as any).notice_days != null && <div><dt className="text-xs text-slate-500">Notice period</dt><dd className="font-semibold">{(h as any).notice_days} days</dd></div>}
+                {(h as any).lock_in_months != null && <div><dt className="text-xs text-slate-500">Lock-in</dt><dd className="font-semibold">{(h as any).lock_in_months ? `${(h as any).lock_in_months} months` : 'None'}</dd></div>}
+              </dl>
+              {(h as any).house_rules && <TranslateText text={(h as any).house_rules} className="mt-3 whitespace-pre-line text-sm text-slate-600" />}
+            </div>
+          )}
           {photos.length > 1 && <div><h2 className="mb-3 font-bold text-slate-900">Photos</h2><Gallery photos={photos} alt={h.name} /></div>}
           {h.latitude != null && h.longitude != null && <LiveNearby lat={h.latitude} lng={h.longitude} kinds={['hospital', 'pharmacy', 'transport', 'bus', 'food', 'bank']} radius={3000} />}
           <ShareButtons title={`${h.name} — ${h.type} in ${h.city}`} path={`/hostels/${h.id}`} />
@@ -114,6 +137,7 @@ export default async function HostelPage({ params }: { params: Promise<{ id: str
               {h.latitude && h.longitude ? <a className="btn-ghost w-full" target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${h.latitude},${h.longitude}`}>View on map</a> : null}
             </div>
           </div>
+          <VisitBooking hostelId={h.id} hostelName={h.name} slots={(h as any).visit_slots || []} />
           <div className="lg:sticky lg:top-24">
             <EnquiryForm kind="hostel" hostelId={h.id} title="Ask about a room" subtitle="Availability, visit time, deposit — we’ll connect you." compact />
           </div>

@@ -23,6 +23,28 @@ const keywords = (text) => Array.from(new Set(
 
 const clean = (s) => s.replace(/[%,()*"]/g, ' ');
 
+const STATES = ['andhra pradesh','arunachal pradesh','assam','bihar','chhattisgarh','goa','gujarat','haryana','himachal pradesh','jharkhand',
+  'karnataka','kerala','madhya pradesh','maharashtra','manipur','meghalaya','mizoram','nagaland','odisha','punjab','rajasthan','sikkim',
+  'tamil nadu','telangana','tripura','uttar pradesh','uttarakhand','west bengal','delhi','jammu and kashmir','ladakh','puducherry','chandigarh'];
+const EXAMS = { 'jee main': 'jee-main', 'jee mains': 'jee-main', 'jee advanced': 'jee-advanced', neet: 'neet-ug', cuet: 'cuet-ug', cat: 'cat',
+  'mht cet': 'mht-cet', mhtcet: 'mht-cet', kcet: 'kcet', wbjee: 'wbjee', clat: 'clat', gate: 'gate' };
+
+// "my rank is 12000 in jee main, budget 2 lakh, from maharashtra" → recommender inputs
+export function parseProfile(text) {
+  const t = text.toLowerCase();
+  const rank = /\b(?:rank|air|crl)\D{0,12}(\d[\d,]{1,8})/.exec(t)?.[1] || /(\d[\d,]{1,8})\s*(?:rank|air)\b/.exec(t)?.[1];
+  const money = /(?:budget|fees?|afford|under|below|upto|up to)\D{0,10}(\d+(?:\.\d+)?)\s*(lakh|lac|l|k|thousand|crore|cr)?/.exec(t);
+  let budget = null;
+  if (money) {
+    const n = Number(money[1]); const u = money[2] || '';
+    budget = /^(lakh|lac|l)$/.test(u) ? n * 1e5 : /^(k|thousand)$/.test(u) ? n * 1e3 : /^(crore|cr)$/.test(u) ? n * 1e7 : n;
+  }
+  const exam = Object.entries(EXAMS).find(([k]) => t.includes(k))?.[1] || null;
+  const state = STATES.find((s) => t.includes(s)) || null;
+  const stream = /\b(engineering|b\.?tech|medical|mbbs|mba|management|law|commerce|arts|science|design|pharmacy|nursing)\b/.exec(t)?.[1] || null;
+  return { rank: rank ? Number(rank.replace(/,/g, '')) : null, budget, exam, state, stream };
+}
+
 async function retrieve(question) {
   const words = keywords(question);
   const lower = question.toLowerCase();
@@ -61,6 +83,23 @@ async function retrieve(question) {
   );
   await Promise.all(tasks);
 
+  // Personal profile in the question → ranked recommendations from the recommender
+  const prof = parseProfile(question);
+  if (prof.rank || prof.budget || prof.state) {
+    const streamMap = { 'b.tech': 'engineering', btech: 'engineering', mbbs: 'medical', management: 'mba' };
+    const { data } = await supabase.rpc('recommend_colleges', {
+      p_country: prof.state ? 'India' : null, p_state: prof.state ? prof.state.replace(/\b\w/g, (m) => m.toUpperCase()) : null,
+      p_stream: prof.stream ? (streamMap[prof.stream] || prof.stream) : null, p_budget: prof.budget,
+      p_exam: prof.rank ? prof.exam : null, p_rank: prof.exam ? prof.rank : null, p_lim: 6,
+    });
+    if (data?.length) {
+      const known = new Set(ctx.colleges.map((c) => c.slug));
+      ctx.recommended = data.filter((r) => !known.has(r.slug)).map((r) => ({ slug: r.slug, name: r.name, city: r.city, state: r.state, chance: r.chance,
+        fees_min: r.fees_min, fees_max: r.fees_max, currency: r.currency, nirf_rank: r.nirf_rank, why: r.reasons }));
+      ctx.profile = prof;
+    }
+  }
+
   // Add courses + fees for the first colleges found
   if (ctx.colleges.length) {
     const ids = ctx.colleges.slice(0, 4).map((c) => c.id);
@@ -72,6 +111,7 @@ async function retrieve(question) {
 
 function links(ctx) {
   return [
+    ...(ctx.recommended || []).map((c) => ({ label: `★ ${c.name}, ${c.city}`, href: `/colleges/${c.slug}` })),
     ...ctx.colleges.map((c) => ({ label: `${c.name}, ${c.city}`, href: `/colleges/${c.slug}` })),
     ...ctx.hostels.map((h) => ({ label: `${h.name} (${h.type}, ${h.city})`, href: `/hostels/${h.id}` })),
     ...ctx.jobs.map((j) => ({ label: `${j.title} — ${j.company}`, href: `/jobs/${j.id}` })),

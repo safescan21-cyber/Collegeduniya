@@ -77,6 +77,7 @@ Browser ──► Next.js (web) ──► Supabase  (public reads, OTP login, re
 10. Run **`supabase/migrations/007_quota_global.sql`** (direct admission & quota seats for every country, any currency).
 11. Run **`supabase/migrations/008_cities_languages.sql`** (districts + city names in every language + multilingual city search).
 12. Run **`supabase/migrations/009_security_hardening.sql`** (visitors can read only safe columns; fixed function search paths).
+13. Run **`supabase/migrations/010_roadmap.sql`** then **`010_seed_exams.sql`** (rankings, marks→rank, verified PG & visits, senior connect, roommates, messages, recommender, scholarships, visa guides, payments, lead partners).
 8. Load full college lists:
    ```bash
    npm run import:sheet -- ./All_Colleges.xlsx IN aishe   # India: official AISHE "All Colleges" list (~48k colleges)
@@ -292,6 +293,25 @@ npm run import:india -- ./aishe/         # ~65,000 institutions
 **Sitemaps:**
 - `robots.txt` lists `/sitemap/0.xml` (pages, PGs, jobs, exams, news, Q&A, quota seats).
 - Then one file per 40,000 colleges, and one per 40,000 cities with population ≥ `SITEMAP_CITY_MIN_POP` (default 1000).
+
+## 5e. Roadmap features (migration 010)
+
+| Feature | Where | You add the data |
+|---|---|---|
+| **Official cutoffs** | Admin → Import & APIs → *Official cutoffs & rankings*, or `npm run import:cutoffs -- file.xlsx jee-main 2026 "Round 6"` | JoSAA / MCC / state counselling opening–closing rank tables (Institute, Program, Quota AI/HS/OS, Seat Type, Gender, Opening, Closing). Unmatched institute names are listed. |
+| **NIRF rankings** | same card, or `npm run import:rankings -- nirf-2025-engineering.csv 2025 Engineering` | NIRF table (Name, City, State, Score, Rank). Also updates `colleges.ranking` for sorting. |
+| **Exam predictor pages** | `/predictor/<exam>` (e.g. `/predictor/jee-main`) | Each exam gets an SEO page with home-state quota, category, a “hardest to get” table and an FAQ. 22 official exams are seeded (names, conducting bodies and official sites only; add dates from the official notices). |
+| **Marks → rank** | Admin → Marks → rank | Bands from official result statistics (marks range → rank range + source). |
+| **Verified PG** | Admin → PG & Hostels (verify after a physical check + note); owners add video, 360° tour, safety, deposit, notice period, lock-in, house rules, visit times | An owner's edit removes the badge until it is re-checked. |
+| **Visit booking** | “Book a visit” on every PG page; owners confirm in the Owner portal; students track and cancel in the Dashboard | — |
+| **Senior connect** | “Talk to students” on college pages, `/messages`; Admin → Community verifies members | Members show only their first name. People can be messaged only if they opted in. Users can block or report; there are rate limits. |
+| **Roommate finder** | `/roommates` | Posts expire after 60 days. |
+| **Recommender** | `/recommend`. The chatbot also uses it when a student mentions a rank, budget or state. | Ranks colleges by your chance (cutoffs), NIRF, ratings, budget, state and distance, with the reasons shown. |
+| **Career quiz** | `/career-quiz` | RIASEC interest quiz → courses → colleges. |
+| **Scholarships / visa guides** | `/scholarships`, `/study-abroad/visa`; Admin → Scholarships / Visa guides | An official URL is required for each. The calculator has “Use today's rate”. |
+| **Android app** | `android/README.md` (Bubblewrap TWA) + `/.well-known/assetlinks.json` | Set `ANDROID_PACKAGE_NAME` + `ANDROID_SHA256_CERT_FINGERPRINTS` in web env. |
+| **Boost (paid)** | “Boost” button in the Owner/Employer portals. Listings appear first with a **Sponsored** label. | Set the `RAZORPAY_*` keys and add the webhook `https://<api>/api/payments/razorpay/webhook` (event `order.paid`). Prices are set on the server (`BOOST_PRICES`). |
+| **Lead partners** | Admin → Lead partners (price per lead, auto-share, monthly amount due); Leads → *Send to college* | Leads are shared only if the student ticked the consent box. Email needs `SMTP_URL`. |
 
 ## 6. Deploy on your own VPS (Ubuntu + Nginx + PM2)
 

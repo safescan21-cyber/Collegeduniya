@@ -30,7 +30,7 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
     return rows.map((r) => ({ url: `${SITE_URL}/city/${r.slug}`, priority: 0.6 }));
   }
 
-  const base: MetadataRoute.Sitemap = ['', '/colleges', '/hostels', '/jobs', '/exams', '/news', '/questions', '/predictor', '/compare', '/apply', '/management-quota', '/counselling', '/study-abroad/calculator', '/near-me', '/cities', '/partners'].map((p) => ({
+  const base: MetadataRoute.Sitemap = ['', '/colleges', '/hostels', '/jobs', '/exams', '/news', '/questions', '/predictor', '/compare', '/apply', '/management-quota', '/recommend', '/career-quiz', '/roommates', '/scholarships', '/study-abroad/visa', '/counselling', '/study-abroad/calculator', '/near-me', '/cities', '/partners'].map((p) => ({
     url: `${SITE_URL}${p}`, changeFrequency: 'daily', priority: p ? 0.8 : 1,
   }));
   const [h, j, e, a, q, qs, qc, cc] = await Promise.all([
@@ -43,6 +43,11 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
     sb.rpc('quota_countries'),
     sb.from('countries').select('code').limit(300),
   ]);
+  const [ex, sch, visa] = await Promise.all([
+    sb.from('exams').select('slug').eq('is_published', true).neq('level', 'Abroad').limit(500),
+    sb.from('scholarships').select('slug, updated_at').eq('is_published', true).limit(5000),
+    sb.from('visa_guides').select('country_code, updated_at').eq('is_published', true),
+  ]);
   return [
     ...base,
     ...((cc.data || []) as any[]).map((r) => ({ url: `${SITE_URL}/cities?country=${r.code}`, priority: 0.5 })),
@@ -53,5 +58,8 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
     ...(q.data || []).map((r) => ({ url: `${SITE_URL}/questions/${r.id}`, lastModified: r.created_at, priority: 0.5 })),
     ...((qs.data || []) as any[]).map((r) => ({ url: `${SITE_URL}/management-quota/${r.id}`, lastModified: r.created_at, priority: 0.7 })),
     ...((qc.data || []) as any[]).map((r) => ({ url: `${SITE_URL}/management-quota?country=${r.country_code}`, priority: 0.7 })),
+    ...((ex.data || []) as any[]).map((r) => ({ url: `${SITE_URL}/predictor/${r.slug}`, priority: 0.9 })),
+    ...((sch.data || []) as any[]).map((r) => ({ url: `${SITE_URL}/scholarships/${r.slug}`, lastModified: r.updated_at, priority: 0.6 })),
+    ...((visa.data || []) as any[]).map((r) => ({ url: `${SITE_URL}/study-abroad/visa/${r.country_code.toLowerCase()}`, lastModified: r.updated_at, priority: 0.6 })),
   ];
 }

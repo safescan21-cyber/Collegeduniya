@@ -1,4 +1,5 @@
 'use client';
+import BoostButton from '@/components/BoostButton';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Building2, PlusCircle, Pencil, BadgeCheck, Users, Download, ExternalLink, Upload, Loader2, Save } from 'lucide-react';
@@ -130,6 +131,7 @@ function EmployerPortal() {
               <div><p className="font-semibold text-slate-900">{j.title}</p><p className="text-sm text-slate-500">{j.job_type} · {j.city} · {apps.filter((a) => a.job_id === j.id).length} applicants · {timeAgo(j.created_at)}</p></div>
               <div className="flex items-center gap-2">{approval(j)}
                 {j.is_published && <Link href={`/jobs/${j.id}`} className="btn-ghost py-1.5">View</Link>}
+                <BoostButton itemType="job" itemId={j.id} title={j.title} live={j.is_published && j.approval_status === 'approved'} />
                 <Link href={`/post?type=job&edit=${j.id}`} className="btn-ghost py-1.5"><Pencil size={14} /></Link></div>
             </div>
           ))}

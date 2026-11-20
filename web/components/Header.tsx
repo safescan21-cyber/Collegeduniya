@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   GraduationCap, Menu, X, LogOut, LayoutDashboard, ShieldCheck, MapPin, ChevronDown, Target, Scale,
   FilePlus2, Calculator, Newspaper, BookOpen, MessagesSquare, PlusCircle, PhoneCall, Globe2, Building2, BedDouble,
-  Armchair,
+  Armchair, Sparkles, Compass, UsersRound, MessageCircle, Award, Plane,
 } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { useLang, LangSwitch } from './LangProvider';
@@ -24,6 +24,12 @@ const MORE: { href: string; key: DictKey; icon: any }[] = [
   { href: '/compare', key: 'nav.compare', icon: Scale },
   { href: '/apply', key: 'nav.apply', icon: FilePlus2 },
   { href: '/management-quota', key: 'nav.quota', icon: Armchair },
+  { href: '/recommend', key: 'nav.recommend', icon: Sparkles },
+  { href: '/career-quiz', key: 'nav.quiz', icon: Compass },
+  { href: '/roommates', key: 'nav.roommates', icon: UsersRound },
+  { href: '/messages', key: 'nav.messages', icon: MessageCircle },
+  { href: '/scholarships', key: 'nav.scholarships', icon: Award },
+  { href: '/study-abroad/visa', key: 'nav.visa', icon: Plane },
   { href: '/study-abroad/calculator', key: 'nav.calculator', icon: Calculator },
   { href: '/news', key: 'nav.news', icon: Newspaper },
   { href: '/questions', key: 'nav.qa', icon: MessagesSquare },

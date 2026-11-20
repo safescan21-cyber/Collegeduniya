@@ -86,6 +86,8 @@ export const schemas = {
     contact_email: optStr,
     is_verified: bool,
     is_published: bool,
+    video_url: optStr, tour_url: optStr, safety: strArr, deposit_amount: optNum, notice_days: optInt, lock_in_months: optInt,
+    house_rules: optStr, visit_slots: strArr, verified_note: optStr, verified_at: optStr,
   }),
   jobs: z.object({
     title: str.min(2),
@@ -196,6 +198,36 @@ schemas.quota_seats = z.object({
   is_featured: bool,
 });
 
+
+const url = z.string().trim().url();
+
+schemas.rank_bands = z.object({
+  exam_slug: str.min(2), year: z.coerce.number().int().min(2000).max(2100), category: optStr,
+  marks_from: z.coerce.number(), marks_to: z.coerce.number(), rank_from: z.coerce.number().int().positive(), rank_to: z.coerce.number().int().positive(),
+  source: optStr,
+});
+schemas.college_rankings = z.object({
+  college_id: z.string().uuid(), source: optStr, year: z.coerce.number().int(), category: optStr,
+  rank: optInt, rank_band: optStr, score: optNum, source_url: optStr,
+});
+schemas.scholarships = z.object({
+  slug: optStr, name: str.min(3), provider: optStr, host_country: optStr, for_nationalities: strArr, levels: strArr, field: optStr,
+  amount: optNum, currency: optStr, amount_note: optStr, deadline: optDate, eligibility: optStr, how_to_apply: optStr,
+  official_url: url, is_published: bool,
+});
+schemas.visa_guides = z.object({
+  country_code: z.string().trim().length(2).transform((v) => v.toUpperCase()), title: str.min(3), summary: optStr, body: optStr,
+  processing_time: optStr, fee_note: optStr, work_rights: optStr, official_url: url, is_published: bool,
+});
+schemas.college_partners = z.object({
+  college_id: z.string().uuid(), contact_name: optStr, contact_email: optStr, contact_phone: optStr,
+  lead_price: optNum, currency: optStr, auto_share: bool, is_active: bool, notes: optStr,
+});
+schemas.promotions = z.object({
+  item_type: z.enum(['college', 'hostel', 'job', 'quota_seat']), item_id: z.string().uuid(),
+  starts_at: optStr, ends_at: str.min(10), note: optStr,
+});
+
 schemas.exams = z.object({
   slug: optStr,
   short_name: str.min(2),
@@ -270,6 +302,11 @@ export const moderation = {
     status: z.enum(['submitted', 'under_review', 'contacted', 'shortlisted', 'offered', 'admitted', 'rejected', 'withdrawn']).optional(),
     admin_note: optStr,
   }),
+  reports: z.object({ status: z.enum(['open', 'actioned', 'dismissed']).optional(), admin_note: optStr }),
+  college_members: z.object({ is_verified: bool, open_to_questions: bool }),
+  roommate_posts: z.object({ is_active: bool }),
+  hostel_visits: z.object({ status: z.enum(['requested', 'confirmed', 'done', 'cancelled', 'no_show']).optional(), owner_note: optStr }),
+  payments: z.object({ status: z.enum(['created', 'paid', 'failed', 'refunded']).optional() }),
   questions: z.object({ status: z.enum(['approved', 'pending', 'blocked']).optional(), title: str.min(10).optional(), body: optStr }),
   answers: z.object({ status: z.enum(['approved', 'pending', 'blocked']).optional(), body: str.min(5).optional(), is_official: bool }),
   hostel_reviews: z.object({ status: z.enum(['approved', 'pending', 'blocked']).optional(), body: str.min(5).optional() }),
@@ -295,6 +332,7 @@ export const leadSchema = z.object({
   course_interest: optStr,
   message: z.string().trim().max(2000).optional().nullable(),
   source_path: z.string().max(300).optional().nullable(),
+  consent_share: z.boolean().optional().default(false),
   website: z.string().max(0).optional(), // honeypot — must stay empty
 });
 

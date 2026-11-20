@@ -1,10 +1,19 @@
 'use client';
+import { useEffect, useState } from 'react';
 import ModerationList from '@/components/admin/ModerationList';
+import { api } from '@/lib/api';
 import { timeAgo } from '@/lib/format';
 
 export default function AdminLeads() {
+  const [partners, setPartners] = useState<Set<string>>(new Set());
+  useEffect(() => { api('/api/admin/college_partners?limit=500').then((r) => setPartners(new Set((r.data || []).filter((p: any) => p.is_active).map((p: any) => p.college_id)))).catch(() => {}); }, []);
   return (
     <ModerationList
+      extraActions={(r) => r.college_id && partners.has(r.college_id) ? (
+        r.shared_at ? <span className="chip-green text-xs">Sent to college</span>
+          : r.consent_share ? <button className="btn-primary py-1 text-xs" onClick={async () => { try { const x = await api(`/api/admin/leads/${r.id}/share`, { method: 'POST', body: JSON.stringify({ college_id: r.college_id }) }); alert(x.mailed ? 'Sent to the college by email.' : 'Marked as shared (email not configured).'); } catch (e: any) { alert(e.message); } }}>Send to college</button>
+          : <span className="chip text-xs" title="The student did not agree to share their details">No consent</span>
+      ) : null}
       resource="leads" title="Leads & enquiries" exportName="leads" statusField="status" noteField="admin_note"
       statusOptions={['new', 'contacted', 'converted', 'closed']}
       tabs={[{ label: 'New', params: { status: 'new' } }, { label: 'Contacted', params: { status: 'contacted' } }, { label: 'Converted', params: { status: 'converted' } }, { label: 'All', params: {} }]}

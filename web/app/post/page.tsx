@@ -1,4 +1,5 @@
 'use client';
+import { SAFETY } from '@/lib/pgSafety';
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -24,7 +25,7 @@ function PostForm() {
   const editId = params.get('edit');
   const supabase = supabaseBrowser();
   const [kind, setKind] = useState<Kind>(params.get('type') === 'job' ? 'job' : 'hostel');
-  const [h, setH] = useState<any>({ type: 'PG', gender: 'Co-ed', currency: 'INR', rent_period: 'month', country: 'India', amenities: [] as string[], photos: [] as string[] });
+  const [h, setH] = useState<any>({ type: 'PG', gender: 'Co-ed', currency: 'INR', rent_period: 'month', country: 'India', amenities: [] as string[], photos: [] as string[], safety: [] as string[] });
   const [j, setJ] = useState<any>({ job_type: 'Part-time', currency: 'INR', pay_unit: 'month', country: 'India', is_remote: false });
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -40,7 +41,7 @@ function PostForm() {
     supabase.from(table).select('*').eq('id', editId).maybeSingle().then(({ data }: { data: any }) => {
       if (!data) return;
       if (table === 'jobs') { setKind('job'); setJ({ ...data, skills: (data.skills || []).join(', ') }); }
-      else { setKind('hostel'); setH({ ...data, amenities: data.amenities || [], photos: data.photos || [] }); }
+      else { setKind('hostel'); setH({ ...data, amenities: data.amenities || [], photos: data.photos || [], safety: data.safety || [] }); }
     });
   }, [editId, user, params, supabase]);
 
@@ -111,6 +112,9 @@ function PostForm() {
         name: h.name, type: h.type, gender: h.gender, country: h.country, city: h.city, address: h.address || null,
         rent_min: num(h.rent_min), rent_max: num(h.rent_max), currency: h.currency, rent_period: h.rent_period,
         amenities: h.amenities, description: h.description || null, photos: h.photos,
+        video_url: h.video_url || null, tour_url: h.tour_url || null, safety: h.safety || [], house_rules: h.house_rules || null,
+        deposit_amount: num(h.deposit_amount), notice_days: num(h.notice_days), lock_in_months: num(h.lock_in_months),
+        visit_slots: String(h.visit_slots_text ?? (h.visit_slots || []).join(', ')).split(',').map((x: string) => x.trim()).filter(Boolean),
         contact_name: h.contact_name || null, contact_phone: h.contact_phone || null, contact_email: h.contact_email || null,
         latitude: num(h.latitude), longitude: num(h.longitude), submitted_by: user.id,
       };
@@ -185,6 +189,22 @@ function PostForm() {
               </div>
             </Field>
             <Field label="Description" full><textarea rows={4} className="input" value={h.description || ''} onChange={(e) => setH({ ...h, description: e.target.value })} placeholder="Rooms, sharing, food timings, rules, deposit…" /></Field>
+            <Field label="Safety" full>
+              <div className="flex flex-wrap gap-2">
+                {SAFETY.map((a) => {
+                  const on = (h.safety || []).includes(a.key);
+                  return <button type="button" key={a.key} onClick={() => setH({ ...h, safety: on ? h.safety.filter((x: string) => x !== a.key) : [...(h.safety || []), a.key] })}
+                    className={on ? 'chip-green cursor-pointer py-1.5' : 'chip cursor-pointer py-1.5'}>{a.label}</button>;
+                })}
+              </div>
+            </Field>
+            <Field label="Security deposit"><input type="number" className="input" value={h.deposit_amount ?? ''} onChange={(e) => setH({ ...h, deposit_amount: e.target.value })} /></Field>
+            <Field label="Notice period (days)"><input type="number" className="input" value={h.notice_days ?? ''} onChange={(e) => setH({ ...h, notice_days: e.target.value })} /></Field>
+            <Field label="Lock-in (months, 0 = none)"><input type="number" className="input" value={h.lock_in_months ?? ''} onChange={(e) => setH({ ...h, lock_in_months: e.target.value })} /></Field>
+            <Field label="Visit times (comma separated)"><input className="input" value={h.visit_slots_text ?? (h.visit_slots || []).join(', ')} onChange={(e) => setH({ ...h, visit_slots_text: e.target.value })} placeholder="Weekdays 5–8 pm, Sunday 10 am–1 pm" /></Field>
+            <Field label="Video tour link (YouTube / Vimeo)" full><input className="input" value={h.video_url || ''} onChange={(e) => setH({ ...h, video_url: e.target.value })} placeholder="https://youtu.be/…" /></Field>
+            <Field label="360° tour link (optional)" full><input className="input" value={h.tour_url || ''} onChange={(e) => setH({ ...h, tour_url: e.target.value })} /></Field>
+            <Field label="House rules" full><textarea rows={3} className="input" value={h.house_rules || ''} onChange={(e) => setH({ ...h, house_rules: e.target.value })} placeholder="Gate closing time, guests, cooking, smoking…" /></Field>
             <Field label="Photos (up to 12)" full>
               <div className="flex flex-wrap gap-2">
                 {(h.photos || []).map((u: string, i: number) => (

@@ -7,16 +7,17 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 import { CompareButton, SaveButton } from '@/components/ActionButtons';
 import EnquiryForm from '@/components/EnquiryForm';
 
-type Row = { college_id: string; slug: string; name: string; city: string; country: string; course: string; category: string; quota: string | null; year: number; opening_rank: number | null; closing_rank: number; chance: 'High' | 'Medium' | 'Low' };
+type Row = { college_id: string; slug: string; name: string; city: string; state?: string | null; home_state?: string | null; country: string; course: string; category: string; quota: string | null; year: number; opening_rank: number | null; closing_rank: number; chance: 'High' | 'Medium' | 'Low' };
 const CHANCE = { High: 'chip-green', Medium: 'chip-amber', Low: 'chip-red' } as const;
 
-export default function Predictor({ exams, categories, quotas }: { exams: { slug: string; short_name: string }[]; categories: string[]; quotas: string[] }) {
+export default function Predictor({ exams, categories, quotas, states = [], title, hideHeader = false }: { exams: { slug: string; short_name: string }[]; categories: string[]; quotas: string[]; states?: string[]; title?: string; hideHeader?: boolean }) {
   const params = useSearchParams();
   const supabase = supabaseBrowser();
   const [exam, setExam] = useState(params.get('exam') || exams[0]?.slug || '');
   const [rank, setRank] = useState('');
   const [category, setCategory] = useState('General');
   const [quota, setQuota] = useState('');
+  const [homeState, setHomeState] = useState(params.get('state') || '');
   const [rows, setRows] = useState<Row[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -28,7 +29,7 @@ export default function Predictor({ exams, categories, quotas }: { exams: { slug
     if (!exam) return setErr('Choose an exam.');
     if (!r || r < 1) return setErr('Enter your rank (a positive number).');
     setBusy(true); setErr('');
-    const { data, error } = await supabase.rpc('predict_colleges', { p_exam: exam, p_rank: r, p_category: category, p_quota: quota || null });
+    const { data, error } = await supabase.rpc('predict_colleges', { p_exam: exam, p_rank: r, p_category: category, p_quota: quota || null, p_state: homeState || null });
     setBusy(false);
     if (error) return setErr(error.message);
     setRows((data || []) as Row[]);
@@ -41,11 +42,13 @@ export default function Predictor({ exams, categories, quotas }: { exams: { slug
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
       <div className="min-w-0">
-        <h1 className="flex items-center gap-2 text-3xl font-extrabold text-slate-900"><Target className="text-brand-600" />College predictor</h1>
-        <p className="mt-1 text-slate-500">See where you can get admission, based on last year’s closing ranks.</p>
+        {!hideHeader && <>
+          <h1 className="flex items-center gap-2 text-3xl font-extrabold text-slate-900"><Target className="text-brand-600" />{title || 'College predictor'}</h1>
+          <p className="mt-1 text-slate-500">See where you can get admission, based on last year’s closing ranks.</p>
+        </>}
 
         {exams.length === 0 ? (
-          <div className="card mt-6 p-8 text-center text-slate-500">Cutoff data hasn’t been added yet. Admins can add cutoffs per college in Admin → Colleges → Courses & data.</div>
+          <div className="card mt-6 p-8 text-center text-slate-500">Cutoff data for this exam hasn’t been added yet. Admins can upload official counselling cutoffs in Admin → Import & APIs.</div>
         ) : (
           <form onSubmit={run} className="card mt-6 grid gap-4 p-6 sm:grid-cols-4">
             <div className="sm:col-span-1"><label className="label">Exam</label>
@@ -57,6 +60,10 @@ export default function Predictor({ exams, categories, quotas }: { exams: { slug
               <div><label className="label">Quota</label>
                 <select className="input" value={quota} onChange={(e) => setQuota(e.target.value)}><option value="">Any</option>{quotas.map((q) => <option key={q}>{q}</option>)}</select></div>
             ) : <div className="hidden sm:block" />}
+            {states.length > 0 && (
+              <div className="sm:col-span-2"><label className="label">Your home state (for state-quota seats)</label>
+                <select className="input" value={homeState} onChange={(e) => setHomeState(e.target.value)}><option value="">Not needed / outside India</option>{states.map((s) => <option key={s}>{s}</option>)}</select></div>
+            )}
             {err && <p className="text-sm text-rose-600 sm:col-span-4">{err}</p>}
             <button disabled={busy} className="btn-primary sm:col-span-4">{busy ? <Loader2 size={16} className="animate-spin" /> : <Target size={16} />}Predict my colleges</button>
           </form>
@@ -78,7 +85,7 @@ export default function Predictor({ exams, categories, quotas }: { exams: { slug
                     <div className="min-w-0 flex-1">
                       <Link href={`/colleges/${r.slug}#cutoffs`} className="font-semibold text-slate-900 hover:text-brand-700">{r.name}</Link>
                       <p className="text-sm text-slate-600">{r.course}</p>
-                      <p className="text-xs text-slate-400">{r.city}, {r.country} · {r.year} closing rank {r.closing_rank.toLocaleString()} ({r.category}{r.quota ? `, ${r.quota}` : ''})</p>
+                      <p className="text-xs text-slate-400">{r.city}, {r.country} · {r.year} closing rank {r.closing_rank.toLocaleString()} ({r.category}{r.quota ? `, ${r.quota}` : ''}{r.home_state && r.quota === 'Home State' ? ` · ${r.home_state}` : ''})</p>
                     </div>
                     <span className={CHANCE[r.chance]}>{r.chance} chance</span>
                     <CompareButton item={{ id: r.college_id, slug: r.slug, name: r.name, city: r.city }} />

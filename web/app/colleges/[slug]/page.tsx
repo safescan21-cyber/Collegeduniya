@@ -8,6 +8,7 @@ import { HostelCard, JobCard, Stars, EmptyState } from '@/components/Cards';
 import ReviewSection from '@/components/ReviewSection';
 import Gallery from '@/components/Gallery';
 import QuotaSeatCard from '@/components/QuotaSeatCard';
+import CollegeCommunity from '@/components/CollegeCommunity';
 import EnquiryForm from '@/components/EnquiryForm';
 import { SaveButton, CompareButton, ShareButtons, ApplyCartButton } from '@/components/ActionButtons';
 import { AskForm, QuestionList } from '@/components/QuestionsBlock';
@@ -104,6 +105,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
     ...(show('cutoffs') && cutoffList.length ? [['cutoffs', 'Cutoffs'] as [string, string]] : []),
     ...(show('reviews') ? [['reviews', `Reviews (${count})`] as [string, string]] : []),
     ...(show('qa') ? [['qa', `Q&A (${questionList.length})`] as [string, string]] : []),
+    ...(show('community') ? [['community', 'Talk to students'] as [string, string]] : []),
     ...(show('hostels') ? [['hostels', 'PG & Hostels'] as [string, string]] : []),
     ...(show('jobs') ? [['jobs', 'Part-time Jobs'] as [string, string]] : []),
     ...(show('nearby') ? [['nearby', 'Nearby'] as [string, string]] : []),
@@ -302,6 +304,14 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
           {show('reviews') && <section id="reviews" className="scroll-mt-32">
             <ReviewSection collegeId={c.id} collegeName={c.name} reviews={reviewList} avg={avg} count={count} />
           </section>}
+
+          {show('community') && (
+            <section id="community" className="scroll-mt-32">
+              <h2 className="mb-1 text-xl font-bold text-slate-900">Talk to students of {c.short_name || c.name}</h2>
+              <p className="mb-4 text-sm text-slate-500">Ask seniors about hostels, faculty and placements, or find classmates and roommates who are also applying.</p>
+              <CollegeCommunity collegeId={c.id} collegeName={c.short_name || c.name} />
+            </section>
+          )}
 
           {show('qa') && <section id="qa" className="scroll-mt-32 space-y-4">
             <div className="flex items-end justify-between">

@@ -23,23 +23,37 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 export default async function HostelsPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const page = Math.max(1, parseInt(sp.page || '1', 10) || 1);
+  let sponsored: any[] = [];
   let hostels: Hostel[] = [];
   let total = 0;
 
   if (hasSupabase) {
-    let q = supabasePublic().from('hostels').select('*, colleges(name, slug), hostel_rooms(beds_available)', { count: 'exact' }).eq('is_published', true);
-    const term = cleanTerm(sp.q);
-    if (term) q = q.or(`name.ilike.%${term}%,city.ilike.%${term}%,address.ilike.%${term}%`);
-    if (sp.country) q = q.eq('country', sp.country);
-    if (sp.city) q = q.ilike('city', cleanTerm(sp.city));
-    if (sp.type) q = q.eq('type', sp.type);
-    if (sp.gender) q = q.eq('gender', sp.gender);
-    if (sp.amenity) q = q.contains('amenities', [sp.amenity]);
-    if (sp.rent_max) q = q.lte('rent_min', Number(sp.rent_max));
+    const sb = supabasePublic();
+    const filters = (q: any) => {
+      const term = cleanTerm(sp.q);
+      if (term) q = q.or(`name.ilike.%${term}%,city.ilike.%${term}%,address.ilike.%${term}%`);
+      if (sp.country) q = q.eq('country', sp.country);
+      if (sp.city) q = q.ilike('city', cleanTerm(sp.city));
+      if (sp.type) q = q.eq('type', sp.type);
+      if (sp.gender) q = q.eq('gender', sp.gender);
+      if (sp.amenity) q = q.contains('amenities', [sp.amenity]);
+      if (sp.rent_max) q = q.lte('rent_min', Number(sp.rent_max));
+      return q;
+    };
+    let q = sb.from('hostels').select('*, colleges(name, slug), hostel_rooms(beds_available)', { count: 'exact' }).eq('is_published', true);
+    q = filters(q);
     q = sp.sort === 'rent_low' ? q.order('rent_min', { ascending: true, nullsFirst: false })
       : sp.sort === 'rent_high' ? q.order('rent_max', { ascending: false, nullsFirst: false })
       : q.order('is_verified', { ascending: false }).order('created_at', { ascending: false });
     const { data, count } = await q.range((page - 1) * PER_PAGE, page * PER_PAGE - 1);
+    if (page === 1) {
+      const { data: promo } = await sb.from('promotions').select('item_id').eq('item_type', 'hostel').limit(200);
+      const ids = Array.from(new Set((promo || []).map((p: any) => p.item_id)));
+      if (ids.length) {
+        const { data: sp2 } = await filters(sb.from('hostels').select('*, colleges(name, slug), hostel_rooms(beds_available)').in('id', ids).eq('is_published', true)).limit(3);
+        sponsored = (sp2 || []) as any[];
+      }
+    }
     hostels = (data || []) as Hostel[];
     total = count || 0;
   }
@@ -66,7 +80,7 @@ export default async function HostelsPage({ searchParams }: { searchParams: Prom
         </aside>
         <section>
           {hostels.length ? (
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{hostels.map((h) => <HostelCard key={h.id} h={h} />)}</div>
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{sponsored.map((x) => <div key={`sp-${x.id}`} className="relative"><HostelCard h={x} /><span className="chip-amber absolute end-3 top-3 z-10">Sponsored</span></div>)}{hostels.filter((x) => !sponsored.some((y) => y.id === x.id)).map((h) => <HostelCard key={h.id} h={h} />)}</div>
           ) : <EmptyState icon={<Home size={28} />} title="No stays found" text="Try another city or remove some filters." />}
           <Pagination page={page} total={total} perPage={PER_PAGE} basePath="/hostels" params={sp} />
         </section>

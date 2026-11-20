@@ -23,20 +23,34 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 export default async function JobsPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const page = Math.max(1, parseInt(sp.page || '1', 10) || 1);
+  let sponsored: any[] = [];
   let jobs: Job[] = [];
   let total = 0;
 
   if (hasSupabase) {
-    let q = supabasePublic().from('jobs').select('*', { count: 'exact' }).eq('is_published', true).eq('status', 'open');
-    const term = cleanTerm(sp.q);
-    if (term) q = q.or(`title.ilike.%${term}%,company.ilike.%${term}%,city.ilike.%${term}%`);
-    if (sp.country) q = q.eq('country', sp.country);
-    if (sp.city) q = q.ilike('city', cleanTerm(sp.city));
-    if (sp.type) q = q.eq('job_type', sp.type);
-    if (sp.remote === 'yes') q = q.eq('is_remote', true);
-    if (sp.remote === 'no') q = q.eq('is_remote', false);
+    const sb = supabasePublic();
+    const filters = (q: any) => {
+      const term = cleanTerm(sp.q);
+      if (term) q = q.or(`title.ilike.%${term}%,company.ilike.%${term}%,city.ilike.%${term}%`);
+      if (sp.country) q = q.eq('country', sp.country);
+      if (sp.city) q = q.ilike('city', cleanTerm(sp.city));
+      if (sp.type) q = q.eq('job_type', sp.type);
+      if (sp.remote === 'yes') q = q.eq('is_remote', true);
+      if (sp.remote === 'no') q = q.eq('is_remote', false);
+      return q;
+    };
+    let q = sb.from('jobs').select('*', { count: 'exact' }).eq('is_published', true).eq('status', 'open');
+    q = filters(q);
     q = sp.sort === 'pay' ? q.order('pay_max', { ascending: false, nullsFirst: false }) : q.order('created_at', { ascending: false });
     const { data, count } = await q.range((page - 1) * PER_PAGE, page * PER_PAGE - 1);
+    if (page === 1) {
+      const { data: promo } = await sb.from('promotions').select('item_id').eq('item_type', 'job').limit(200);
+      const ids = Array.from(new Set((promo || []).map((p: any) => p.item_id)));
+      if (ids.length) {
+        const { data: sp2 } = await filters(sb.from('jobs').select('*').in('id', ids).eq('is_published', true).eq('status', 'open')).limit(3);
+        sponsored = (sp2 || []) as any[];
+      }
+    }
     jobs = (data || []) as Job[];
     total = count || 0;
   }
@@ -61,7 +75,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
         </aside>
         <section>
           {jobs.length ? (
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{jobs.map((j) => <JobCard key={j.id} j={j} />)}</div>
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{sponsored.map((x) => <div key={`sp-${x.id}`} className="relative"><JobCard j={x} /><span className="chip-amber absolute end-3 top-3 z-10">Sponsored</span></div>)}{jobs.filter((x) => !sponsored.some((y) => y.id === x.id)).map((j) => <JobCard key={j.id} j={j} />)}</div>
           ) : <EmptyState icon={<Briefcase size={28} />} title="No open jobs match" text="New student jobs are added daily — try a nearby city." />}
           <Pagination page={page} total={total} perPage={PER_PAGE} basePath="/jobs" params={sp} />
         </section>

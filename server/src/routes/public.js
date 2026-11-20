@@ -2,6 +2,7 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { supabase } from '../supabase.js';
 import { leadSchema, newsletterSchema } from '../schemas.js';
+import { autoShare } from '../services/leadShare.js';
 
 const router = Router();
 
@@ -18,7 +19,8 @@ router.post('/leads', formLimit, async (req, res) => {
   const { website: _hp, ...lead } = parsed.data;
   lead.user_id = req.user?.id || null;
   if (!lead.email && req.user?.email) lead.email = req.user.email;
-  const { error } = await supabase.from('leads').insert(lead);
+  const { data: saved, error } = await supabase.from('leads').insert(lead).select('id, college_id, consent_share').single();
+  if (!error) autoShare(saved).catch(() => {});
   if (error) {
     console.error('[leads]', error.message);
     return res.status(500).json({ error: 'Could not send your request, please try again.' });

@@ -77,6 +77,9 @@ export default function Calculator() {
           <div><label className="label">University currency</label><select className="input" value={cur} onChange={(e) => setCur(e.target.value)}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select></div>
           <div><label className="label">Your home currency</label><select className="input" value={home} onChange={(e) => setHome(e.target.value)}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select></div>
           <Num label={`1 ${cur} = ? ${home}`} value={cur === home ? '1' : v.rate} onChange={set('rate')} help="Today’s exchange rate" />
+          {cur !== home && <button type="button" className="text-xs font-semibold text-brand-700 underline" onClick={async () => {
+            try { const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/fx?base=${cur}`).then((x) => x.json()); const rate = r?.data?.rates?.[home]; if (rate) setV((p) => ({ ...p, rate: String(Math.round(rate * 100) / 100) })); } catch { /* offline */ }
+          }}>Use today’s rate</button>}
           <Num label="Tuition per year" value={v.tuition} onChange={set('tuition')} suffix={cur} />
           <Num label="Living cost per year" value={v.living} onChange={set('living')} suffix={cur} help="Rent, food, transport, insurance" />
           <Num label="Course length" value={v.years} onChange={set('years')} suffix="years" />

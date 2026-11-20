@@ -8,6 +8,8 @@ import { Stars } from '@/components/Cards';
 import { useAuth } from '@/components/AuthProvider';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { range, timeAgo } from '@/lib/format';
+import BoostButton from '@/components/BoostButton';
+import { CalendarCheck } from 'lucide-react';
 
 function OwnerPortal() {
   const { user, profile } = useAuth();
@@ -15,6 +17,8 @@ function OwnerPortal() {
   const [hostels, setHostels] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [visits, setVisits] = useState<any[]>([]);
+  const [boosts, setBoosts] = useState<Record<string, string>>({});
   const [open, setOpen] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -25,11 +29,14 @@ function OwnerPortal() {
     if (list.length && !open) setOpen(list[0].id);
     const ids = list.map((h: any) => h.id);
     if (ids.length) {
-      const [l, r] = await Promise.all([
+      const [l, r, v, b] = await Promise.all([
         supabase.from('leads').select('*').in('hostel_id', ids).order('created_at', { ascending: false }).limit(50),
         supabase.from('hostel_reviews_public').select('*').in('hostel_id', ids).order('created_at', { ascending: false }).limit(20),
+        supabase.from('hostel_visits').select('*').in('hostel_id', ids).gte('visit_date', new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10)).order('visit_date').limit(100),
+        supabase.from('promotions').select('item_id, ends_at').eq('item_type', 'hostel').in('item_id', ids),
       ]);
-      setLeads(l.data || []); setReviews(r.data || []);
+      setLeads(l.data || []); setReviews(r.data || []); setVisits(v.data || []);
+      setBoosts(Object.fromEntries((b.data || []).map((x: any) => [x.item_id, x.ends_at])));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, supabase]);
@@ -62,6 +69,8 @@ function OwnerPortal() {
                 <div className="mb-4 flex flex-wrap gap-2">
                   <Link href={`/post?type=hostel&edit=${h.id}`} className="btn-ghost py-1.5"><Pencil size={14} />Edit details & photos</Link>
                   {h.is_published && <Link href={`/hostels/${h.id}`} className="btn-ghost py-1.5"><ExternalLink size={14} />View listing</Link>}
+                  <BoostButton itemType="hostel" itemId={h.id} title={h.name} live={h.is_published && h.approval_status === 'approved'} boostedUntil={boosts[h.id]} />
+                  {h.is_verified ? <span className="chip-green">Verified</span> : <span className="chip" title="Our team verifies PGs after a visit — request it from the counselling page">Not verified yet</span>}
                 </div>
                 {h.approval_status === 'pending' && <p className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">Our team is checking this listing. You can already add rooms — they show once it’s live.</p>}
                 <RoomsManager hostelId={h.id} currency={h.currency || 'INR'} />
@@ -70,6 +79,28 @@ function OwnerPortal() {
           </div>
         ))}
         {!hostels.length && <div className="card p-10 text-center text-slate-500">No properties yet. <Link href="/post?type=hostel" className="font-semibold text-brand-700">Add your first PG →</Link></div>}
+      </section>
+
+      <section className="card p-5">
+        <h2 className="flex items-center gap-2 font-bold text-slate-900"><CalendarCheck size={16} />Visit requests ({visits.filter((v) => v.status === 'requested').length} new)</h2>
+        <ul className="mt-3 divide-y divide-slate-100">
+          {visits.map((v) => (
+            <li key={v.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
+              <div>
+                <p className="font-semibold text-slate-900">{v.name} · {new Date(v.visit_date).toLocaleDateString()} {v.slot ? `· ${v.slot}` : ''} {v.mode === 'video_call' && <span className="chip">Video call</span>}</p>
+                <p className="flex flex-wrap gap-3"><a href={`tel:${v.phone}`} className="text-brand-700">{v.phone}</a><a href={`https://wa.me/${String(v.phone).replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-emerald-700">WhatsApp</a></p>
+                {v.note && <p className="text-slate-600">{v.note}</p>}
+                <p className="text-xs text-slate-400">{hostels.find((h) => h.id === v.hostel_id)?.name}</p>
+              </div>
+              <select value={v.status} onChange={async (e) => { const note = e.target.value === 'confirmed' ? prompt('Message for the student (optional)', v.owner_note || '') : v.owner_note;
+                  await supabase.from('hostel_visits').update({ status: e.target.value, owner_note: note ?? v.owner_note }).eq('id', v.id); load(); }}
+                className="input w-auto py-1.5 capitalize">
+                {['requested', 'confirmed', 'done', 'no_show', 'cancelled'].map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+              </select>
+            </li>
+          ))}
+          {!visits.length && <li className="py-3 text-sm text-slate-400">No visit requests yet. Add visit times in your listing so students can book.</li>}
+        </ul>
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">

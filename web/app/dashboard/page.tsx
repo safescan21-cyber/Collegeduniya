@@ -16,7 +16,7 @@ const STATUS_CHIP: Record<string, string> = {
 };
 
 const QUOTA_CHIP: Record<string, string> = { submitted: 'chip', under_review: 'chip-amber', contacted: 'chip-amber', shortlisted: 'chip-green', offered: 'chip-green', admitted: 'chip-green', rejected: 'chip-red', withdrawn: 'chip' };
-type Tab = 'applications' | 'colleges' | 'saved' | 'listings' | 'reviews' | 'profile';
+type Tab = 'visits' | 'applications' | 'colleges' | 'saved' | 'listings' | 'reviews' | 'profile';
 
 function Dashboard() {
   const { user, profile, loading, refreshProfile } = useAuth();
@@ -26,6 +26,7 @@ function Dashboard() {
   const [apps, setApps] = useState<any[]>([]);
   const [capps, setCapps] = useState<any[]>([]);
   const [qapps, setQapps] = useState<any[]>([]);
+  const [visits, setVisits] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [saved, setSaved] = useState<{ colleges: any[]; hostels: any[]; jobs: any[] }>({ colleges: [], hostels: [], jobs: [] });
   const [myHostels, setMyHostels] = useState<any[]>([]);
@@ -46,6 +47,8 @@ function Dashboard() {
       supabase.from('quota_applications').select('*, quota_seats(course, quota_type, academic_year), colleges(name, slug, city)').eq('user_id', user.id).order('created_at', { ascending: false }),
     ]);
     setQapps(qa.data || []);
+    const { data: vs } = await supabase.from('hostel_visits').select('*, hostels(name, city)').eq('user_id', user.id).order('visit_date', { ascending: false }).limit(50);
+    setVisits(vs || []);
     setApps(a.data || []); setCapps(ca.data || []); setReviews(r.data || []);
     setMyHostels(mh.data || []); setMyJobs(mj.data || []);
     const ids = (t: string) => (s.data || []).filter((x: any) => x.item_type === t).map((x: any) => x.item_id);
@@ -114,6 +117,7 @@ function Dashboard() {
   const TABS: { key: Tab; label: string; icon: any; n?: number }[] = [
     { key: 'applications', label: 'Job applications', icon: Briefcase, n: apps.length },
     { key: 'colleges', label: 'College applications', icon: FilePlus2, n: capps.length + qapps.length },
+    { key: 'visits', label: 'PG visits', icon: Home, n: visits.length },
     { key: 'saved', label: 'Shortlist', icon: Heart, n: savedCount },
     { key: 'listings', label: 'My listings', icon: Building, n: myHostels.length + myJobs.length },
     { key: 'reviews', label: 'My reviews', icon: Star, n: reviews.length },
@@ -134,7 +138,7 @@ function Dashboard() {
           </div>
         </div>
         {profile?.is_blocked && <span className="chip-red">Your account is restricted — contact support</span>}
-        <div className="flex flex-wrap gap-2"><Link href="/jobs" className="btn-primary">Find jobs</Link><Link href="/post" className="btn-ghost"><PlusCircle size={16} />Post PG / Job</Link></div>
+        <div className="flex flex-wrap gap-2"><Link href="/messages" className="btn-ghost">Messages</Link><Link href="/jobs" className="btn-primary">Find jobs</Link><Link href="/post" className="btn-ghost"><PlusCircle size={16} />Post PG / Job</Link></div>
       </div>
 
       <div className="mt-6 flex gap-2 overflow-x-auto pb-1">
@@ -205,6 +209,24 @@ function Dashboard() {
             )}
           </div>
         ) : <Empty text="You haven't applied to any college through StudyEarnstay yet." href="/management-quota" cta="See management quota seats" />)}
+
+        {tab === 'visits' && (visits.length ? (
+          <div className="card divide-y divide-slate-100">
+            {visits.map((v) => (
+              <div key={v.id} className="flex flex-col gap-2 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <Link href={`/hostels/${v.hostel_id}`} className="font-semibold text-slate-900 hover:text-brand-700">{v.hostels?.name}, {v.hostels?.city}</Link>
+                  <p className="text-sm text-slate-500">{new Date(v.visit_date).toLocaleDateString()} {v.slot ? `· ${v.slot}` : ''} · {v.mode === 'video_call' ? 'Video call' : 'In person'}</p>
+                  {v.owner_note && <p className="mt-1 text-sm text-brand-700">Owner: {v.owner_note}</p>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`${v.status === 'confirmed' ? 'chip-green' : v.status === 'cancelled' || v.status === 'no_show' ? 'chip-red' : 'chip'} capitalize`}>{v.status.replace('_', ' ')}</span>
+                  {['requested', 'confirmed'].includes(v.status) && <button onClick={async () => { if (confirm('Cancel this visit?')) { await supabase.from('hostel_visits').update({ status: 'cancelled' }).eq('id', v.id); load(); } }} className="btn-ghost py-1.5 text-rose-600">Cancel</button>}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : <Empty text="Book a visit from any PG page to see the room before you pay." href="/hostels" cta="Find a PG" />)}
 
         {tab === 'saved' && (savedCount ? (
           <div className="grid gap-6 lg:grid-cols-3">

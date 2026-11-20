@@ -22,6 +22,7 @@ export default function EnquiryForm({ kind = 'counselling', collegeId, hostelId,
   const { t } = useLang();
   const pathname = usePathname();
   const [f, setF] = useState({ full_name: '', phone: '', email: '', city: '', course_interest: defaultCourse || '', message: '', website: '' });
+  const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [err, setErr] = useState('');
@@ -40,7 +41,7 @@ export default function EnquiryForm({ kind = 'counselling', collegeId, hostelId,
     try {
       await api('/api/leads', {
         method: 'POST',
-        body: JSON.stringify({ ...f, kind, college_id: collegeId || null, hostel_id: hostelId || null, source_path: pathname }),
+        body: JSON.stringify({ ...f, kind, college_id: collegeId || null, hostel_id: hostelId || null, source_path: pathname, consent_share: Boolean(collegeId && consent) }),
       });
       setDone(true);
     } catch (e: any) { setErr(e.message); }
@@ -75,6 +76,12 @@ export default function EnquiryForm({ kind = 'counselling', collegeId, hostelId,
       {/* honeypot: bots fill this, people never see it */}
       <input tabIndex={-1} autoComplete="off" className="hidden" value={f.website} onChange={(e) => setF({ ...f, website: e.target.value })} aria-hidden />
       {err && <p className="text-sm text-rose-600">{err}</p>}
+      {collegeId && (
+        <label className="flex items-start gap-2 text-xs text-slate-500">
+          <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5" />
+          <span>Also share my details with this college’s admission office so they can contact me.</span>
+        </label>
+      )}
       <button disabled={busy} className="btn-primary w-full">{busy ? t('lead.sending') : t('lead.submit')}</button>
       <p className="text-[11px] leading-snug text-slate-400">{t('lead.consent')}</p>
     </form>

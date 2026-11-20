@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, XCircle, Loader2, Download, RefreshCw, Search } from 'lucide-react';
 import { api } from '@/lib/api';
 import SheetImport from '@/components/admin/SheetImport';
+import OfficialDataImport from '@/components/admin/OfficialDataImport';
 import { timeAgo } from '@/lib/format';
 
 type Run = { id: string; kind: string; params: any; status: string; inserted: number; updated: number; skipped: number; message: string | null; created_at: string; finished_at: string | null };
@@ -90,6 +91,7 @@ export default function AdminImport() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <SheetImport onStarted={loadRuns} />
+        <OfficialDataImport />
         <div className="card p-5">
           <h2 className="font-bold text-slate-900">🇺🇸 Every U.S. college with real tuition</h2>
           <p className="mt-1 text-sm text-slate-500">Imports about 6,000 colleges from the U.S. Department of Education College Scorecard: tuition (in-state / out-of-state), size, admission rate, location and website.</p>

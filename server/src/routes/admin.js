@@ -7,6 +7,10 @@ import { importCountry } from '../services/universities.js';
 import { parseSheet, guessMapping, stashUpload, importSheet, TARGETS } from '../services/sheetImport.js';
 import { importScorecard, scorecardEnabled } from '../services/scorecard.js';
 import { lookupCollege, applyLookup, enrichMany } from '../services/wikimedia.js';
+import { importCutoffs, importRankings } from '../services/rankingsImport.js';
+import { shareLead } from '../services/leadShare.js';
+import { paymentsEnabled } from '../services/payments.js';
+import { mailEnabled } from '../services/mailer.js';
 import { providersStatus } from '../services/jobs.js';
 import { providerName } from '../services/translate.js';
 import {
@@ -121,6 +125,8 @@ router.get('/integrations', (_req, res) => res.json({
   translate: providerName(),
   ai_chat: Boolean(process.env.ANTHROPIC_API_KEY),
   scorecard: scorecardEnabled(),
+  payments: paymentsEnabled(),
+  email: mailEnabled(),
   overpass: true, nominatim: true, hipolabs: true, wikidata: true,
 }));
 
@@ -273,6 +279,12 @@ const crudConfig = {
   articles:           { search: ['title', 'excerpt'], filters: ['category', 'is_published'], order: 'published_at' },
   college_placements: { search: ['course'], filters: ['college_id', 'year'], order: 'year' },
   cutoffs:            { search: ['course'], filters: ['college_id', 'exam_slug', 'year', 'category'], order: 'year' },
+  rank_bands:         { search: ['exam_slug', 'source'], filters: ['exam_slug', 'year', 'category'], order: 'year' },
+  college_rankings:   { search: ['source', 'category'], filters: ['college_id', 'source', 'year', 'category'], order: 'year', select: '*, colleges(name, slug, city)' },
+  scholarships:       { search: ['name', 'provider', 'field'], filters: ['host_country', 'is_published'], order: 'created_at' },
+  visa_guides:        { search: ['title', 'country_code'], filters: ['is_published'], order: 'updated_at', key: 'country_code' },
+  college_partners:   { search: ['contact_name', 'contact_email'], filters: ['is_active', 'auto_share'], order: 'created_at', key: 'college_id', select: '*, colleges(name, slug, city)' },
+  promotions:         { search: ['note'], filters: ['item_type', 'item_id'], order: 'created_at' },
   quota_seats:        { search: ['course', 'academic_year'], filters: ['college_id', 'status', 'quota_type', 'level', 'is_published', 'open_to'], order: 'created_at',
                         select: '*, colleges(name, slug, city, country)' },
 };
@@ -292,7 +304,7 @@ for (const [table, cfg] of Object.entries(crudConfig)) {
   }));
 
   router.get(`/${table}/:id`, wrap(async (req, res) => {
-    const { data, error } = await supabase.from(table).select('*').eq('id', req.params.id).single();
+    const { data, error } = await supabase.from(table).select(cfg.select || '*').eq(cfg.key || 'id', req.params.id).single();
     if (error) return fail(res, error, 404);
     res.json({ data });
   }));
@@ -303,6 +315,8 @@ for (const [table, cfg] of Object.entries(crudConfig)) {
     const row = parsed.data;
     if (table === 'colleges') { row.slug = slugify(row.slug || `${row.name}-${row.city}`); row.created_by = req.user.id; }
     if (table === 'exams') row.slug = slugify(row.slug || row.short_name);
+    if (table === 'scholarships') row.slug = slugify(row.slug || row.name);
+    if (table === 'promotions') { row.created_by = req.user.id; row.starts_at = row.starts_at || new Date().toISOString(); }
     if (table === 'articles') {
       row.slug = slugify(row.slug || row.title);
       row.author_id = req.user.id;
@@ -323,13 +337,13 @@ for (const [table, cfg] of Object.entries(crudConfig)) {
     // Approving a submitted listing publishes it; rejecting hides it
     if (row.approval_status === 'approved' && row.is_published === undefined) row.is_published = true;
     if (row.approval_status === 'rejected') row.is_published = false;
-    const { data, error } = await supabase.from(table).update(row).eq('id', req.params.id).select().single();
+    const { data, error } = await supabase.from(table).update(row).eq(cfg.key || 'id', req.params.id).select().single();
     if (error) return fail(res, error);
     res.json({ data });
   }));
 
   router.delete(`/${table}/:id`, wrap(async (req, res) => {
-    const { error } = await supabase.from(table).delete().eq('id', req.params.id);
+    const { error } = await supabase.from(table).delete().eq(cfg.key || 'id', req.params.id);
     if (error) return fail(res, error);
     res.json({ ok: true });
   }));
@@ -349,6 +363,11 @@ const modConfig = {
     select: '*, quota_seats(course, quota_type, academic_year, intake, fee_per_year, fee_period, currency), colleges(name, slug, city, country)',
     filters: ['status', 'college_id', 'seat_id', 'nationality'], search: ['full_name', 'email', 'phone', 'city', 'nationality'],
   },
+  reports: { select: '*, profiles:reporter_id(full_name, email)', filters: ['status', 'target_type'], search: ['reason'] },
+  college_members: { select: '*, colleges(name, slug), profiles(full_name, email)', filters: ['college_id', 'is_verified', 'relation'], search: ['course'] },
+  roommate_posts: { select: '*, profiles(full_name, email)', filters: ['is_active', 'city'], search: ['city', 'about'] },
+  hostel_visits: { select: '*, hostels(name, city)', filters: ['status', 'hostel_id'], search: ['name', 'phone'] },
+  payments: { select: '*, profiles(full_name, email)', filters: ['status', 'item_type'], search: ['provider_order_id', 'provider_payment_id'] },
   questions: { select: '*, colleges(name, slug), profiles(full_name, email)', filters: ['status', 'college_id'], search: ['title'] },
   answers: { select: '*, questions(title), profiles(full_name, email)', filters: ['status', 'question_id'], search: ['body'] },
   hostel_reviews: { select: '*, hostels(name, city), profiles(full_name, email)', filters: ['status', 'hostel_id'], search: ['body'] },
@@ -385,7 +404,7 @@ for (const [table, cfg] of Object.entries(modConfig)) {
 
 // CSV export for leads, applications and newsletter
 router.get('/export/:table.csv', wrap(async (req, res) => {
-  const allowed = { leads: '*', college_applications: '*', quota_applications: '*', newsletter_subscribers: '*', job_applications: '*' };
+  const allowed = { payments: '*', hostel_visits: '*', leads: '*', college_applications: '*', quota_applications: '*', newsletter_subscribers: '*', job_applications: '*' };
   const table = req.params.table;
   if (!allowed[table]) return fail(res, new Error('Not exportable'), 404);
   const { data, error } = await supabase.from(table).select(allowed[table]).order('created_at', { ascending: false }).limit(10000);
@@ -437,6 +456,40 @@ router.get('/quota_applications/:id/documents', wrap(async (req, res) => {
     if (data?.signedUrl) files.push({ name: path.split('/').pop(), url: data.signedUrl });
   }
   res.json({ data: files });
+}));
+
+// ---------------------------------------------------------------- cutoffs & rankings from official sheets
+router.post('/import/cutoffs', sheetUpload.single('file'), wrap(async (req, res) => {
+  if (!req.file) return fail(res, new Error('Upload a .xlsx or .csv file'), 422);
+  const { headers, rows } = await parseSheet(req.file.buffer, req.file.originalname);
+  const { exam, year, round = 'Final', country = 'IN', source } = req.body || {};
+  if (!exam || !year) return fail(res, new Error('Choose the exam and year'), 422);
+  res.json({ data: await importCutoffs({ headers, rows, exam, year, round, country, source: source || req.file.originalname }) });
+}));
+router.post('/import/rankings', sheetUpload.single('file'), wrap(async (req, res) => {
+  if (!req.file) return fail(res, new Error('Upload a .xlsx or .csv file'), 422);
+  const { headers, rows } = await parseSheet(req.file.buffer, req.file.originalname);
+  const { year, category = 'Overall', source = 'NIRF', country = 'IN', source_url } = req.body || {};
+  if (!year) return fail(res, new Error('Choose the year'), 422);
+  res.json({ data: await importRankings({ headers, rows, year, category, source, country, sourceUrl: source_url || null }) });
+}));
+
+// ---------------------------------------------------------------- leads → partner colleges
+router.post('/leads/:id/share', wrap(async (req, res) => {
+  const collegeId = req.body?.college_id;
+  if (!collegeId) return fail(res, new Error('Choose a partner college'), 422);
+  res.json(await shareLead(req.params.id, collegeId));
+}));
+router.get('/partners/summary', wrap(async (req, res) => {
+  const since = req.query.since || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+  const { data: partners, error } = await supabase.from('college_partners').select('*, colleges(name, slug, city)');
+  if (error) return fail(res, error);
+  const out = [];
+  for (const p of partners || []) {
+    const { count } = await supabase.from('leads').select('id', { count: 'exact', head: true }).eq('shared_with', p.college_id).gte('shared_at', since);
+    out.push({ ...p, leads: count || 0, amount_due: (count || 0) * Number(p.lead_price || 0) });
+  }
+  res.json({ data: out, since });
 }));
 
 router.get('/reviews/:id/proof', wrap(async (req, res) => {

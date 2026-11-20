@@ -32,7 +32,17 @@ export default function AdminHostels() {
         { name: 'contact_phone', label: 'Contact phone / WhatsApp', type: 'text' },
         { name: 'contact_email', label: 'Contact email', type: 'text' },
         { name: 'approval_status', label: 'Approval', type: 'select', options: ['approved', 'pending', 'rejected'] },
-        { name: 'is_verified', label: 'Verified by us', type: 'bool' },
+        { name: 'is_verified', label: 'Verified by us (physically checked)', type: 'bool' },
+        { name: 'verified_note', label: 'Verification note (shown to students)', type: 'text', full: true, placeholder: 'Visited by our team on 12 Nov 2026 — rooms, food and CCTV checked' },
+        { name: 'verified_at', label: 'Verified on', type: 'date' },
+        { name: 'safety', label: 'Safety (cctv, biometric, guard, warden, women_only_floor, fire_safety, first_aid, police_verified)', type: 'tags', full: true },
+        { name: 'deposit_amount', label: 'Security deposit', type: 'number' },
+        { name: 'notice_days', label: 'Notice period (days)', type: 'number' },
+        { name: 'lock_in_months', label: 'Lock-in (months)', type: 'number' },
+        { name: 'visit_slots', label: 'Visit times', type: 'tags', full: true },
+        { name: 'video_url', label: 'Video tour link', type: 'text', full: true },
+        { name: 'tour_url', label: '360° tour link', type: 'text', full: true },
+        { name: 'house_rules', label: 'House rules', type: 'textarea' },
         { name: 'is_published', label: 'Published', type: 'bool' },
       ]}
       columns={[
