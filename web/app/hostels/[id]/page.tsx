@@ -5,6 +5,9 @@ import { MapPin, Phone, Mail, BadgeCheck, CheckCircle2, User, GraduationCap } fr
 import Gallery from '@/components/Gallery';
 import { HostelCard, Stars } from '@/components/Cards';
 import HostelReviews from '@/components/HostelReviews';
+import { LiveNearby } from '@/components/LiveData';
+import TranslateText from '@/components/TranslateText';
+import { money } from '@/lib/format';
 import EnquiryForm from '@/components/EnquiryForm';
 import { SaveButton, ShareButtons } from '@/components/ActionButtons';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
@@ -32,11 +35,15 @@ export default async function HostelPage({ params }: { params: Promise<{ id: str
   const h = await getHostel((await params).id);
   if (!h) notFound();
   const sb = supabasePublic();
-  const [{ data: more }, { data: reviews }, { data: rating }] = await Promise.all([
+  const [{ data: more }, { data: reviews }, { data: rating }, { data: rooms }] = await Promise.all([
     sb.from('hostels').select('*').eq('is_published', true).eq('city', h.city).neq('id', h.id).limit(3),
     sb.from('hostel_reviews_public').select('*').eq('hostel_id', h.id).order('created_at', { ascending: false }).limit(30),
     sb.from('hostel_ratings').select('*').eq('hostel_id', h.id).maybeSingle(),
+    sb.from('hostel_rooms').select('*').eq('hostel_id', h.id).order('rent', { ascending: true, nullsFirst: false }),
   ]);
+  const roomList = (rooms || []) as any[];
+  const bedsFree = roomList.reduce((n, r) => n + (r.beds_available || 0), 0);
+  const roomsUpdated = roomList.reduce((m, r) => (r.updated_at > m ? r.updated_at : m), '');
   const avg = rating?.avg_rating ? Number(rating.avg_rating) : 0;
   const photos = h.photos?.length ? h.photos : [FALLBACK_IMG];
 
@@ -61,13 +68,37 @@ export default async function HostelPage({ params }: { params: Promise<{ id: str
           </div>
           <div className="card p-6">
             <h2 className="font-bold text-slate-900">About this stay</h2>
-            <p className="mt-2 whitespace-pre-line text-slate-600">{h.description || 'Contact the owner for details.'}</p>
+            <TranslateText text={h.description || 'Contact the owner for details.'} className="mt-2 whitespace-pre-line text-slate-600" />
             {h.amenities?.length ? (
               <><p className="label mt-5">Amenities</p>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{h.amenities.map((a) => <span key={a} className="flex items-center gap-2 text-sm"><CheckCircle2 size={16} className="text-emerald-600" />{a}</span>)}</div></>
             ) : null}
           </div>
+          {roomList.length > 0 && (
+            <div className="card overflow-x-auto">
+              <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-4">
+                <h2 className="font-bold text-slate-900">Rooms & availability</h2>
+                <span className={bedsFree ? 'chip-green' : 'chip-red'}>{bedsFree ? `${bedsFree} bed${bedsFree > 1 ? 's' : ''} available` : 'Currently full'}</span>
+              </div>
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="px-4 py-2">Room</th><th className="px-4 py-2">Rent</th><th className="px-4 py-2">Deposit</th><th className="px-4 py-2">Includes</th><th className="px-4 py-2">Available</th></tr></thead>
+                <tbody className="divide-y divide-slate-100">
+                  {roomList.map((r) => (
+                    <tr key={r.id}>
+                      <td className="px-4 py-2 font-medium">{r.room_type}</td>
+                      <td className="px-4 py-2">{r.rent != null ? `${money(r.rent, r.currency || h.currency || 'INR')} / ${r.rent_period || 'month'}` : '—'}</td>
+                      <td className="px-4 py-2">{r.deposit != null ? money(r.deposit, r.currency || h.currency || 'INR') : '—'}</td>
+                      <td className="px-4 py-2 text-xs text-slate-600">{[r.ac && 'AC', r.attached_bath && 'Attached bath', r.food_included && 'Food'].filter(Boolean).join(' · ') || '—'}</td>
+                      <td className="px-4 py-2">{r.beds_available > 0 ? <span className="chip-green">{r.beds_available} of {r.beds_total}{r.available_from ? ` from ${new Date(r.available_from).toLocaleDateString()}` : ''}</span> : <span className="chip">Full</span>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {roomsUpdated && <p className="px-5 py-2 text-xs text-slate-400">Availability updated by owner {new Date(roomsUpdated).toLocaleDateString()}</p>}
+            </div>
+          )}
           {photos.length > 1 && <div><h2 className="mb-3 font-bold text-slate-900">Photos</h2><Gallery photos={photos} alt={h.name} /></div>}
+          {h.latitude != null && h.longitude != null && <LiveNearby lat={h.latitude} lng={h.longitude} kinds={['hospital', 'pharmacy', 'transport', 'bus', 'food', 'bank']} radius={3000} />}
           <ShareButtons title={`${h.name} — ${h.type} in ${h.city}`} path={`/hostels/${h.id}`} />
           <HostelReviews hostelId={h.id} reviews={(reviews || []) as any} avg={avg} count={rating?.review_count || 0} />
         </div>

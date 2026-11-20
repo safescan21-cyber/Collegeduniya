@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import {
   GraduationCap, Menu, X, LogOut, LayoutDashboard, ShieldCheck, MapPin, ChevronDown, Target, Scale,
-  FilePlus2, Calculator, Newspaper, BookOpen, MessagesSquare, PlusCircle, PhoneCall,
+  FilePlus2, Calculator, Newspaper, BookOpen, MessagesSquare, PlusCircle, PhoneCall, Globe2, Building2, BedDouble,
 } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { useLang, LangSwitch } from './LangProvider';
@@ -18,6 +18,7 @@ const MAIN: { href: string; key: DictKey }[] = [
 ];
 
 const MORE: { href: string; key: DictKey; icon: any }[] = [
+  { href: '/cities', key: 'nav.cities', icon: Globe2 },
   { href: '/predictor', key: 'nav.predictor', icon: Target },
   { href: '/compare', key: 'nav.compare', icon: Scale },
   { href: '/apply', key: 'nav.apply', icon: FilePlus2 },
@@ -25,7 +26,8 @@ const MORE: { href: string; key: DictKey; icon: any }[] = [
   { href: '/news', key: 'nav.news', icon: Newspaper },
   { href: '/questions', key: 'nav.qa', icon: MessagesSquare },
   { href: '/near-me', key: 'nav.nearMe', icon: MapPin },
-  { href: '/post', key: 'nav.post', icon: PlusCircle },
+  { href: '/partners?as=pg_owner', key: 'nav.forOwners', icon: BedDouble },
+  { href: '/partners?as=employer', key: 'nav.forCompanies', icon: Building2 },
   { href: '/counselling', key: 'nav.counselling', icon: PhoneCall },
 ];
 
@@ -89,6 +91,8 @@ export default function Header() {
           {user ? (
             <>
               {isAdmin && <Link href="/admin" className="btn-ghost px-3"><ShieldCheck size={16} />{t('auth.admin')}</Link>}
+              {profile?.account_type === 'pg_owner' && <Link href="/owner" className="btn-ghost px-3"><BedDouble size={16} />{t('nav.ownerPortal')}</Link>}
+              {profile?.account_type === 'employer' && <Link href="/employer" className="btn-ghost px-3"><Building2 size={16} />{t('nav.employerPortal')}</Link>}
               <Link href="/dashboard" className="btn-ghost px-3"><LayoutDashboard size={16} />{profile?.full_name?.split(' ')[0] || t('auth.dashboard')}</Link>
               <button onClick={logout} className="btn-ghost px-3" aria-label={t('auth.logout')}><LogOut size={16} /></button>
             </>
@@ -114,6 +118,8 @@ export default function Header() {
             {user ? (
               <div className="flex flex-wrap gap-2">
                 {isAdmin && <Link href="/admin" className="btn-ghost flex-1">{t('auth.admin')}</Link>}
+                {profile?.account_type === 'pg_owner' && <Link href="/owner" className="btn-ghost flex-1">{t('nav.ownerPortal')}</Link>}
+                {profile?.account_type === 'employer' && <Link href="/employer" className="btn-ghost flex-1">{t('nav.employerPortal')}</Link>}
                 <Link href="/dashboard" className="btn-ghost flex-1">{t('auth.dashboard')}</Link>
                 <button onClick={logout} className="btn-ghost flex-1 text-rose-600">{t('auth.logout')}</button>
               </div>

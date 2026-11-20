@@ -9,7 +9,8 @@ import ChatWidget from '@/components/ChatWidget';
 import PwaRegister from '@/components/PwaRegister';
 import { ListTray } from '@/components/ActionButtons';
 import { SITE_URL } from '@/lib/format';
-import { getLang } from '@/lib/i18n-server';
+import { getT } from '@/lib/i18n-server';
+import { RTL } from '@/lib/i18n';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -24,11 +25,11 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: '#4338ca' };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const lang = await getLang();
+  const { lang, dict } = await getT();
   return (
-    <html lang={lang}>
+    <html lang={lang} dir={RTL.has(lang) ? 'rtl' : 'ltr'}>
       <body className="flex min-h-screen flex-col">
-        <LangProvider lang={lang}>
+        <LangProvider lang={lang} dict={dict}>
           <AuthProvider>
             <Header />
             <VisitTracker />

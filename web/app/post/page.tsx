@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Home, Briefcase, Upload, X, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { supabaseBrowser } from '@/lib/supabase/client';
+import CityInput from '@/components/CityInput';
+import { API_URL } from '@/lib/api';
 
 const CURRENCIES = ['INR', 'USD', 'GBP', 'EUR', 'CAD', 'AUD', 'AED', 'SGD', 'NZD'];
 const AMENITIES = ['Food', 'Wi-Fi', 'AC', 'Laundry', 'Housekeeping', 'CCTV', 'Power backup', 'Gym', 'Study room', 'Transport', 'Parking', 'Attached washroom'];
@@ -28,6 +30,8 @@ function PostForm() {
   const [uploading, setUploading] = useState(false);
   const [err, setErr] = useState('');
   const [done, setDone] = useState(false);
+  const [company, setCompany] = useState<any>(null);
+  const [geoMsg, setGeoMsg] = useState('');
 
   // Edit an existing listing of mine
   useEffect(() => {
@@ -39,6 +43,24 @@ function PostForm() {
       else { setKind('hostel'); setH({ ...data, amenities: data.amenities || [], photos: data.photos || [] }); }
     });
   }, [editId, user, params, supabase]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('companies').select('id, name, logo_url, city, country').eq('owner_id', user.id).maybeSingle().then(({ data }: { data: any }) => {
+      setCompany(data);
+      if (data) setJ((p: any) => ({ ...p, company: p.company || data.name, company_logo: p.company_logo || data.logo_url, city: p.city || data.city || '', country: p.country || data.country || 'India' }));
+    });
+  }, [user, supabase]);
+
+  const locate = async (address: string, city: string, country: string, apply: (lat: number, lng: number) => void) => {
+    setGeoMsg('Finding on map…');
+    try {
+      const r = await fetch(`${API_URL}/api/geocode?q=${encodeURIComponent([address, city, country].filter(Boolean).join(', '))}`);
+      const b = await r.json();
+      if (b.data) { apply(b.data.latitude, b.data.longitude); setGeoMsg(`📍 Location found: ${b.data.display?.slice(0, 80) || ''}`); }
+      else setGeoMsg('Could not find this address on the map — students will still see the city.');
+    } catch { setGeoMsg('Map lookup failed — you can still submit.'); }
+  };
 
   useEffect(() => {
     if (profile) {
@@ -78,6 +100,10 @@ function PostForm() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const typedCity = String(new FormData(e.currentTarget as HTMLFormElement).get(kind === 'hostel' ? 'pg_city' : 'job_city') || '').trim();
+    const cityValue = (kind === 'hostel' ? h.city : j.city) || typedCity;
+    if (!cityValue) return setErr('Please choose the city.');
+    if (kind === 'hostel') h.city = cityValue; else j.city = cityValue;
     setBusy(true); setErr('');
     let res;
     if (kind === 'hostel') {
@@ -96,6 +122,7 @@ function PostForm() {
         hours_per_week: num(j.hours_per_week), description: j.description || null, requirements: j.requirements || null,
         skills: String(j.skills || '').split(',').map((s: string) => s.trim()).filter(Boolean), deadline: j.deadline || null,
         contact_email: j.contact_email || null, contact_phone: j.contact_phone || null, created_by: user.id, status: j.status || 'open',
+        company_id: company?.id || null, company_logo: j.company_logo || null, latitude: num(j.latitude), longitude: num(j.longitude),
       };
       res = j.id ? await supabase.from('jobs').update(row).eq('id', j.id) : await supabase.from('jobs').insert(row);
     }
@@ -111,7 +138,7 @@ function PostForm() {
         <h1 className="mt-3 text-2xl font-bold text-slate-900">Submitted for review</h1>
         <p className="mt-2 text-slate-500">Our team checks every listing, usually within 24 hours. You can track it in your dashboard.</p>
         <div className="mt-5 flex justify-center gap-2">
-          <button onClick={() => router.push('/dashboard?tab=listings')} className="btn-primary">My listings</button>
+          <button onClick={() => router.push(profile?.account_type === 'pg_owner' ? '/owner' : profile?.account_type === 'employer' ? '/employer' : '/dashboard?tab=listings')} className="btn-primary">{profile?.account_type === 'pg_owner' ? 'Add rooms & availability' : 'My listings'}</button>
           <button onClick={() => { setDone(false); setH({ type: 'PG', gender: 'Co-ed', currency: 'INR', rent_period: 'month', country: 'India', amenities: [], photos: [] }); setJ({ job_type: 'Part-time', currency: 'INR', pay_unit: 'month', country: 'India' }); }} className="btn-ghost">Post another</button>
         </div>
       </div>
@@ -135,9 +162,15 @@ function PostForm() {
             <Field label="Name of PG / hostel *" full><input required className="input" value={h.name || ''} onChange={(e) => setH({ ...h, name: e.target.value })} /></Field>
             <Field label="Type"><select className="input" value={h.type} onChange={(e) => setH({ ...h, type: e.target.value })}>{['PG', 'Hostel', 'Flat', 'Homestay'].map((x) => <option key={x}>{x}</option>)}</select></Field>
             <Field label="For"><select className="input" value={h.gender} onChange={(e) => setH({ ...h, gender: e.target.value })}>{['Boys', 'Girls', 'Co-ed'].map((x) => <option key={x}>{x}</option>)}</select></Field>
+            <Field label="City *"><CityInput name="pg_city" defaultValue={h.city || ''} onPick={(c) => setH((p: any) => ({ ...p, city: c.name, country: c.country || p.country, latitude: p.latitude ?? c.latitude, longitude: p.longitude ?? c.longitude }))} /></Field>
             <Field label="Country *"><input required className="input" value={h.country || ''} onChange={(e) => setH({ ...h, country: e.target.value })} /></Field>
-            <Field label="City *"><input required className="input" value={h.city || ''} onChange={(e) => setH({ ...h, city: e.target.value })} /></Field>
-            <Field label="Area / address" full><input className="input" value={h.address || ''} onChange={(e) => setH({ ...h, address: e.target.value })} placeholder="e.g. Near Gate 2, Kamla Nagar" /></Field>
+            <Field label="Area / address" full>
+              <div className="flex gap-2">
+                <input className="input" value={h.address || ''} onChange={(e) => setH({ ...h, address: e.target.value })} placeholder="e.g. Near Gate 2, Kamla Nagar" />
+                <button type="button" className="btn-ghost shrink-0" onClick={() => locate(h.address, h.city, h.country, (lat, lng) => setH((p: any) => ({ ...p, latitude: lat, longitude: lng })))}>Find on map</button>
+              </div>
+              {geoMsg && <p className="mt-1 text-xs text-slate-500">{geoMsg}</p>}
+            </Field>
             <Field label="Rent from"><input type="number" className="input" value={h.rent_min ?? ''} onChange={(e) => setH({ ...h, rent_min: e.target.value })} /></Field>
             <Field label="Rent up to"><input type="number" className="input" value={h.rent_max ?? ''} onChange={(e) => setH({ ...h, rent_max: e.target.value })} /></Field>
             <Field label="Currency"><select className="input" value={h.currency} onChange={(e) => setH({ ...h, currency: e.target.value })}>{CURRENCIES.map((x) => <option key={x}>{x}</option>)}</select></Field>
@@ -176,8 +209,8 @@ function PostForm() {
             <Field label="Job title *" full><input required className="input" value={j.title || ''} onChange={(e) => setJ({ ...j, title: e.target.value })} placeholder="e.g. Evening maths tutor" /></Field>
             <Field label="Company / employer *"><input required className="input" value={j.company || ''} onChange={(e) => setJ({ ...j, company: e.target.value })} /></Field>
             <Field label="Type"><select className="input" value={j.job_type} onChange={(e) => setJ({ ...j, job_type: e.target.value })}>{['Part-time', 'Internship', 'Weekend', 'Freelance', 'Full-time'].map((x) => <option key={x}>{x}</option>)}</select></Field>
+            <Field label="City *"><CityInput name="job_city" defaultValue={j.city || ''} onPick={(c) => setJ((p: any) => ({ ...p, city: c.name, country: c.country || p.country, latitude: c.latitude, longitude: c.longitude }))} /></Field>
             <Field label="Country *"><input required className="input" value={j.country || ''} onChange={(e) => setJ({ ...j, country: e.target.value })} /></Field>
-            <Field label="City *"><input required className="input" value={j.city || ''} onChange={(e) => setJ({ ...j, city: e.target.value })} /></Field>
             <Field label="Area / address"><input className="input" value={j.address || ''} onChange={(e) => setJ({ ...j, address: e.target.value })} /></Field>
             <Field label="Remote job"><label className="flex h-[42px] items-center gap-2 text-sm"><input type="checkbox" checked={!!j.is_remote} onChange={(e) => setJ({ ...j, is_remote: e.target.checked })} className="h-4 w-4 accent-brand-600" />Work from home</label></Field>
             <Field label="Pay from"><input type="number" className="input" value={j.pay_min ?? ''} onChange={(e) => setJ({ ...j, pay_min: e.target.value })} /></Field>

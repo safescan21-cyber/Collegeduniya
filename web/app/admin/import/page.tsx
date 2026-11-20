@@ -1,0 +1,103 @@
+'use client';
+import { useCallback, useEffect, useState } from 'react';
+import { CheckCircle2, XCircle, Loader2, Download, RefreshCw, Search } from 'lucide-react';
+import { api } from '@/lib/api';
+import { timeAgo } from '@/lib/format';
+
+type Run = { id: string; kind: string; params: any; status: string; inserted: number; updated: number; skipped: number; message: string | null; created_at: string; finished_at: string | null };
+
+function Status({ ok, label, hint }: { ok: boolean; label: string; hint?: string }) {
+  return (
+    <li className="flex items-start gap-2 py-2">
+      {ok ? <CheckCircle2 size={18} className="mt-0.5 text-emerald-600" /> : <XCircle size={18} className="mt-0.5 text-slate-300" />}
+      <div><p className="font-medium text-slate-800">{label}</p>{!ok && hint && <p className="text-xs text-slate-500">{hint}</p>}</div>
+    </li>
+  );
+}
+
+export default function AdminImport() {
+  const [integ, setInteg] = useState<any>(null);
+  const [runs, setRuns] = useState<Run[]>([]);
+  const [country, setCountry] = useState('IN');
+  const [preview, setPreview] = useState<any>(null);
+  const [busy, setBusy] = useState<'' | 'preview' | 'import'>('');
+  const [msg, setMsg] = useState('');
+
+  const loadRuns = useCallback(() => api('/api/admin/import/runs').then((r) => setRuns(r.data)).catch(() => {}), []);
+  useEffect(() => {
+    api('/api/admin/integrations').then(setInteg).catch(() => {});
+    loadRuns();
+    const t = setInterval(loadRuns, 8000);
+    return () => clearInterval(t);
+  }, [loadRuns]);
+
+  const doPreview = async () => {
+    setBusy('preview'); setMsg(''); setPreview(null);
+    try { const r = await api(`/api/admin/import/preview?country=${encodeURIComponent(country)}`); setPreview(r.data); }
+    catch (e: any) { setMsg(e.message); }
+    setBusy('');
+  };
+  const doImport = async () => {
+    if (!confirm(`Import colleges for ${country}? Existing admin-edited colleges are kept.`)) return;
+    setBusy('import'); setMsg('');
+    try { const r = await api('/api/admin/import/universities', { method: 'POST', body: JSON.stringify({ country }) }); setMsg(r.message); loadRuns(); }
+    catch (e: any) { setMsg(e.message); }
+    setBusy('');
+  };
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-extrabold text-slate-900">Data import & integrations</h1>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="card p-5">
+          <h2 className="font-bold text-slate-900">Import colleges from public data</h2>
+          <p className="mt-1 text-sm text-slate-500">Pulls names and websites from the Hipolabs university list and adds location, founding year, logo, photo and student count from Wikidata. Colleges you created by hand are never overwritten; fees and courses still come from you.</p>
+          <div className="mt-4 flex gap-2">
+            <input className="input w-40" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="IN or India" />
+            <button onClick={doPreview} disabled={!!busy} className="btn-ghost">{busy === 'preview' ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}Preview</button>
+            <button onClick={doImport} disabled={!!busy} className="btn-primary">{busy === 'import' ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}Import</button>
+          </div>
+          {msg && <p className="mt-3 text-sm text-slate-700">{msg}</p>}
+          {preview && (
+            <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm">
+              <p className="font-semibold">{preview.country?.name}: {preview.total} found · {preview.inserted} new · {preview.updated} to refresh · {preview.skipped} kept (admin-edited)</p>
+              <ul className="mt-2 list-disc ps-5 text-slate-600">{(preview.sample || []).map((s: any) => <li key={s.external_id}>{s.name} — {s.city}{s.established ? ` · est. ${s.established}` : ''}</li>)}</ul>
+            </div>
+          )}
+          <p className="mt-4 text-xs text-slate-400">Bulk import for every country: run <code>npm run import:universities -- --all</code> on the server. Cities: <code>npm run import:cities</code>.</p>
+        </div>
+
+        <div className="card p-5">
+          <h2 className="font-bold text-slate-900">Integrations</h2>
+          {!integ ? <Loader2 className="mt-4 animate-spin text-slate-300" /> : (
+            <ul className="mt-2 divide-y divide-slate-100 text-sm">
+              <Status ok label="Cities & places — GeoNames + OpenStreetMap (free)" />
+              <Status ok label="Hospitals, PGs, transport near colleges — OpenStreetMap Overpass (free)" />
+              <Status ok label="College data — Hipolabs + Wikidata (free)" />
+              <Status ok={integ.jobs?.adzuna} label="Local jobs — Adzuna" hint="Set ADZUNA_APP_ID and ADZUNA_APP_KEY in server/.env (free key at developer.adzuna.com)" />
+              <Status ok={integ.jobs?.jooble} label="Local jobs — Jooble" hint="Set JOOBLE_API_KEY in server/.env (request a free key at jooble.org/api/about)" />
+              <Status ok={!!integ.translate} label={`Translation — ${integ.translate || 'not configured'}`} hint="Set GOOGLE_TRANSLATE_API_KEY (or LIBRETRANSLATE_URL) in server/.env for 30+ languages" />
+              <Status ok={integ.ai_chat} label="AI assistant — Anthropic" hint="Set ANTHROPIC_API_KEY in server/.env" />
+            </ul>
+          )}
+        </div>
+      </div>
+
+      <div className="card overflow-x-auto">
+        <div className="flex items-center justify-between px-5 py-3"><p className="font-bold text-slate-900">Recent imports</p><button onClick={loadRuns} className="btn-ghost py-1.5"><RefreshCw size={14} /></button></div>
+        <table className="w-full text-left text-sm">
+          <thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="px-4 py-2">When</th><th className="px-4 py-2">Country</th><th className="px-4 py-2">Status</th><th className="px-4 py-2">New</th><th className="px-4 py-2">Refreshed</th><th className="px-4 py-2">Kept</th><th className="px-4 py-2">Notes</th></tr></thead>
+          <tbody className="divide-y divide-slate-100">
+            {runs.map((r) => (
+              <tr key={r.id}><td className="px-4 py-2 text-xs">{timeAgo(r.created_at)}</td><td className="px-4 py-2">{r.params?.country}</td>
+                <td className="px-4 py-2"><span className={r.status === 'done' ? 'chip-green' : r.status === 'failed' ? 'chip-red' : 'chip-amber'}>{r.status}</span></td>
+                <td className="px-4 py-2">{r.inserted}</td><td className="px-4 py-2">{r.updated}</td><td className="px-4 py-2">{r.skipped}</td><td className="px-4 py-2 text-xs text-slate-500">{r.message}</td></tr>
+            ))}
+            {!runs.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">No imports yet.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

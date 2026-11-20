@@ -10,6 +10,8 @@ import Gallery from '@/components/Gallery';
 import EnquiryForm from '@/components/EnquiryForm';
 import { SaveButton, CompareButton, ShareButtons, ApplyCartButton } from '@/components/ActionButtons';
 import { AskForm, QuestionList } from '@/components/QuestionsBlock';
+import { LiveJobs, LiveNearby } from '@/components/LiveData';
+import TranslateText from '@/components/TranslateText';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { FALLBACK_IMG, money, range, SITE_URL } from '@/lib/format';
 import type { College, Course, Place, Hostel, Job, ReviewPublic, Placement, Cutoff, QuestionPublic } from '@/lib/types';
@@ -51,12 +53,18 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
 
   const sb = supabasePublic();
   const cityQ = c.city.replace(/[",()]/g, '');
+  let countryCode = (c as any).country_code as string | null;
+  if (!countryCode) {
+    const { data: cc } = await sb.from('countries').select('code').ilike('name', c.country).maybeSingle();
+    countryCode = cc?.code || null;
+  }
+  const { data: cityRow } = await sb.from('cities').select('slug').ilike('name', cityQ).eq('country_code', countryCode || '--').order('population', { ascending: false }).limit(1).maybeSingle();
   const [courses, places, reviews, rating, hostels, jobs, placements, cutoffs, questions] = await Promise.all([
     sb.from('courses').select('*').eq('college_id', c.id).order('level').order('name'),
     sb.from('places').select('*').eq('college_id', c.id).order('distance_km', { ascending: true, nullsFirst: false }),
     sb.from('reviews_public').select('*').eq('college_id', c.id).order('created_at', { ascending: false }).limit(50),
     sb.from('college_ratings').select('*').eq('college_id', c.id).maybeSingle(),
-    sb.from('hostels').select('*').eq('is_published', true).or(`college_id.eq.${c.id},city.eq."${cityQ}"`).limit(8),
+    sb.from('hostels').select('*, hostel_rooms(beds_available)').eq('is_published', true).or(`college_id.eq.${c.id},city.eq."${cityQ}"`).limit(8),
     sb.from('jobs').select('*').eq('is_published', true).eq('status', 'open').or(`college_id.eq.${c.id},city.eq."${cityQ}"`).order('created_at', { ascending: false }).limit(6),
     sb.from('college_placements').select('*').eq('college_id', c.id).order('year', { ascending: false }).limit(10),
     sb.from('cutoffs').select('*').eq('college_id', c.id).order('year', { ascending: false }).order('closing_rank').limit(100),
@@ -149,7 +157,11 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
               <h2 className="text-xl font-bold text-slate-900">About {c.short_name || c.name}</h2>
               <ShareButtons title={`${c.name} — fees, courses & reviews`} path={`/colleges/${c.slug}`} />
             </div>
-            <p className="mt-3 whitespace-pre-line leading-relaxed text-slate-600">{c.description || 'Details coming soon.'}</p>
+            <TranslateText text={c.description || 'Details coming soon.'} className="mt-3 whitespace-pre-line leading-relaxed text-slate-600" />
+            {(c as any).source && (c as any).source !== 'admin' && (
+              <p className="mt-3 text-xs text-slate-400">Basic profile from public data ({(c as any).source === 'hipolabs' ? 'Hipolabs university list' : 'Wikidata'}{(c as any).wikidata_id ? ' + Wikidata' : ''}). Fees and courses are added by our team — <Link href="/counselling" className="underline">ask us</Link> for details.</p>
+            )}
+            {(c as any).students_count ? <p className="mt-2 text-sm text-slate-600">About {(c as any).students_count.toLocaleString()} students</p> : null}
             {latestPlacement && (
               <div className="mt-5 grid grid-cols-3 gap-3 rounded-xl bg-emerald-50 p-4 text-center">
                 <div><p className="text-xs text-emerald-700">Average package</p><p className="font-bold text-emerald-900">{pkg(latestPlacement.avg_package, latestPlacement.currency, latestPlacement.package_unit)}</p></div>
@@ -264,7 +276,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
           <section id="hostels" className="scroll-mt-32">
             <div className="mb-4 flex items-end justify-between">
               <h2 className="text-xl font-bold text-slate-900">PG & hostels near {c.short_name || c.name}</h2>
-              <Link href={`/hostels?city=${encodeURIComponent(c.city)}`} className="text-sm font-semibold text-brand-700 hover:underline">See all in {c.city}</Link>
+              <Link href={cityRow?.slug ? `/city/${cityRow.slug}` : `/hostels?city=${encodeURIComponent(c.city)}`} className="text-sm font-semibold text-brand-700 hover:underline">See all in {c.city}</Link>
             </div>
             {(hostels.data || []).length ? (
               <div className="grid gap-5 sm:grid-cols-2">{(hostels.data as Hostel[]).map((h) => <HostelCard key={h.id} h={h} />)}</div>
@@ -278,11 +290,15 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             </div>
             {(jobs.data || []).length ? (
               <div className="grid gap-5 sm:grid-cols-2">{(jobs.data as Job[]).map((j) => <JobCard key={j.id} j={j} />)}</div>
-            ) : <EmptyState title="No open jobs near this college right now" />}
+            ) : <EmptyState title="No StudyEarnstay jobs near this college yet" text="See live listings from job sites below." />}
+            <div className="mt-5"><LiveJobs city={c.city === 'Not specified' ? c.country : c.city} country={countryCode} /></div>
           </section>
 
           <section id="nearby" className="scroll-mt-32">
             <h2 className="mb-4 text-xl font-bold text-slate-900">Nearby companies, hospitals & services</h2>
+            {c.latitude != null && c.longitude != null && (
+              <div className="mb-5"><LiveNearby lat={c.latitude} lng={c.longitude} kinds={['hospital', 'pharmacy', 'pg', 'transport', 'bus', 'bank', 'food']} /></div>
+            )}
             <div className="grid gap-5 md:grid-cols-2">
               <PlaceList title="Companies (jobs & internships)" items={companies} />
               <PlaceList title="Hospitals" items={hospitals} />

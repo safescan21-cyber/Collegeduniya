@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, KeyRound, ArrowLeft, GraduationCap } from 'lucide-react';
+import { Mail, KeyRound, ArrowLeft, GraduationCap, BedDouble, Building2 } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useLang } from '@/components/LangProvider';
@@ -11,13 +11,15 @@ type Mode = 'login' | 'register';
 export default function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get('next') || '/dashboard';
+  const next = params.get('next') || (params.get('as') === 'pg_owner' ? '/owner' : params.get('as') === 'employer' ? '/employer' : '/dashboard');
   const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard';
   const supabase = supabaseBrowser();
   const { user, refreshProfile } = useAuth();
   const { t } = useLang();
 
+  const asParam = params.get('as');
   const [mode, setMode] = useState<Mode>(params.get('mode') === 'register' ? 'register' : 'login');
+  const [accountType, setAccountType] = useState<'student' | 'pg_owner' | 'employer'>(asParam === 'pg_owner' || asParam === 'employer' ? asParam : 'student');
   const [step, setStep] = useState<'email' | 'otp'>('email');
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -48,7 +50,7 @@ export default function LoginForm() {
       email: email.trim().toLowerCase(),
       options: {
         shouldCreateUser: mode === 'register',
-        data: mode === 'register' ? { full_name: name.trim(), phone: phone.trim() } : undefined,
+        data: mode === 'register' ? { full_name: name.trim(), phone: phone.trim(), account_type: accountType } : undefined,
       },
     });
     setBusy(false);
@@ -74,16 +76,18 @@ export default function LoginForm() {
     if (error || !data.user) { setBusy(false); return setErr(error?.message || 'Invalid or expired code.'); }
 
     // Existing user who used "register": make sure name/phone are saved
-    if (mode === 'register' && (name || phone)) {
-      const { data: p } = await supabase.from('profiles').select('full_name, phone').eq('id', data.user.id).maybeSingle();
+    if (mode === 'register' && (name || phone || accountType !== 'student')) {
+      const { data: p } = await supabase.from('profiles').select('full_name, phone, account_type').eq('id', data.user.id).maybeSingle();
       const patch: Record<string, string> = {};
+      if (accountType !== 'student' && p?.account_type !== accountType) patch.account_type = accountType;
       if (!p?.full_name && name) patch.full_name = name.trim();
       if (!p?.phone && phone) patch.phone = phone.trim();
       if (Object.keys(patch).length) await supabase.from('profiles').update(patch).eq('id', data.user.id);
     }
     await refreshProfile();
     setBusy(false);
-    router.replace(safeNext);
+    const dest = params.get('next') ? safeNext : accountType === 'pg_owner' ? '/owner' : accountType === 'employer' ? '/employer' : safeNext;
+    router.replace(dest);
     router.refresh();
   };
 
@@ -106,6 +110,17 @@ export default function LoginForm() {
           <form onSubmit={sendCode} className="space-y-4">
             {mode === 'register' && (
               <>
+                <div>
+                  <p className="label">{t('register.as')}</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {([['student', t('register.student'), GraduationCap], ['pg_owner', t('register.owner'), BedDouble], ['employer', t('register.employer'), Building2]] as const).map(([v, label, Icon]) => (
+                      <button type="button" key={v} onClick={() => setAccountType(v)}
+                        className={`flex flex-col items-center gap-1 rounded-xl border p-2.5 text-center text-xs font-semibold ${accountType === v ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                        <Icon size={18} />{label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div><label className="label">Full name *</label><input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" autoComplete="name" /></div>
                 <div><label className="label">Mobile number</label><input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 98765 43210" autoComplete="tel" /></div>
               </>

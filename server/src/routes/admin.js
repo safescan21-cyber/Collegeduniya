@@ -3,6 +3,9 @@ import multer from 'multer';
 import crypto from 'node:crypto';
 import { supabase } from '../supabase.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/auth.js';
+import { importCountry } from '../services/universities.js';
+import { providersStatus } from '../services/jobs.js';
+import { providerName } from '../services/translate.js';
 import {
   schemas, slugify, reviewUpdateV2, applicationUpdate, userUpdate, moderation,
 } from '../schemas.js';
@@ -105,6 +108,37 @@ router.get('/stats', wrap(async (_req, res) => {
   });
 }));
 
+// ---------------------------------------------------------------- integrations & imports
+router.get('/integrations', (_req, res) => res.json({
+  jobs: providersStatus(),
+  translate: providerName(),
+  ai_chat: Boolean(process.env.ANTHROPIC_API_KEY),
+  overpass: true, nominatim: true, hipolabs: true, wikidata: true,
+}));
+
+router.get('/import/runs', wrap(async (_req, res) => {
+  const { data, error } = await supabase.from('import_runs').select('*').order('created_at', { ascending: false }).limit(30);
+  if (error) return fail(res, error);
+  res.json({ data });
+}));
+
+router.get('/import/preview', wrap(async (req, res) => {
+  const r = await importCountry(req.query.country, { dryRun: true });
+  res.json({ data: r });
+}));
+
+// Starts the import in the background and returns at once; progress is in /import/runs
+router.post('/import/universities', wrap(async (req, res) => {
+  const country = String(req.body?.country || '').trim();
+  if (!country) return fail(res, new Error('country is required (e.g. IN or India)'));
+  const { data: running } = await supabase.from('import_runs').select('id').eq('status', 'running')
+    .gte('created_at', new Date(Date.now() - 30 * 60e3).toISOString()).limit(1);
+  if (running?.length) return fail(res, new Error('Another import is running — wait for it to finish'), 409);
+  importCountry(country, { startedBy: req.user.id, log: (m) => console.log(`[import ${country}] ${m}`) })
+    .catch((e) => console.error(`[import ${country}]`, e.message));
+  res.status(202).json({ ok: true, message: `Import for ${country} started` });
+}));
+
 // ---------------------------------------------------------------- uploads
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -128,7 +162,7 @@ router.post('/upload', upload.array('files', 10), wrap(async (req, res) => {
 
 // ---------------------------------------------------------------- generic CRUD (content tables)
 const crudConfig = {
-  colleges:           { search: ['name', 'city', 'country'], filters: ['is_published', 'accepts_applications', 'country'], order: 'created_at' },
+  colleges:           { search: ['name', 'city', 'country'], filters: ['is_published', 'accepts_applications', 'country', 'source', 'country_code'], order: 'created_at' },
   courses:            { search: ['name'], filters: ['college_id', 'level'], order: 'created_at' },
   places:             { search: ['name'], filters: ['college_id', 'kind'], order: 'created_at' },
   hostels:            { search: ['name', 'city', 'country'], filters: ['approval_status', 'is_published', 'college_id'], order: 'created_at' },
@@ -211,6 +245,7 @@ const modConfig = {
   answers: { select: '*, questions(title), profiles(full_name, email)', filters: ['status', 'question_id'], search: ['body'] },
   hostel_reviews: { select: '*, hostels(name, city), profiles(full_name, email)', filters: ['status', 'hostel_id'], search: ['body'] },
   newsletter_subscribers: { select: '*', filters: ['unsubscribed'], search: ['email'] },
+  companies: { select: '*, profiles(full_name, email, phone)', filters: ['is_verified'], search: ['name', 'city', 'country'] },
 };
 
 for (const [table, cfg] of Object.entries(modConfig)) {

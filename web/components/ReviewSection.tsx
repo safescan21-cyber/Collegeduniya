@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Star, MessageSquare, Pencil, Trash2, BadgeCheck, Gift, Upload } from 'lucide-react';
 import { useAuth } from './AuthProvider';
+import TranslateText from './TranslateText';
 import { Stars } from './Cards';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { timeAgo } from '@/lib/format';
@@ -194,7 +195,7 @@ export default function ReviewSection({ collegeId, collegeName, reviews, avg, co
               <Stars value={r.rating} />
             </div>
             <h4 className="mt-3 font-semibold text-slate-900">{r.title}</h4>
-            <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-slate-600">{r.body}</p>
+            <TranslateText text={r.body} className="mt-1 whitespace-pre-line text-sm leading-relaxed text-slate-600" />
             <div className="mt-3 flex flex-wrap gap-2 text-xs">
               {r.rating_faculty && <span className="chip">Faculty {r.rating_faculty}/5</span>}
               {r.rating_campus && <span className="chip">Campus {r.rating_campus}/5</span>}

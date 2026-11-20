@@ -43,8 +43,9 @@ export default function AdminColleges() {
       title="Colleges"
       fields={COLLEGE_FIELDS}
       defaults={{ type: 'Private', currency: 'INR', is_published: true, country: 'India' }}
+      quickFilters={[{ label: 'All', params: {} }, { label: 'Added by us', params: { source: 'admin' } }, { label: 'Imported', params: { source: 'hipolabs' } }, { label: 'Hidden (need city)', params: { is_published: 'false' } }]}
       columns={[
-        { key: 'name', label: 'College', render: (r) => <div><p className="font-semibold text-slate-900">{r.name}</p><p className="text-xs text-slate-500">{r.city}, {r.country}</p></div> },
+        { key: 'name', label: 'College', render: (r) => <div><p className="font-semibold text-slate-900">{r.name}</p><p className="text-xs text-slate-500">{r.city}, {r.country}{r.source && r.source !== 'admin' ? ` · ${r.source}` : ''}</p></div> },
         { key: 'fees', label: 'Fees', render: (r) => range(r.fees_min, r.fees_max, r.currency) },
         { key: 'ranking', label: 'Rank', render: (r) => r.ranking ?? '—' },
         { key: 'is_published', label: 'Status', render: (r) => r.is_published ? <span className="chip-green">Live</span> : <span className="chip">Draft</span> },

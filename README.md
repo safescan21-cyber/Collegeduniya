@@ -11,6 +11,18 @@
 - 🛡️ **Multi-admin panel**: colleges (+ courses + nearby companies/hospitals), hostels, jobs, applications, reviews, users
 - 📈 **Visitor analytics**: visitors today, unique visitors (30 days), page views, signups, daily chart, top pages
 
+**Added in v3 (worldwide)**
+
+| Area | Feature | Data source |
+|---|---|---|
+| 🌍 Every city | Autocomplete for any city/town, `/city/<slug>` pages (colleges, PGs, jobs, hospitals), `/cities` by country | GeoNames (CC BY 4.0) + OpenStreetMap Nominatim |
+| 🎓 College data | Bulk import of 10,000+ universities with website, location, founding year, logo, photo, students | Hipolabs university list + Wikidata |
+| 💼 Local jobs | Live part-time jobs for each college's city (cached per city) | Adzuna + Jooble APIs (free keys) |
+| 🏥 Nearby | Hospitals (with 24×7 ER), pharmacies, hostels, railway, buses, banks, food around every college, PG and city | OpenStreetMap Overpass |
+| 🗣️ Languages | 39 languages (RTL for Arabic/Urdu/Persian/Hebrew), auto-detect from browser, "Translate" button on descriptions & reviews | Google Cloud Translation v2 or LibreTranslate, cached forever |
+| 🏠 PG owner login | Register as PG owner → `/owner`: properties, room types, **free beds +/-** (live, no re-approval), enquiries, reviews | — |
+| 🏢 Company login | Register as employer → `/employer`: company profile (verified badge), post jobs, applicants, CV download; public `/companies/<slug>` | — |
+
 **Added in v2 (growth features)**
 
 | Area | Feature |
@@ -45,6 +57,13 @@ Browser ──► Next.js (web) ──► Supabase  (public reads, OTP login, re
 3. (Optional) run `supabase/seed.sql` for demo colleges, hostels and jobs. **All seed fees/rents/jobs are sample data — edit or delete before launch.**
 4. Run **`supabase/migrations/002_growth.sql`** (shortlist, leads, PG reviews, owner/employer listings, Q&A, news, exams, newsletter, placements, cutoffs, predictor, common application).
    Optional: `supabase/migrations/002_seed_demo.sql` adds sample exams, cutoffs, placements and one article so you can try the predictor and compare pages.
+5. Run **`supabase/migrations/003_global.sql`** (world cities, translation cache, PG owner / employer accounts, companies, room availability, API caches).
+6. Load worldwide data from the `server/` folder (needs `server/.env`):
+   ```bash
+   npm run import:cities                    # ~25k cities (pop > 15k) + all countries — or: -- cities500 for ~185k towns
+   npm run import:universities -- IN GB US  # colleges from Hipolabs + Wikidata (or --all for every country)
+   ```
+   Or use **Admin → Import & APIs** to preview/import one country at a time.
 4. **Authentication → Providers → Email**: enable Email, keep "Confirm email" ON.
 5. **Authentication → Email Templates → Magic Link** — replace the body so it sends a **code** instead of a link:
 
@@ -92,6 +111,10 @@ Optional settings:
 |---|---|---|
 | `server/.env` | `ANTHROPIC_API_KEY` | Turns on AI answers in the "Ask StudyEarnstay" chat. Without it the chat replies with matching links. |
 | `server/.env` | `ANTHROPIC_MODEL` | Model for the chat (default `claude-haiku-5-5`). |
+| `server/.env` | `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` | Live local jobs (free key: developer.adzuna.com). |
+| `server/.env` | `JOOBLE_API_KEY` | More countries for live jobs (free key: jooble.org/api/about; limited calls — results are cached 12 h per city). |
+| `server/.env` | `GOOGLE_TRANSLATE_API_KEY` *or* `LIBRETRANSLATE_URL` | Turns on the 37 machine-translated languages. Without it the site offers English + Hindi. |
+| `web/.env.local` | `API_URL_INTERNAL` | Node API address used by the Next.js server (e.g. `http://127.0.0.1:4000` on the VPS). |
 | `web/.env.local` | `NEXT_PUBLIC_REVIEW_REWARD` | e.g. `₹100 Amazon voucher` — shows the "earn a reward for a verified review" banner. Leave empty to hide it. |
 
 ---

@@ -135,6 +135,8 @@ function Dashboard() {
           </button>
         ))}
       </div>
+      {profile?.account_type === 'pg_owner' && <Link href="/owner" className="mt-4 block rounded-2xl bg-brand-50 p-4 font-semibold text-brand-800 hover:bg-brand-100">🏠 Manage your PGs, rooms and enquiries in the Owner portal →</Link>}
+      {profile?.account_type === 'employer' && <Link href="/employer" className="mt-4 block rounded-2xl bg-brand-50 p-4 font-semibold text-brand-800 hover:bg-brand-100">🏢 Manage your company, jobs and applicants in the Employer portal →</Link>}
       {msg && <p className="mt-3 text-sm text-emerald-700">{msg}</p>}
 
       <div className="mt-6">

@@ -143,6 +143,8 @@ const optDate = z.union([z.literal(''), z.null(), z.string().regex(/^\d{4}-\d{2}
 schemas.colleges = schemas.colleges.extend({
   accepts_applications: bool,
   application_note: optStr,
+  students_count: optInt,
+  country_code: optStr,
 });
 schemas.hostels = schemas.hostels.extend({
   approval_status: z.enum(['approved', 'pending', 'rejected']).optional(),
@@ -227,6 +229,7 @@ export const moderation = {
   answers: z.object({ status: z.enum(['approved', 'pending', 'blocked']).optional(), body: str.min(5).optional(), is_official: bool }),
   hostel_reviews: z.object({ status: z.enum(['approved', 'pending', 'blocked']).optional(), body: str.min(5).optional() }),
   newsletter_subscribers: z.object({ unsubscribed: bool }),
+  companies: z.object({ is_verified: bool }),
 };
 
 export const reviewUpdateV2 = reviewUpdate.extend({

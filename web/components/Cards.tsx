@@ -62,6 +62,10 @@ export function HostelCard({ h }: { h: Partial<Hostel> & { id: string; name: str
         <img src={h.photos?.[0] || FALLBACK_IMG} alt={h.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
         <span className="absolute left-3 top-3 rounded-lg bg-white/95 px-2 py-1 text-xs font-bold text-slate-800">{h.type} · {h.gender}</span>
         <div className="absolute right-3 top-3"><SaveButton type="hostel" id={h.id} /></div>
+        {Array.isArray((h as any).hostel_rooms) && (h as any).hostel_rooms.length > 0 && (() => {
+          const beds = (h as any).hostel_rooms.reduce((n: number, r: any) => n + (r.beds_available || 0), 0);
+          return <span className={`absolute bottom-3 right-3 rounded-lg px-2 py-1 text-xs font-bold ${beds ? 'bg-emerald-500 text-white' : 'bg-slate-800/80 text-white'}`}>{beds ? `${beds} bed${beds > 1 ? 's' : ''} free` : 'Full'}</span>;
+        })()}
         {'distance' in h && (h as any).distance != null && (
           <span className="absolute bottom-3 left-3 rounded-lg bg-brand-950/80 px-2 py-1 text-xs text-white">{(h as any).distance} km away</span>
         )}

@@ -27,7 +27,7 @@ export default async function HostelsPage({ searchParams }: { searchParams: Prom
   let total = 0;
 
   if (hasSupabase) {
-    let q = supabasePublic().from('hostels').select('*, colleges(name, slug)', { count: 'exact' }).eq('is_published', true);
+    let q = supabasePublic().from('hostels').select('*, colleges(name, slug), hostel_rooms(beds_available)', { count: 'exact' }).eq('is_published', true);
     const term = cleanTerm(sp.q);
     if (term) q = q.or(`name.ilike.%${term}%,city.ilike.%${term}%,address.ilike.%${term}%`);
     if (sp.country) q = q.eq('country', sp.country);
@@ -56,7 +56,7 @@ export default async function HostelsPage({ searchParams }: { searchParams: Prom
           <FilterBar action="/hostels" values={sp} fields={[
             { name: 'q', label: 'Search', type: 'text', placeholder: 'Area, city or name' },
             { name: 'country', label: 'Country', type: 'select', options: countries },
-            { name: 'city', label: 'City', type: 'text', placeholder: 'e.g. Bengaluru' },
+            { name: 'city', label: 'City', type: 'city', placeholder: 'Any city worldwide' },
             { name: 'type', label: 'Type', type: 'select', options: ['PG', 'Hostel', 'Flat', 'Homestay'] },
             { name: 'gender', label: 'For', type: 'select', options: ['Boys', 'Girls', 'Co-ed'] },
             { name: 'amenity', label: 'Must have', type: 'select', options: ['Food', 'Wi-Fi', 'AC', 'Laundry', 'Gym', 'CCTV', 'Transport'] },

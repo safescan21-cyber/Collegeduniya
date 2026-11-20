@@ -1,7 +1,22 @@
 // Lightweight English / Hindi dictionary for site chrome (menus, buttons, headings, forms).
 // College, PG and job content stays in the language the admin typed it in.
 
-export type Lang = 'en' | 'hi';
+// Languages offered in the picker. English and Hindi are hand-written below; every other
+// language is machine-translated once by the Node API (/api/translate) and cached.
+export const LANGUAGES: { code: string; name: string }[] = [
+  { code: 'en', name: 'English' }, { code: 'hi', name: 'हिन्दी' }, { code: 'bn', name: 'বাংলা' }, { code: 'ta', name: 'தமிழ்' },
+  { code: 'te', name: 'తెలుగు' }, { code: 'mr', name: 'मराठी' }, { code: 'gu', name: 'ગુજરાતી' }, { code: 'kn', name: 'ಕನ್ನಡ' },
+  { code: 'ml', name: 'മലയാളം' }, { code: 'pa', name: 'ਪੰਜਾਬੀ' }, { code: 'or', name: 'ଓଡ଼ିଆ' }, { code: 'ur', name: 'اردو' },
+  { code: 'ne', name: 'नेपाली' }, { code: 'si', name: 'සිංහල' }, { code: 'ar', name: 'العربية' }, { code: 'fa', name: 'فارسی' },
+  { code: 'tr', name: 'Türkçe' }, { code: 'ru', name: 'Русский' }, { code: 'uk', name: 'Українська' }, { code: 'de', name: 'Deutsch' },
+  { code: 'fr', name: 'Français' }, { code: 'es', name: 'Español' }, { code: 'pt', name: 'Português' }, { code: 'it', name: 'Italiano' },
+  { code: 'nl', name: 'Nederlands' }, { code: 'pl', name: 'Polski' }, { code: 'sv', name: 'Svenska' }, { code: 'zh-CN', name: '简体中文' },
+  { code: 'zh-TW', name: '繁體中文' }, { code: 'ja', name: '日本語' }, { code: 'ko', name: '한국어' }, { code: 'vi', name: 'Tiếng Việt' },
+  { code: 'th', name: 'ไทย' }, { code: 'id', name: 'Bahasa Indonesia' }, { code: 'ms', name: 'Bahasa Melayu' }, { code: 'fil', name: 'Filipino' },
+  { code: 'sw', name: 'Kiswahili' }, { code: 'am', name: 'አማርኛ' }, { code: 'he', name: 'עברית' },
+];
+export const RTL = new Set(['ar', 'ur', 'fa', 'he']);
+export type Lang = string;
 export const LANG_COOKIE = 'ses_lang';
 
 const en = {
@@ -110,6 +125,22 @@ const en = {
   'common.saved': 'Saved',
   'common.compare': 'Compare',
   'common.share': 'Share',
+  'nav.cities': 'Cities',
+  'nav.forOwners': 'List your PG',
+  'nav.forCompanies': 'Hire students',
+  'nav.ownerPortal': 'Owner portal',
+  'nav.employerPortal': 'Employer portal',
+  'city.placeholder': 'Search any city in the world…',
+  'city.title': 'Colleges, PGs and jobs in',
+  'live.hospitals': 'Hospitals & clinics nearby',
+  'live.jobs': 'Live local jobs in',
+  'live.translate': 'Translate',
+  'live.original': 'Show original',
+  'register.as': 'I am a',
+  'register.student': 'Student',
+  'register.owner': 'PG / hostel owner',
+  'register.employer': 'Company / employer',
+  'home.cities': 'Popular cities',
 };
 
 export type DictKey = keyof typeof en;
@@ -220,10 +251,30 @@ const hi: Partial<Record<DictKey, string>> = {
   'common.saved': 'सेव किया',
   'common.compare': 'तुलना',
   'common.share': 'शेयर',
+  'nav.cities': 'शहर',
+  'nav.forOwners': 'अपना पीजी डालें',
+  'nav.forCompanies': 'छात्रों को नौकरी दें',
+  'nav.ownerPortal': 'मालिक पोर्टल',
+  'nav.employerPortal': 'नियोक्ता पोर्टल',
+  'city.placeholder': 'दुनिया का कोई भी शहर खोजें…',
+  'city.title': 'कॉलेज, पीजी और जॉब —',
+  'live.hospitals': 'पास के अस्पताल और क्लिनिक',
+  'live.jobs': 'स्थानीय नौकरियाँ —',
+  'live.translate': 'अनुवाद करें',
+  'live.original': 'मूल दिखाएँ',
+  'register.as': 'मैं हूँ',
+  'register.student': 'छात्र',
+  'register.owner': 'पीजी / हॉस्टल मालिक',
+  'register.employer': 'कंपनी / नियोक्ता',
+  'home.cities': 'लोकप्रिय शहर',
 };
 
-export function translate(lang: Lang, key: DictKey) {
-  return (lang === 'hi' ? hi[key] : undefined) ?? en[key];
+export type Dict = Record<DictKey, string>;
+export const EN: Dict = en;
+export const HI: Dict = { ...en, ...hi } as Dict;
+
+export function translate(lang: Lang, key: DictKey, dict?: Partial<Dict>) {
+  return dict?.[key] ?? (lang === 'hi' ? hi[key] : undefined) ?? en[key];
 }
 
-export const isLang = (v: unknown): v is Lang => v === 'en' || v === 'hi';
+export const isLang = (v: unknown): boolean => typeof v === 'string' && LANGUAGES.some((l) => l.code === v);

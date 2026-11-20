@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { SlidersHorizontal } from 'lucide-react';
+import CityInput from './CityInput';
 
 export type Field =
   | { name: string; label: string; type: 'text'; placeholder?: string }
+  | { name: string; label: string; type: 'city'; placeholder?: string }
   | { name: string; label: string; type: 'select'; options: (string | { value: string; label: string })[] };
 
 // Plain GET form — works without JavaScript and keeps filters in the URL (good for SEO & sharing).
@@ -13,7 +15,9 @@ export default function FilterBar({ action, fields, values }: { action: string; 
       {fields.map((f) => (
         <div key={f.name}>
           <label className="label" htmlFor={f.name}>{f.label}</label>
-          {f.type === 'text' ? (
+          {f.type === 'city' ? (
+            <CityInput name={f.name} defaultValue={values[f.name] || ''} placeholder={f.placeholder} />
+          ) : f.type === 'text' ? (
             <input id={f.name} name={f.name} defaultValue={values[f.name] || ''} placeholder={f.placeholder} className="input" />
           ) : (
             <select id={f.name} name={f.name} defaultValue={values[f.name] || ''} className="input">

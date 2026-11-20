@@ -3,6 +3,7 @@ import {
   GraduationCap, Home, Briefcase, Users, Globe2, Star, MapPin, ArrowRight, ShieldCheck, Target, Scale, FilePlus2, Calculator, PlusCircle,
 } from 'lucide-react';
 import HeroSearch from '@/components/HeroSearch';
+import CityInput from '@/components/CityInput';
 import { CollegeCard, HostelCard, JobCard } from '@/components/Cards';
 import EnquiryForm from '@/components/EnquiryForm';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
@@ -66,6 +67,11 @@ export default async function HomePage() {
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-brand-100/90">{t('home.subtitle')}</p>
           <div className="mt-10"><HeroSearch /></div>
+          <div className="mx-auto mt-4 flex max-w-3xl flex-col items-center gap-2 text-sm sm:flex-row">
+            <span className="shrink-0 text-brand-100">or explore a city:</span>
+            <CityInput mode="navigate" className="w-full text-slate-800" />
+            <Link href="/cities" className="shrink-0 text-brand-100 underline">All countries</Link>
+          </div>
           <div className="mt-6 flex flex-wrap justify-center gap-2 text-sm">
             {STREAMS.slice(0, 6).map((s) => (
               <Link key={s} href={`/colleges?stream=${s}`} className="rounded-full border border-white/20 px-3 py-1 text-brand-100 hover:bg-white/10">{s}</Link>

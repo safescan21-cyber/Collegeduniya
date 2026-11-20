@@ -9,6 +9,7 @@ import adminRoutes from './routes/admin.js';
 import trackRoutes from './routes/track.js';
 import publicRoutes from './routes/public.js';
 import chatRoutes from './routes/chat.js';
+import geoRoutes from './routes/geo.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -17,7 +18,7 @@ const origins = (process.env.CORS_ORIGIN || 'http://localhost:3000').split(',').
 app.set('trust proxy', 1); // behind Nginx on the VPS
 app.use(helmet());
 app.use(cors({ origin: origins, credentials: true }));
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '2mb' }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'studyearnstay-api', time: new Date().toISOString() }));
@@ -26,6 +27,7 @@ app.use('/api', loadUser);
 app.use('/api/track', trackRoutes);
 app.use('/api', publicRoutes);       // /api/leads, /api/newsletter
 app.use('/api/chat', chatRoutes);
+app.use('/api', geoRoutes);         // /api/cities, /api/nearby, /api/local-jobs, /api/translate, /api/languages
 app.use('/api/admin', rateLimit({ windowMs: 60_000, limit: 300 }), adminRoutes);
 
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));

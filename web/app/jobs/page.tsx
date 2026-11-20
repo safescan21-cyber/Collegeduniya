@@ -53,7 +53,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
           <FilterBar action="/jobs" values={sp} fields={[
             { name: 'q', label: 'Search', type: 'text', placeholder: 'Job title or company' },
             { name: 'country', label: 'Country', type: 'select', options: countries },
-            { name: 'city', label: 'City', type: 'text', placeholder: 'e.g. Delhi' },
+            { name: 'city', label: 'City', type: 'city', placeholder: 'Any city worldwide' },
             { name: 'type', label: 'Job type', type: 'select', options: ['Part-time', 'Internship', 'Weekend', 'Freelance', 'Full-time'] },
             { name: 'remote', label: 'Work mode', type: 'select', options: [{ value: 'yes', label: 'Remote' }, { value: 'no', label: 'On-site' }] },
             { name: 'sort', label: 'Sort by', type: 'select', options: [{ value: 'pay', label: 'Highest pay' }] },

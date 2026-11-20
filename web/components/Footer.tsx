@@ -55,6 +55,7 @@ export default async function Footer() {
       </div>
       <div className="border-t border-white/10 py-5 text-center text-xs text-brand-200/60">
         © {new Date().getFullYear()} StudyEarnstay.com — Study • Earn • Stay · <a href="mailto:hello@studyearnstay.com" className="hover:text-white">hello@studyearnstay.com</a>
+        <p className="mt-2">Cities: <a href="https://www.geonames.org" className="underline" target="_blank" rel="noopener noreferrer">GeoNames</a> · Maps & places: <a href="https://www.openstreetmap.org/copyright" className="underline" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a> · University data: Hipolabs, Wikidata</p>
       </div>
     </footer>
   );

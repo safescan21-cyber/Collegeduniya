@@ -7,6 +7,8 @@ export type Profile = {
   country: string | null;
   course_interest: string | null;
   role: 'student' | 'admin' | 'super_admin';
+  account_type?: 'student' | 'pg_owner' | 'employer';
+  preferred_lang?: string | null;
   is_blocked: boolean;
   created_at: string;
 };

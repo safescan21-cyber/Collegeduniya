@@ -66,7 +66,7 @@ export default async function CollegesPage({ searchParams }: { searchParams: Pro
           <FilterBar action="/colleges" values={sp} fields={[
             { name: 'q', label: 'Search', type: 'text', placeholder: 'College name or city' },
             { name: 'country', label: 'Country', type: 'select', options: countries },
-            { name: 'city', label: 'City', type: 'text', placeholder: 'e.g. Pune' },
+            { name: 'city', label: 'City', type: 'city', placeholder: 'Any city worldwide' },
             { name: 'stream', label: 'Stream', type: 'select', options: ['Engineering', 'Management', 'Medical', 'Commerce', 'Arts', 'Science', 'Law', 'Design', 'Media'] },
             { name: 'level', label: 'Course level', type: 'select', options: ['UG', 'PG', 'Diploma', 'PhD', 'Certificate'] },
             { name: 'type', label: 'Ownership', type: 'select', options: ['Public', 'Private', 'Deemed', 'Autonomous'] },
