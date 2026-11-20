@@ -4,6 +4,7 @@ import { Bot, Sparkles, Loader2, Plus, Trash2, Save, CheckCircle2, XCircle, Wand
 import ModerationList from '@/components/admin/ModerationList';
 import MockAutopilot from '@/components/admin/MockAutopilot';
 import AiProviders from '@/components/admin/AiProviders';
+import MockPapers from '@/components/admin/MockPapers';
 import { api } from '@/lib/api';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { timeAgo } from '@/lib/format';
@@ -258,7 +259,7 @@ export default function AdminMockTests() {
   const exams = useExams();
   const [slug, setSlug] = useState('');
   const [bp, setBp] = useState<BP | null>(null);
-  const [tab, setTab] = useState<'autopilot' | 'build' | 'review' | 'reports'>('autopilot');
+  const [tab, setTab] = useState<'autopilot' | 'build' | 'papers' | 'review' | 'reports'>('autopilot');
   const [refresh, setRefresh] = useState(0);
   const bump = useCallback(() => setRefresh((n) => n + 1), []);
   return (
@@ -268,10 +269,11 @@ export default function AdminMockTests() {
         <p className="text-sm text-slate-600"><b>Autopilot</b> lets the AI do everything below on its own — you only spot-check. Manual steps: 1) Pick an exam and save its pattern (draft it with AI, then check it against the official notice). 2) Generate questions. 3) Review and approve them. 4) Tick “Published”. Students only ever see approved questions.</p>
         <AiStatus />
       </div>
-      <div className="flex gap-2">{([['autopilot', 'Autopilot'], ['build', 'Pattern & generate'], ['review', 'Review questions'], ['reports', 'Student reports']] as const).map(([k, l]) => (
+      <div className="flex flex-wrap gap-2">{([['autopilot', 'Autopilot'], ['build', 'Pattern & generate'], ['papers', 'Numbered tests'], ['review', 'Review questions'], ['reports', 'Student reports']] as const).map(([k, l]) => (
         <button key={k} onClick={() => setTab(k)} className={`${tab === k ? 'btn-primary' : 'btn-ghost'} py-1.5`}>{l}</button>))}</div>
       {tab === 'autopilot' && <><MockAutopilot onPickExam={(x) => { setSlug(x); setTab('build'); }} /><AiProviders /></>}
       {tab === 'build' && <><PatternEditor exams={exams} slug={slug} setSlug={setSlug} onSaved={setBp} /><Generator slug={slug} bp={bp} onDone={bump} /></>}
+      {tab === 'papers' && <MockPapers exams={exams} slug={slug} setSlug={setSlug} />}
       {tab === 'review' && (
         <>
           <select className="input max-w-xs" value={slug} onChange={(e) => setSlug(e.target.value)}><option value="">All exams</option>{exams.map((e) => <option key={e.slug} value={e.slug}>{e.short_name}</option>)}</select>

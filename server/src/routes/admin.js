@@ -403,6 +403,24 @@ router.post('/mock/spot-check', wrap(async (req, res) => {
   res.json({ ok: true, count: ids.length });
 }));
 
+router.post('/mock/papers/build', wrap(async (req, res) => {
+  const { data, error } = await supabase.rpc('create_mock_papers', { p_exam: String(req.body?.exam_slug || ''), p_max_full: 10, p_max_sectional: 5, p_max_topic: 3, p_topic_size: Math.max(5, Math.min(30, parseInt(req.body?.topic_size, 10) || 10)) });
+  if (error) return fail(res, error);
+  res.json({ created: Number(data) || 0 });
+}));
+router.get('/mock/papers', wrap(async (req, res) => {
+  let q = supabase.from('mock_papers').select('id, exam_slug, kind, number, title, section, topic, duration_min, is_published, created_at, question_ids').order('created_at', { ascending: false }).limit(300);
+  if (req.query.exam_slug) q = q.eq('exam_slug', req.query.exam_slug);
+  const { data, error } = await q;
+  if (error) return fail(res, error);
+  res.json({ data: (data || []).map(({ question_ids, ...p }) => ({ ...p, questions: question_ids.length })) });
+}));
+router.patch('/mock/papers/:id', wrap(async (req, res) => {
+  const { error } = await supabase.from('mock_papers').update({ is_published: !!req.body?.is_published }).eq('id', req.params.id);
+  if (error) return fail(res, error);
+  res.json({ ok: true });
+}));
+
 router.post('/mock/bulk-questions', wrap(async (req, res) => {
   const ids = (req.body?.ids || []).filter((x) => /^[0-9a-f-]{36}$/.test(x)).slice(0, 500);
   const status = req.body?.status;

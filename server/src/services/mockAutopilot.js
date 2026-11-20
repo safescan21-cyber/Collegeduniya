@@ -94,6 +94,12 @@ async function runExam(exam, s, budget) {
     }
   }
 
+  // turn the bank into numbered papers: Mock Test 1, 2…, sectional tests, topic tests
+  try {
+    const { data: madeP } = await supabase.rpc('create_mock_papers', { p_exam: slug, p_max_full: 10, p_max_sectional: 5, p_max_topic: 3, p_topic_size: 10 });
+    if (Number(madeP) > 0) await log(slug, 'papers', `${madeP} new test paper${Number(madeP) > 1 ? 's' : ''} created from the question bank`);
+  } catch (e) { await log(slug, 'error', `papers: ${e.message}`); }
+
   // publish when every section has enough approved questions for a full paper
   if (!bp.is_published && s.auto_publish) {
     const { data: ok } = await supabase.from('mock_questions').select('section').eq('exam_slug', slug).eq('status', 'approved').limit(20000);

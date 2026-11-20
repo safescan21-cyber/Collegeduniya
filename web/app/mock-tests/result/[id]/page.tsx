@@ -2,7 +2,7 @@
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Trophy, Target, TrendingUp, Sparkles, CheckCircle2, XCircle, MinusCircle, Flag, Loader2, RotateCcw, Mail } from 'lucide-react';
+import { Trophy, Target, TrendingUp, Sparkles, CheckCircle2, XCircle, MinusCircle, Flag, Loader2, RotateCcw, Mail, Timer, Medal, Wand2, Copy, Check, Save } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { api } from '@/lib/api';
@@ -10,6 +10,8 @@ import { api } from '@/lib/api';
 type Fb = { summary: string; strengths: string[]; weaknesses: string[]; plan: string[]; ai: boolean };
 type R = { idx: number; id: string; section: string; topic: string | null; stem: string; options: string[]; answer: number; chosen: number | null; explanation: string | null };
 const LETTERS = 'ABCDEF';
+type Ex = { concept: string; working: string; mistake: string; tip: string };
+const fmt = (sec: number) => (sec >= 60 ? `${Math.floor(sec / 60)}m ${Math.round(sec % 60)}s` : `${Math.round(sec)}s`);
 const n = (x: any) => (x == null ? '—' : Number.isInteger(Number(x)) ? String(Number(x)) : Number(x).toFixed(2));
 
 export default function Result({ params }: { params: Promise<{ id: string }> }) {
@@ -25,6 +27,11 @@ export default function Result({ params }: { params: Promise<{ id: string }> }) 
   const [reason, setReason] = useState('');
   const [reported, setReported] = useState<Set<string>>(new Set());
   const [err, setErr] = useState('');
+  const [rank, setRank] = useState<{ rank: number; total: number; group_rank: number | null; group_total: number | null } | null>(null);
+  const [board, setBoard] = useState<any[]>([]);
+  const [ex, setEx] = useState<Record<string, Ex | string>>({}); const [exBusy, setExBusy] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [gEmail, setGEmail] = useState(''); const [gMsg, setGMsg] = useState('');
 
   useEffect(() => {
     if (loading) return;
@@ -34,6 +41,10 @@ export default function Result({ params }: { params: Promise<{ id: string }> }) 
       if (!data) { setErr('Result not found.'); return; }
       if (data.status !== 'submitted') { router.replace(`/mock-tests/attempt/${id}`); return; }
       setA(data);
+      if (data.paper_id) {
+        sb.rpc('paper_rank', { p_attempt: id }).then(({ data: rk }: { data: any[] | null }) => rk?.[0] && setRank(rk[0]));
+        sb.rpc('paper_leaderboard', { p_paper: data.paper_id, p_group: data.group_id, p_lim: 10 }).then(({ data: b }: { data: any[] | null }) => setBoard(b || []));
+      }
       const { data: r } = await sb.rpc('attempt_review', { p_attempt: id });
       setRev((r || []) as R[]);
       if (data.feedback) setFb(data.feedback);
@@ -49,11 +60,34 @@ export default function Result({ params }: { params: Promise<{ id: string }> }) 
     if (!error) { setReported((s) => new Set(s).add(qid)); setReporting(null); setReason(''); } else alert(error.message);
   };
 
+  const explain = async (qid: string) => {
+    setExBusy(qid);
+    try { const r = await api<{ explanation: Ex }>(`/api/mock/questions/${qid}/explain`, { method: 'POST' }); setEx((m) => ({ ...m, [qid]: r.explanation })); }
+    catch (e: any) { setEx((m) => ({ ...m, [qid]: e.message || 'Could not explain right now' })); }
+    setExBusy('');
+  };
+  const guest = !!(user as any)?.is_anonymous;
+  const saveGuest = async (e: React.FormEvent) => {
+    e.preventDefault(); setGMsg('');
+    const { error } = await sb.auth.updateUser({ email: gEmail.trim() }, { emailRedirectTo: `${location.origin}/dashboard?tab=mocks` });
+    setGMsg(error ? error.message : `Check ${gEmail} and click the link — your results will stay in your new account.`);
+  };
+
   if (err) return <div className="container-x py-20 text-center text-rose-600">{err}</div>;
   if (!a) return <div className="container-x py-10"><div className="card h-96 animate-pulse" /></div>;
   const attempted = a.correct + a.wrong;
   const accuracy = attempted ? Math.round((100 * a.correct) / attempted) : 0;
   const mins = Math.max(1, Math.round((new Date(a.submitted_at).getTime() - new Date(a.started_at).getTime()) / 60000));
+  const ts: Record<string, number> = a.time_spent || {};
+  const hasTime = Object.keys(ts).length > 0;
+  const secTime = new Map<string, { t: number; c: number; ok: number }>();
+  for (const r of rev) { const v = secTime.get(r.section) || { t: 0, c: 0, ok: 0 }; v.t += ts[r.id] || 0; v.c++; if (r.chosen === r.answer) v.ok++; secTime.set(r.section, v); }
+  const slow = rev.filter((r) => ts[r.id]).sort((x, y) => (ts[y.id] || 0) - (ts[x.id] || 0)).slice(0, 5);
+  const totalT = Object.values(ts).reduce((x, y) => x + y, 0);
+  const wrongTime = rev.filter((r) => r.chosen != null && r.chosen !== r.answer).reduce((x, r) => x + (ts[r.id] || 0), 0);
+  const wrongs = rev.filter((r) => r.chosen != null && r.chosen !== r.answer).slice(0, 5);
+  const prompt = wrongs.length ? `I am preparing for ${a.title}. I got these questions wrong in a practice test. For each one, explain the concept, solve it step by step, tell me why my answer was wrong, and give me 2 similar practice questions.\n\n` +
+    wrongs.map((r, i) => `${i + 1}. ${r.stem}\nOptions: ${r.options.map((o, j) => `${LETTERS[j]}. ${o}`).join(' | ')}\nMy answer: ${LETTERS[r.chosen!]} · Correct: ${LETTERS[r.answer]}`).join('\n\n') : '';
   const list = rev.filter((r) => filter === 'all' || (filter === 'skipped' ? r.chosen == null : filter === 'right' ? r.chosen === r.answer : r.chosen != null && r.chosen !== r.answer));
 
   return (
@@ -61,11 +95,19 @@ export default function Result({ params }: { params: Promise<{ id: string }> }) 
       <Link href="/mock-tests" className="text-sm text-slate-500 hover:underline">← All mock tests</Link>
       <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">{a.title} — result</h1>
 
+      {guest && (
+        <form onSubmit={saveGuest} className="card mt-4 flex flex-wrap items-center gap-3 border-amber-200 bg-amber-50 p-4 text-sm">
+          <Save size={18} className="text-amber-700" /><span className="flex-1 text-amber-900">You are taking tests as a guest. Add your email to keep this result, your rank and your study plan.</span>
+          <input type="email" required className="input max-w-xs py-1.5" value={gEmail} onChange={(e) => setGEmail(e.target.value)} placeholder="you@email.com" />
+          <button className="btn-primary py-1.5">Save my results</button>
+          {gMsg && <p className="w-full text-amber-900">{gMsg}</p>}
+        </form>)}
       <div className="mt-6 grid gap-4 md:grid-cols-4">
         <div className="card bg-gradient-to-br from-brand-600 to-brand-800 p-5 text-white md:col-span-1">
           <p className="flex items-center gap-1.5 text-sm text-brand-100"><Trophy size={15} />Score</p>
           <p className="mt-1 text-4xl font-extrabold">{n(a.score)}<span className="text-lg font-semibold text-brand-200"> / {n(a.max_score)}</span></p>
-          <p className="mt-1 text-sm text-brand-100">{n(a.percentile)} percentile on StudyEarnstay</p>
+          {rank ? <p className="mt-1 text-sm text-brand-100">All India rank <b className="text-white">{Number(rank.rank).toLocaleString('en-IN')}</b> of {Number(rank.total).toLocaleString('en-IN')}{rank.group_rank ? ` · group #${rank.group_rank} of ${rank.group_total}` : ''}</p>
+            : <p className="mt-1 text-sm text-brand-100">{n(a.percentile)} percentile on StudyEarnstay</p>}
         </div>
         <div className="card p-5"><p className="flex items-center gap-1.5 text-sm text-slate-500"><Target size={15} />Accuracy</p><p className="mt-1 text-3xl font-extrabold text-slate-900">{accuracy}%</p><p className="text-xs text-slate-500">{a.correct} right of {attempted} attempted</p></div>
         <div className="card p-5"><p className="text-sm text-slate-500">Answers</p>
@@ -99,6 +141,33 @@ export default function Result({ params }: { params: Promise<{ id: string }> }) 
         </section>
       </div>
 
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        {hasTime && (
+          <section className="card p-5">
+            <h2 className="flex items-center gap-2 font-bold text-slate-900"><Timer size={17} className="text-brand-600" />Time analysis</h2>
+            <p className="mt-1 text-xs text-slate-500">Average {fmt(totalT / Math.max(1, rev.length))} per question{wrongTime > 0 ? ` · ${fmt(wrongTime)} spent on questions you got wrong` : ''}</p>
+            <table className="mt-3 w-full text-sm"><thead className="text-xs text-slate-500"><tr><th className="text-left">Section</th><th className="text-right">Time</th><th className="text-right">Per question</th><th className="text-right">Right</th></tr></thead>
+              <tbody>{Array.from(secTime.entries()).map(([k, v]) => <tr key={k} className="border-t border-slate-100"><td className="py-1.5">{k}</td><td className="text-right">{fmt(v.t)}</td><td className="text-right">{fmt(v.t / v.c)}</td><td className="text-right">{v.ok}/{v.c}</td></tr>)}</tbody></table>
+            {slow.length > 0 && <><p className="mt-4 text-sm font-semibold">Slowest questions</p>
+              <ul className="mt-1 space-y-1 text-sm">{slow.map((r) => <li key={r.id} className="flex justify-between gap-2"><a href={`#q${r.idx}`} className="truncate text-brand-700 hover:underline">Q{r.idx} · {r.topic || r.section}</a><span className={r.chosen === r.answer ? 'text-emerald-700' : 'text-rose-600'}>{fmt(ts[r.id])} {r.chosen === r.answer ? '✓' : r.chosen == null ? '–' : '✗'}</span></li>)}</ul></>}
+          </section>)}
+        {board.length > 0 && (
+          <section className="card p-5">
+            <div className="flex items-center justify-between"><h2 className="flex items-center gap-2 font-bold text-slate-900"><Medal size={17} className="text-amber-500" />{a.group_id ? 'Group leaderboard' : 'Top scorers'}</h2>
+              <Link href={`/mock-tests/leaderboard/${a.paper_id}${a.group_id ? `?group=${a.group_id}` : ''}`} className="text-xs text-brand-700 hover:underline">Full list →</Link></div>
+            <ol className="mt-3 space-y-1 text-sm">{board.map((r, i) => <li key={i} className={`flex justify-between rounded-lg px-2 py-1 ${r.is_me ? 'bg-brand-50 font-semibold' : ''}`}><span>{Number(r.rank)}. {r.name}{r.is_me ? ' (you)' : ''}</span><span>{Number(r.score)}/{Number(r.max_score)} · {Number(r.minutes)} min</span></li>)}</ol>
+          </section>)}
+      </div>
+
+      {prompt && (
+        <section className="card mt-6 flex flex-wrap items-center gap-3 p-5">
+          <Wand2 size={20} className="text-brand-600" />
+          <div className="min-w-60 flex-1"><p className="font-bold text-slate-900">Review your mistakes with an AI tutor</p><p className="text-xs text-slate-500">Opens your {wrongs.length} wrong question{wrongs.length > 1 ? 's' : ''} (no personal details) in a new tab.</p></div>
+          <a target="_blank" rel="noopener noreferrer" href={`https://chatgpt.com/?q=${encodeURIComponent(prompt)}`} className="btn-ghost py-1.5 text-sm">ChatGPT</a>
+          <a target="_blank" rel="noopener noreferrer" href={`https://claude.ai/new?q=${encodeURIComponent(prompt)}`} className="btn-ghost py-1.5 text-sm">Claude</a>
+          <button onClick={() => { navigator.clipboard?.writeText(prompt); setCopied(true); setTimeout(() => setCopied(false), 1500); }} className="btn-ghost py-1.5 text-sm">{copied ? <Check size={14} /> : <Copy size={14} />}Copy prompt</button>
+        </section>)}
+
       <section className="card mt-6 p-6">
         <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900"><Sparkles size={18} className="text-brand-600" />Where to improve</h2>
         {!fb ? <p className="mt-3 flex items-center gap-2 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" />Preparing your personal analysis…</p> : (
@@ -123,10 +192,10 @@ export default function Result({ params }: { params: Promise<{ id: string }> }) 
         <div className="mt-4 space-y-4">{list.map((r) => {
           const ok = r.chosen === r.answer; const skip = r.chosen == null;
           return (
-            <div key={r.id} className={`card border-l-4 p-5 ${skip ? 'border-l-slate-300' : ok ? 'border-l-emerald-500' : 'border-l-rose-500'}`}>
+            <div key={r.id} id={`q${r.idx}`} className={`card scroll-mt-24 border-l-4 p-5 ${skip ? 'border-l-slate-300' : ok ? 'border-l-emerald-500' : 'border-l-rose-500'}`}>
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
                 <span className="font-semibold text-slate-700">Q{r.idx} · {r.section}{r.topic ? ` · ${r.topic}` : ''}</span>
-                <span className={skip ? 'chip' : ok ? 'chip-green' : 'chip-red'}>{skip ? 'Not answered' : ok ? 'Correct' : 'Wrong'}</span>
+                {ts[r.id] ? <span className="ms-auto flex items-center gap-1"><Timer size={12} />{fmt(ts[r.id])}</span> : null}<span className={skip ? 'chip' : ok ? 'chip-green' : 'chip-red'}>{skip ? 'Not answered' : ok ? 'Correct' : 'Wrong'}</span>
               </div>
               <p className="mt-2 whitespace-pre-line text-slate-900">{r.stem}</p>
               <ul className="mt-3 space-y-1.5">{r.options.map((o, i) => (
@@ -134,12 +203,21 @@ export default function Result({ params }: { params: Promise<{ id: string }> }) 
                   <b>{LETTERS[i]}.</b><span>{o}</span>{i === r.answer && <CheckCircle2 size={15} className="ms-auto shrink-0 text-emerald-600" />}{i === r.chosen && i !== r.answer && <XCircle size={15} className="ms-auto shrink-0 text-rose-600" />}
                 </li>))}</ul>
               {r.explanation && <p className="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700"><b>Explanation: </b>{r.explanation}</p>}
-              <div className="mt-2 text-right">
-                {reported.has(r.id) ? <span className="text-xs text-emerald-700">Thanks — our team will check it.</span>
+              {typeof ex[r.id] === 'object' && (() => { const e = ex[r.id] as Ex; return (
+                <div className="mt-3 space-y-2 rounded-lg border border-brand-100 bg-brand-50/60 p-3 text-sm text-slate-800">
+                  {e.concept && <p><b>Concept: </b>{e.concept}</p>}
+                  <div><b>Solution:</b><p className="mt-1 whitespace-pre-line">{e.working}</p></div>
+                  {e.mistake && <p><b>Common mistake: </b>{e.mistake}</p>}
+                  {e.tip && <p className="text-brand-800"><b>Exam tip: </b>{e.tip}</p>}
+                </div>); })()}
+              {typeof ex[r.id] === 'string' && <p className="mt-2 text-xs text-rose-600">{ex[r.id] as string}</p>}
+              <div className="mt-2 flex items-center justify-between gap-2">
+                {typeof ex[r.id] !== 'object' ? <button onClick={() => explain(r.id)} disabled={exBusy === r.id} className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline">{exBusy === r.id ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}Explain with AI</button> : <span />}
+                <span>{reported.has(r.id) ? <span className="text-xs text-emerald-700">Thanks — our team will check it.</span>
                   : reporting === r.id ? (
                     <div className="flex flex-wrap justify-end gap-2"><input className="input max-w-sm py-1.5 text-sm" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="What’s wrong? e.g. option C is also correct" />
                       <button onClick={() => report(r.id)} className="btn-primary py-1.5 text-sm">Send</button></div>
-                  ) : <button onClick={() => setReporting(r.id)} className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-rose-600"><Flag size={12} />Report a problem</button>}
+                  ) : <button onClick={() => setReporting(r.id)} className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-rose-600"><Flag size={12} />Report a problem</button>}</span>
               </div>
             </div>);
         })}</div>

@@ -474,6 +474,30 @@ Go to **Admin → Mock tests → Autopilot → Turn on autopilot.** From then on
 
 **How presence works:** each open tab sends a heartbeat every 60 s while visible; tabs silent for 2 minutes are counted offline. Rate limits are per tab, so a whole campus on one Wi-Fi address isn't blocked.
 
+## 5j. Numbered tests, All-India rank, study groups & guest tests (migration 016)
+
+Run `supabase/migrations/016_mock_papers_groups.sql` after 015 (already applied to the hosted project).
+
+**What students get**
+- **Numbered tests** for every exam: *Full Mock Test 1, 2, 3…*, *Sectional tests* (one section) and *Topic tests* (10 questions on one topic). Everyone taking the same paper gets the same questions, so ranks are fair. Tabs on each exam page (`/mock-tests/<exam>`); the old "random test" is still there.
+- **All-India rank + leaderboard** per paper (`/mock-tests/leaderboard/<paper>`). Only a student's first attempt counts; ties go to the faster student. Names show as first name + initial only if the student's profile is public — otherwise "Aspirant".
+- **Time analysis:** seconds spent on each question (paused when the tab is hidden), per-section time, slowest questions, and time lost on wrong answers.
+- **AI explanation** of any question after the test: concept, step-by-step working, common mistake, exam tip. Generated once and cached for everyone. Limit: `AI_EXPLAIN_PER_DAY` (default 20 per student per day).
+- **AI hints** in sectional and topic tests (not in full mocks): `AI_HINTS_PER_TEST` (default 3). The hint is checked so it never contains the answer text.
+- **Review mistakes in ChatGPT / Claude:** one click opens up to 5 wrong questions (no personal details) in a new tab, or copy the prompt.
+- **Question of the day** on the mock-tests home and every exam page (same question for everyone each day, India time).
+- **Study groups** (`/mock-tests/groups`): create a group, share the 6-letter code (WhatsApp button), the owner assigns papers, members see a private group leaderboard. Max 500 members.
+- **New exams:** UPSC CSE Prelims, CSAT, NDA, CDS, SSC CGL/CHSL/MTS/GD, RRB NTPC/Group D, IBPS PO/Clerk, SBI PO/Clerk, CTET. Autopilot drafts their patterns; **check each pattern against the official notification before publishing**.
+
+**Guest tests (no signup)** — optional
+1. Supabase → Authentication → Sign In / Providers → turn on **Allow anonymous sign-ins** (also keep CAPTCHA or the rate limits on).
+2. In `web/.env.local`: `NEXT_PUBLIC_GUEST_TESTS=on`, then rebuild.
+Guests can take tests and see results; the result page asks them to add an email to keep everything. Guests cannot post reviews, jobs, groups or anything else (`is_active_user()` excludes anonymous users).
+
+**Admin:** *Mock tests → Numbered tests* — build papers now for an exam, hide/show any paper. Autopilot builds new papers automatically whenever enough unused approved questions exist.
+
+**Server env (optional):** `AI_EXPLAIN_PER_DAY=20`, `AI_HINTS_PER_TEST=3`.
+
 ## 6. Deploy on your own VPS (Ubuntu + Nginx + PM2)
 
 ```bash

@@ -18,7 +18,8 @@ export default function StartTest({ slug, ready, needed, attempts }: { slug: str
   };
   return (
     <div className="card p-6">
-      <p className="text-lg font-bold text-slate-900">Ready to start?</p>
+      <p className="text-lg font-bold text-slate-900">Quick random test</p>
+      <p className="mt-1 text-sm text-slate-500">A fresh mix from the whole question bank, in the full exam pattern.</p>
       <ul className="mt-3 space-y-1.5 text-sm text-slate-600">
         <li>• The timer starts as soon as you begin and keeps running if you close the page.</li>
         <li>• Answers save automatically; you can resume until time runs out.</li>
@@ -28,7 +29,7 @@ export default function StartTest({ slug, ready, needed, attempts }: { slug: str
       {ready < needed && <p className="mt-3 rounded-lg bg-amber-50 p-2 text-xs text-amber-800">This test currently has {ready} of {needed} questions ready — you’ll get a shorter test until the bank is complete.</p>}
       {err && <p className="mt-3 text-sm text-rose-600">{err}</p>}
       {loading ? <div className="mt-5 h-11 animate-pulse rounded-xl bg-slate-100" /> : user
-        ? <button onClick={start} disabled={busy} className="btn-primary mt-5 w-full">{busy ? <Loader2 size={18} className="animate-spin" /> : <PlayCircle size={18} />}Start test</button>
+        ? <button onClick={start} disabled={busy} className="btn-primary mt-5 w-full">{busy ? <Loader2 size={18} className="animate-spin" /> : <PlayCircle size={18} />}Start random test</button>
         : <Link href={`/login?next=${encodeURIComponent(path)}`} className="btn-primary mt-5 w-full">Log in free to start</Link>}
       {attempts > 0 && <p className="mt-3 text-center text-xs text-slate-400">{attempts.toLocaleString()} tests taken so far</p>}
     </div>

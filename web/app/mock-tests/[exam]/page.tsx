@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Clock, ListChecks, ShieldCheck, ExternalLink, FileStack } from 'lucide-react';
 import StartTest from './StartTest';
+import PaperList from '@/components/mock/PaperList';
+import DailyQuestion from '@/components/mock/DailyQuestion';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 
 export const revalidate = 600;
@@ -47,7 +49,9 @@ export default async function MockExam({ params }: { params: Promise<{ exam: str
           <div className="card flex items-center gap-3 p-4"><Clock className="text-brand-600" /><div><p className="text-xs text-slate-500">Duration</p><p className="font-bold">{bp.duration_min} min</p></div></div>
           <div className="card flex items-center gap-3 p-4"><ShieldCheck className="text-brand-600" /><div><p className="text-xs text-slate-500">Maximum marks</p><p className="font-bold">{maxMarks}</p></div></div>
         </div>
-        <div className="card mt-6 overflow-x-auto">
+        <section className="mt-8"><h2 className="mb-3 text-xl font-bold text-slate-900">Free {exam.short_name} tests</h2><PaperList exam={exam.slug} /></section>
+        <h2 className="mt-10 text-lg font-bold text-slate-900">Exam pattern used in our tests</h2>
+        <div className="card mt-3 overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="px-4 py-2">Section</th><th className="px-4 py-2">Questions</th><th className="px-4 py-2">Correct</th><th className="px-4 py-2">Wrong</th><th className="px-4 py-2">Topics</th></tr></thead>
             <tbody>{bp.sections.map((s: any) => (
@@ -64,7 +68,7 @@ export default async function MockExam({ params }: { params: Promise<{ exam: str
           {exam.website && <a href={exam.website} target="_blank" rel="noopener" className="flex items-center gap-1 text-brand-700 underline"><ExternalLink size={14} />Official website</a>}
         </p>
       </div>
-      <aside><div className="lg:sticky lg:top-24"><StartTest slug={exam.slug} ready={d.ready} needed={total} attempts={d.attempts} /></div></aside>
+      <aside className="space-y-5"><div className="space-y-5 lg:sticky lg:top-24"><DailyQuestion exam={exam.slug} /><StartTest slug={exam.slug} ready={d.ready} needed={total} attempts={d.attempts} /></div></aside>
     </div>
   );
 }

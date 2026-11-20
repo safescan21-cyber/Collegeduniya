@@ -63,7 +63,7 @@ function resultEmail(a, fb, name) {
     <h2 style="color:#4f46e5;margin-bottom:4px">${esc(a.title)} — your result</h2>
     <p style="margin-top:0;color:#64748b">Hi ${esc(name || 'there')}, here is how you did.</p>
     <p style="font-size:28px;font-weight:bold;margin:8px 0">${num(a.score)} <span style="font-size:16px;color:#64748b">/ ${num(a.max_score)}</span></p>
-    <p style="margin:0;color:#475569">Better than or equal to <b>${a.percentile}%</b> of StudyEarnstay test-takers.</p>
+    <p style="margin:0;color:#475569">${a.rank ? `Rank <b>${a.rank.rank}</b> of ${a.rank.total} · ` : ''}Better than or equal to <b>${a.percentile}%</b> of StudyEarnstay test-takers.</p>
     <table style="border-collapse:collapse;margin-top:14px;width:100%;font-size:14px"><tr style="background:#f1f5f9"><th align="left" style="padding:6px 10px">Section</th><th align="left" style="padding:6px 10px">Score</th><th align="left" style="padding:6px 10px">Right · wrong · skipped</th></tr>${rows}</table>
     <p style="margin-top:16px">${esc(fb.summary)}</p>
     ${list('Where to improve', fb.weaknesses)}${list('Your study plan', fb.plan)}${list('Strengths', fb.strengths)}
@@ -89,6 +89,12 @@ export async function finishAttempt(id) {
     const { data: claimed } = await supabase.from('mock_attempts').update({ emailed_at: new Date().toISOString() }).eq('id', id).is('emailed_at', null).select('id');
     if (claimed?.length) {
       if (a.profiles?.email && mailEnabled()) {
+        if (a.paper_id) {   // rank among everyone's first attempt at this paper
+          const { data: firsts } = await supabase.from('mock_attempts').select('user_id, score, submitted_at').eq('paper_id', a.paper_id).eq('status', 'submitted').order('submitted_at').limit(20000);
+          const best = new Map(); (firsts || []).forEach((x) => { if (!best.has(x.user_id)) best.set(x.user_id, Number(x.score)); });
+          const mineS = best.get(a.user_id) ?? Number(a.score);
+          a.rank = { rank: [...best.values()].filter((v) => v > mineS).length + 1, total: best.size || 1 };
+        }
         const { html, text } = resultEmail(a, fb, a.profiles.full_name?.split(' ')[0]);
         await sendMail({ to: a.profiles.email, subject: `Your ${a.title} result: ${num(a.score)}/${num(a.max_score)}`, html, text }).catch((e) => console.warn('[mock email]', e.message));
       }
