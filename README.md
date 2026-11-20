@@ -73,6 +73,7 @@ Browser ──► Next.js (web) ──► Supabase  (public reads, OTP login, re
    Or use **Admin → Import & APIs** to preview/import one country at a time.
 7. Run **`supabase/migrations/004_visibility_import.sql`** (per-college show/hide + import fields).
 8. Run **`supabase/migrations/005_wiki_enrich.sql`** (Wikipedia text + Wikimedia Commons photos with credits).
+9. Run **`supabase/migrations/006_management_quota.sql`** (management / NRI quota seats + student applications).
 8. Load full college lists:
    ```bash
    npm run import:sheet -- ./All_Colleges.xlsx IN aishe   # India: official AISHE "All Colleges" list (~48k colleges)
@@ -211,6 +212,31 @@ No API key needed. For each college the API:
 - **Hiding:** hiding "Photos" in Show/hide also hides the credits.
 
 Google Places photos are **not** free (billed per request and they must not be stored), so they are not used.
+
+## 5c. Management quota admissions
+
+**Admin side:**
+- Post seats in **Admin → Management quota**, or open a college and use its **Management quota** tab.
+- Each seat has: course, quota type (Management / NRI / NRI Sponsored / Institutional / Foreign National), session, total and available seats, official fee per year, total fee, fee details, eligibility, minimum %, exams accepted, documents required and last date.
+- Seats become unavailable to applicants automatically when the status is *closed* or *filled*, seats available is 0, or the last date has passed.
+
+**Student side:**
+- Students browse **/management-quota** (filters for level, quota, state, city; sort by fee or closing date) or the *Management quota* section on a college page.
+- They apply after OTP login, with marks and documents (PDF/JPG, up to 6 × 5 MB).
+- Documents go to the private `resumes` bucket under `<user_id>/`, so only the student and admins can open them. The database rejects paths outside the student's own folder.
+- Students track progress in **Dashboard → College applications** and can withdraw while the status is *submitted*, *under review* or *contacted*.
+
+**Tracking applications:**
+- Applications arrive in **Admin → Quota applications**.
+- Status flow: submitted → under review → contacted → shortlisted → offered → admitted, or rejected.
+- Admins can add a note (the student sees it), download documents through 5-minute signed links, and export to CSV.
+
+**Rules built in:**
+- Students can only withdraw; they can't change their own status or note.
+- Hiding the *Management quota seats* section of a college hides its seats and blocks new applications.
+- Hiding *fees* hides the quota fee too.
+
+**Fee wording:** every page states that applying is free, that fees are paid only to the college against an official receipt, and that no donation or capitation money is taken. Several Indian states ban capitation fees, so keep listings to official fees only.
 
 ## 6. Deploy on your own VPS (Ubuntu + Nginx + PM2)
 

@@ -6,9 +6,10 @@ import ResourceManager, { FieldInput } from '@/components/admin/ResourceManager'
 import { api } from '@/lib/api';
 import { money } from '@/lib/format';
 import WikiEnrich from '@/components/admin/WikiEnrich';
+import { QUOTA_SEAT_FIELDS, QUOTA_SEAT_COLUMNS, QUOTA_SEAT_DEFAULTS } from '@/components/admin/quotaSeatFields';
 import { COLLEGE_FIELDS, HIDEABLE_FIELDS, HIDEABLE_SECTIONS, CURRENCIES } from '@/lib/adminFields';
 
-type Tab = 'details' | 'visibility' | 'courses' | 'placements' | 'cutoffs' | 'nearby' | 'wiki';
+type Tab = 'details' | 'visibility' | 'courses' | 'placements' | 'cutoffs' | 'nearby' | 'wiki' | 'quota';
 
 function Toggle({ on, onChange, label, hint }: { on: boolean; onChange: (v: boolean) => void; label: string; hint?: string }) {
   return (
@@ -65,7 +66,7 @@ export default function CollegeEditor({ params }: { params: Promise<{ id: string
   const toggleIn = (key: 'hidden_fields' | 'hidden_sections', v: string, shown: boolean) =>
     setDraft((d: any) => ({ ...d, [key]: shown ? d[key].filter((x: string) => x !== v) : Array.from(new Set([...d[key], v])) }));
   const dirty = JSON.stringify(draft) !== JSON.stringify({ ...college, hidden_fields: college.hidden_fields || [], hidden_sections: college.hidden_sections || [] });
-  const TABS: [Tab, string][] = [['details', 'Details'], ['visibility', 'Show / hide'], ['courses', 'Courses & fees'], ['placements', 'Placements'], ['cutoffs', 'Cutoffs'], ['nearby', 'Nearby places'], ['wiki', 'Wikipedia & photos']];
+  const TABS: [Tab, string][] = [['details', 'Details'], ['visibility', 'Show / hide'], ['courses', 'Courses & fees'], ['quota', 'Management quota'], ['placements', 'Placements'], ['cutoffs', 'Cutoffs'], ['nearby', 'Nearby places'], ['wiki', 'Wikipedia & photos']];
 
   return (
     <div className="space-y-5">
@@ -212,6 +213,12 @@ export default function CollegeEditor({ params }: { params: Promise<{ id: string
             { key: 'category', label: 'Category', render: (r) => `${r.category}${r.quota ? ` · ${r.quota}` : ''}` },
             { key: 'closing_rank', label: 'Closing', render: (r) => r.closing_rank?.toLocaleString() },
           ]} />
+      )}
+
+      {tab === 'quota' && (
+        <ResourceManager resource="quota_seats" title="Management quota seats for this college" fixed={{ college_id: id }} searchable={false}
+          defaults={QUOTA_SEAT_DEFAULTS} fields={QUOTA_SEAT_FIELDS(false)} columns={QUOTA_SEAT_COLUMNS(false)}
+          rowActions={(r) => <a href={`/admin/quota-applications`} className="btn-ghost py-1 text-xs">Applications</a>} />
       )}
 
       {tab === 'wiki' && (

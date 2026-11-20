@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   GraduationCap, Menu, X, LogOut, LayoutDashboard, ShieldCheck, MapPin, ChevronDown, Target, Scale,
   FilePlus2, Calculator, Newspaper, BookOpen, MessagesSquare, PlusCircle, PhoneCall, Globe2, Building2, BedDouble,
+  Armchair,
 } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { useLang, LangSwitch } from './LangProvider';
@@ -22,6 +23,7 @@ const MORE: { href: string; key: DictKey; icon: any }[] = [
   { href: '/predictor', key: 'nav.predictor', icon: Target },
   { href: '/compare', key: 'nav.compare', icon: Scale },
   { href: '/apply', key: 'nav.apply', icon: FilePlus2 },
+  { href: '/management-quota', key: 'nav.quota', icon: Armchair },
   { href: '/study-abroad/calculator', key: 'nav.calculator', icon: Calculator },
   { href: '/news', key: 'nav.news', icon: Newspaper },
   { href: '/questions', key: 'nav.qa', icon: MessagesSquare },

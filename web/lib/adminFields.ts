@@ -65,5 +65,6 @@ export const HIDEABLE_SECTIONS: { key: string; label: string }[] = [
   { key: 'nearby', label: 'Nearby places & hospitals' },
   { key: 'gallery', label: 'Photo gallery' },
   { key: 'apply', label: 'Apply through StudyEarnstay' },
+  { key: 'quota', label: 'Management quota seats' },
   { key: 'enquiry', label: 'Enquiry / call-back form' },
 ];

@@ -15,6 +15,7 @@ const STATUS_CHIP: Record<string, string> = {
   submitted: 'chip-amber', under_review: 'chip-brand', forwarded: 'chip-brand', accepted: 'chip-green', withdrawn: 'chip',
 };
 
+const QUOTA_CHIP: Record<string, string> = { submitted: 'chip', under_review: 'chip-amber', contacted: 'chip-amber', shortlisted: 'chip-green', offered: 'chip-green', admitted: 'chip-green', rejected: 'chip-red', withdrawn: 'chip' };
 type Tab = 'applications' | 'colleges' | 'saved' | 'listings' | 'reviews' | 'profile';
 
 function Dashboard() {
@@ -24,6 +25,7 @@ function Dashboard() {
   const [tab, setTab] = useState<Tab>((params.get('tab') as Tab) || 'applications');
   const [apps, setApps] = useState<any[]>([]);
   const [capps, setCapps] = useState<any[]>([]);
+  const [qapps, setQapps] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [saved, setSaved] = useState<{ colleges: any[]; hostels: any[]; jobs: any[] }>({ colleges: [], hostels: [], jobs: [] });
   const [myHostels, setMyHostels] = useState<any[]>([]);
@@ -34,14 +36,16 @@ function Dashboard() {
 
   const load = useCallback(async () => {
     if (!user) return;
-    const [a, ca, r, s, mh, mj] = await Promise.all([
+    const [a, ca, r, s, mh, mj, qa] = await Promise.all([
       supabase.from('job_applications').select('*, jobs(id, title, company, city)').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('college_applications').select('*, colleges(name, slug, city)').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('reviews').select('*, colleges(name, slug)').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('saved_items').select('item_type, item_id').eq('user_id', user.id),
       supabase.from('hostels').select('*').eq('submitted_by', user.id).order('created_at', { ascending: false }),
       supabase.from('jobs').select('*').eq('created_by', user.id).order('created_at', { ascending: false }),
+      supabase.from('quota_applications').select('*, quota_seats(course, quota_type, academic_year), colleges(name, slug, city)').eq('user_id', user.id).order('created_at', { ascending: false }),
     ]);
+    setQapps(qa.data || []);
     setApps(a.data || []); setCapps(ca.data || []); setReviews(r.data || []);
     setMyHostels(mh.data || []); setMyJobs(mj.data || []);
     const ids = (t: string) => (s.data || []).filter((x: any) => x.item_type === t).map((x: any) => x.item_id);
@@ -83,6 +87,11 @@ function Dashboard() {
     await supabase.from('college_applications').update({ status: 'withdrawn' }).eq('id', id);
     load();
   };
+  const withdrawQuota = async (id: string) => {
+    if (!confirm('Withdraw this management quota application?')) return;
+    await supabase.from('quota_applications').update({ status: 'withdrawn' }).eq('id', id);
+    load();
+  };
   const unsave = async (type: string, id: string) => {
     await supabase.from('saved_items').delete().eq('user_id', user.id).eq('item_type', type).eq('item_id', id);
     load();
@@ -104,7 +113,7 @@ function Dashboard() {
   const savedCount = saved.colleges.length + saved.hostels.length + saved.jobs.length;
   const TABS: { key: Tab; label: string; icon: any; n?: number }[] = [
     { key: 'applications', label: 'Job applications', icon: Briefcase, n: apps.length },
-    { key: 'colleges', label: 'College applications', icon: FilePlus2, n: capps.length },
+    { key: 'colleges', label: 'College applications', icon: FilePlus2, n: capps.length + qapps.length },
     { key: 'saved', label: 'Shortlist', icon: Heart, n: savedCount },
     { key: 'listings', label: 'My listings', icon: Building, n: myHostels.length + myJobs.length },
     { key: 'reviews', label: 'My reviews', icon: Star, n: reviews.length },
@@ -157,8 +166,28 @@ function Dashboard() {
           </div>
         ) : <Empty text="No job applications yet." href="/jobs" cta="Browse part-time jobs" />)}
 
-        {tab === 'colleges' && (capps.length ? (
-          <div className="card divide-y divide-slate-100">
+        {tab === 'colleges' && (capps.length || qapps.length ? (
+          <div className="space-y-5">
+            {!!qapps.length && (
+              <div className="card divide-y divide-slate-100">
+                <p className="px-5 py-3 text-sm font-bold text-slate-900">Management quota</p>
+                {qapps.map((a) => (
+                  <div key={a.id} className="flex flex-col gap-2 p-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <Link href={`/management-quota/${a.seat_id}`} className="font-semibold text-slate-900 hover:text-brand-700">{a.quota_seats?.course || 'Seat'} · {a.colleges?.name}</Link>
+                      <p className="text-sm text-slate-500">{a.quota_seats?.quota_type} quota{a.quota_seats?.academic_year ? ` · ${a.quota_seats.academic_year}` : ''} · applied {timeAgo(a.created_at)}{a.documents?.length ? ` · ${a.documents.length} document${a.documents.length > 1 ? 's' : ''}` : ''}</p>
+                      {a.admin_note && <p className="mt-1 text-sm text-brand-700">Note from us: {a.admin_note}</p>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`${QUOTA_CHIP[a.status] || 'chip'} capitalize`}>{a.status.replace('_', ' ')}</span>
+                      {['submitted', 'under_review', 'contacted'].includes(a.status) && <button onClick={() => withdrawQuota(a.id)} className="btn-ghost py-1.5 text-rose-600">Withdraw</button>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!!capps.length && (
+<div className="card divide-y divide-slate-100">
             {capps.map((a) => (
               <div key={a.id} className="flex flex-col gap-2 p-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -173,7 +202,9 @@ function Dashboard() {
               </div>
             ))}
           </div>
-        ) : <Empty text="You haven't applied to any college through StudyEarnstay yet." href="/apply" cta="Start an application" />)}
+            )}
+          </div>
+        ) : <Empty text="You haven't applied to any college through StudyEarnstay yet." href="/management-quota" cta="See management quota seats" />)}
 
         {tab === 'saved' && (savedCount ? (
           <div className="grid gap-6 lg:grid-cols-3">

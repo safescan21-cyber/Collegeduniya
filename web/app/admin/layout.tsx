@@ -1,14 +1,16 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, GraduationCap, Home, Briefcase, Star, FileText, Users, ShieldAlert, PhoneCall, FilePlus2, MessagesSquare, Newspaper, BookOpen, Mail, MessageSquareHeart, Building2, DatabaseZap } from 'lucide-react';
+import { BarChart3, GraduationCap, Home, Briefcase, Star, FileText, Users, ShieldAlert, PhoneCall, FilePlus2, MessagesSquare, Newspaper, BookOpen, Mail, MessageSquareHeart, Building2, DatabaseZap, Armchair, ClipboardList } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 
 const NAV = [
   { href: '/admin', label: 'Dashboard', icon: BarChart3 },
   { href: '/admin/leads', label: 'Leads', icon: PhoneCall },
   { href: '/admin/college-applications', label: 'College apps', icon: FilePlus2 },
+  { href: '/admin/quota-applications', label: 'Quota applications', icon: ClipboardList },
   { href: '/admin/colleges', label: 'Colleges', icon: GraduationCap },
+  { href: '/admin/management-quota', label: 'Management quota', icon: Armchair },
   { href: '/admin/hostels', label: 'PG & Hostels', icon: Home },
   { href: '/admin/jobs', label: 'Jobs', icon: Briefcase },
   { href: '/admin/applications', label: 'Job applications', icon: FileText },

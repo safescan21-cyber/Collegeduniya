@@ -53,7 +53,7 @@ router.get('/stats', wrap(async (_req, res) => {
 
   const [colleges, hostels, jobs, openJobs, users, reviews, pendingReviews, applications, pendingApps,
     visitsToday, visits7, visits30, visitsAll, signups7, newLeads, leads, collegeApps, newCollegeApps,
-    pendingHostels, pendingJobs, questions, subscribers] = await Promise.all([
+    pendingHostels, pendingJobs, questions, subscribers, quotaSeats, quotaApps, newQuotaApps] = await Promise.all([
     count('colleges'), count('hostels'), count('jobs'),
     count('jobs', (q) => q.eq('status', 'open')),
     count('profiles'), count('reviews'),
@@ -73,6 +73,9 @@ router.get('/stats', wrap(async (_req, res) => {
     count('jobs', (q) => q.eq('approval_status', 'pending')),
     count('questions'),
     count('newsletter_subscribers', (q) => q.eq('unsubscribed', false)),
+    count('quota_seats', (q) => q.eq('status', 'open')),
+    count('quota_applications'),
+    count('quota_applications', (q) => q.eq('status', 'submitted')),
   ]);
 
   const { data: recent, error } = await supabase
@@ -101,6 +104,7 @@ router.get('/stats', wrap(async (_req, res) => {
     totals: {
       colleges, hostels, jobs, openJobs, users, reviews, pendingReviews, applications, pendingApps, signups7,
       newLeads, leads, collegeApps, newCollegeApps, pendingHostels, pendingJobs, questions, subscribers,
+      quotaSeats, quotaApps, newQuotaApps,
     },
     visits: {
       today: visitsToday, last7: visits7, last30: visits30, allTime: visitsAll,
@@ -269,6 +273,8 @@ const crudConfig = {
   articles:           { search: ['title', 'excerpt'], filters: ['category', 'is_published'], order: 'published_at' },
   college_placements: { search: ['course'], filters: ['college_id', 'year'], order: 'year' },
   cutoffs:            { search: ['course'], filters: ['college_id', 'exam_slug', 'year', 'category'], order: 'year' },
+  quota_seats:        { search: ['course', 'academic_year'], filters: ['college_id', 'status', 'quota_type', 'level', 'is_published'], order: 'created_at',
+                        select: '*, colleges(name, slug, city)' },
 };
 
 for (const [table, cfg] of Object.entries(crudConfig)) {
@@ -276,7 +282,7 @@ for (const [table, cfg] of Object.entries(crudConfig)) {
 
   router.get(`/${table}`, wrap(async (req, res) => {
     const { from, to } = page(req);
-    let q = supabase.from(table).select('*', { count: 'exact' }).order(cfg.order, { ascending: false }).range(from, to);
+    let q = supabase.from(table).select(cfg.select || '*', { count: 'exact' }).order(cfg.order, { ascending: false }).range(from, to);
     q = applyFilters(q, req.query, cfg.filters);
     const t = term(req.query.q);
     if (t) q = q.or(cfg.search.map((c) => `${c}.ilike.%${t}%`).join(','));
@@ -302,7 +308,7 @@ for (const [table, cfg] of Object.entries(crudConfig)) {
       row.author_id = req.user.id;
       row.author_name = row.author_name || req.profile.full_name || 'StudyEarnstay Team';
     }
-    if (table === 'jobs') row.created_by = req.user.id;
+    if (table === 'jobs' || table === 'quota_seats') row.created_by = req.user.id;
     if (['hostels', 'jobs'].includes(table) && !row.approval_status) row.approval_status = 'approved';
     const { data, error } = await supabase.from(table).insert(row).select().single();
     if (error) return fail(res, error);
@@ -338,6 +344,10 @@ const modConfig = {
   college_applications: {
     select: '*, colleges(name, slug, city)', filters: ['status', 'college_id', 'batch_id'],
     search: ['full_name', 'email', 'phone', 'course'],
+  },
+  quota_applications: {
+    select: '*, quota_seats(course, quota_type, academic_year, fee_per_year, currency), colleges(name, slug, city)',
+    filters: ['status', 'college_id', 'seat_id'], search: ['full_name', 'email', 'phone', 'city'],
   },
   questions: { select: '*, colleges(name, slug), profiles(full_name, email)', filters: ['status', 'college_id'], search: ['title'] },
   answers: { select: '*, questions(title), profiles(full_name, email)', filters: ['status', 'question_id'], search: ['body'] },
@@ -375,7 +385,7 @@ for (const [table, cfg] of Object.entries(modConfig)) {
 
 // CSV export for leads, applications and newsletter
 router.get('/export/:table.csv', wrap(async (req, res) => {
-  const allowed = { leads: '*', college_applications: '*', newsletter_subscribers: '*', job_applications: '*' };
+  const allowed = { leads: '*', college_applications: '*', quota_applications: '*', newsletter_subscribers: '*', job_applications: '*' };
   const table = req.params.table;
   if (!allowed[table]) return fail(res, new Error('Not exportable'), 404);
   const { data, error } = await supabase.from(table).select(allowed[table]).order('created_at', { ascending: false }).limit(10000);
@@ -417,6 +427,18 @@ router.patch('/reviews/:id', wrap(async (req, res) => {
 }));
 
 // Signed link to the private proof (college ID / fee receipt) a reviewer uploaded
+// Signed links (5 min) to the documents a student attached to a management-quota application
+router.get('/quota_applications/:id/documents', wrap(async (req, res) => {
+  const { data: a, error } = await supabase.from('quota_applications').select('documents').eq('id', req.params.id).single();
+  if (error) return fail(res, error, 404);
+  const files = [];
+  for (const path of a.documents || []) {
+    const { data } = await supabase.storage.from('resumes').createSignedUrl(path, 300);
+    if (data?.signedUrl) files.push({ name: path.split('/').pop(), url: data.signedUrl });
+  }
+  res.json({ data: files });
+}));
+
 router.get('/reviews/:id/proof', wrap(async (req, res) => {
   const { data: r, error } = await supabase.from('reviews').select('proof_url').eq('id', req.params.id).single();
   if (error || !r?.proof_url) return fail(res, new Error('No proof uploaded'), 404);

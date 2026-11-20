@@ -167,6 +167,29 @@ schemas.jobs = schemas.jobs.extend({
   contact_phone: optStr,
 });
 
+schemas.quota_seats = z.object({
+  college_id: z.string().uuid(),
+  course: str.min(2),
+  level: z.enum(['UG', 'PG', 'Diploma', 'PhD', 'Certificate', 'Other']).optional(),
+  quota_type: z.enum(['Management', 'NRI', 'NRI Sponsored', 'Institutional', 'Foreign National', 'Other']).optional(),
+  academic_year: optStr,
+  seats_total: optInt,
+  seats_available: optInt,
+  fee_per_year: optNum,
+  total_fee: optNum,
+  currency: optStr,
+  fee_note: optStr,
+  eligibility: optStr,
+  min_percentage: optNum,
+  exams_accepted: strArr,
+  documents_required: strArr,
+  last_date: optStr,
+  description: optStr,
+  status: z.enum(['open', 'closed', 'filled']).optional(),
+  is_published: bool,
+  is_featured: bool,
+});
+
 schemas.exams = z.object({
   slug: optStr,
   short_name: str.min(2),
@@ -235,6 +258,10 @@ export const moderation = {
   leads: z.object({ status: z.enum(['new', 'contacted', 'converted', 'closed']).optional(), admin_note: optStr }),
   college_applications: z.object({
     status: z.enum(['submitted', 'under_review', 'forwarded', 'accepted', 'rejected', 'withdrawn']).optional(),
+    admin_note: optStr,
+  }),
+  quota_applications: z.object({
+    status: z.enum(['submitted', 'under_review', 'contacted', 'shortlisted', 'offered', 'admitted', 'rejected', 'withdrawn']).optional(),
     admin_note: optStr,
   }),
   questions: z.object({ status: z.enum(['approved', 'pending', 'blocked']).optional(), title: str.min(10).optional(), body: optStr }),

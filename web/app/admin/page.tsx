@@ -70,6 +70,7 @@ export default function AdminHome() {
         <Tile icon={PhoneCall} label="New leads" value={s.totals.newLeads ?? 0} sub={`${s.totals.leads ?? 0} total`} href="/admin/leads" />
         <Tile icon={FilePlus2} label="New college applications" value={s.totals.newCollegeApps ?? 0} sub={`${s.totals.collegeApps ?? 0} total`} href="/admin/college-applications" />
         <Tile icon={Clock} label="Listings to approve" value={(s.totals.pendingHostels ?? 0) + (s.totals.pendingJobs ?? 0)} sub={`${s.totals.pendingHostels ?? 0} PG · ${s.totals.pendingJobs ?? 0} jobs`} href="/admin/hostels" />
+        <Tile icon={FilePlus2} label="New quota applications" value={s.totals.newQuotaApps ?? 0} sub={`${s.totals.quotaApps ?? 0} total · ${s.totals.quotaSeats ?? 0} open seat listings`} href="/admin/quota-applications" />
         <Tile icon={Mail} label="Newsletter" value={s.totals.subscribers ?? 0} sub={`${s.totals.questions ?? 0} questions asked`} href="/admin/newsletter" />
       </div>
       <VisitsChart daily={s.daily} />

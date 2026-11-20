@@ -126,3 +126,13 @@ export type QuestionPublic = {
 export type AnswerPublic = {
   id: string; question_id: string; body: string; is_official: boolean; created_at: string; author_name: string; is_team: boolean;
 };
+
+export type QuotaSeat = {
+  id: string; college_id: string; course: string; level: string | null; quota_type: string; academic_year: string | null;
+  seats_total: number | null; seats_available: number | null; fee_per_year: number | null; total_fee: number | null;
+  currency: string; fee_note: string | null; eligibility: string | null; min_percentage: number | null;
+  exams_accepted: string[] | null; documents_required: string[] | null; last_date: string | null; description: string | null;
+  status: 'open' | 'closed' | 'filled'; is_featured: boolean; created_at: string;
+  college_slug: string; college_name: string; college_short_name: string | null; city: string; state: string | null; country: string;
+  country_code: string | null; college_type: string | null; logo_url: string | null; cover_url: string | null; accreditation: string | null;
+};

@@ -7,6 +7,7 @@ import {
 import { HostelCard, JobCard, Stars, EmptyState } from '@/components/Cards';
 import ReviewSection from '@/components/ReviewSection';
 import Gallery from '@/components/Gallery';
+import QuotaSeatCard from '@/components/QuotaSeatCard';
 import EnquiryForm from '@/components/EnquiryForm';
 import { SaveButton, CompareButton, ShareButtons, ApplyCartButton } from '@/components/ActionButtons';
 import { AskForm, QuestionList } from '@/components/QuestionsBlock';
@@ -14,7 +15,7 @@ import { LiveJobs, LiveNearby } from '@/components/LiveData';
 import TranslateText from '@/components/TranslateText';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { FALLBACK_IMG, money, range, SITE_URL } from '@/lib/format';
-import type { College, Course, Place, Hostel, Job, ReviewPublic, Placement, Cutoff, QuestionPublic } from '@/lib/types';
+import type { College, Course, Place, Hostel, Job, ReviewPublic, Placement, Cutoff, QuestionPublic, QuotaSeat } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,7 +60,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
     countryCode = cc?.code || null;
   }
   const { data: cityRow } = await sb.from('cities').select('slug').ilike('name', cityQ).eq('country_code', countryCode || '--').order('population', { ascending: false }).limit(1).maybeSingle();
-  const [courses, places, reviews, rating, hostels, jobs, placements, cutoffs, questions] = await Promise.all([
+  const [courses, places, reviews, rating, hostels, jobs, placements, cutoffs, questions, quota] = await Promise.all([
     sb.from('courses').select('*').eq('college_id', c.id).order('level').order('name'),
     sb.from('places').select('*').eq('college_id', c.id).order('distance_km', { ascending: true, nullsFirst: false }),
     sb.from('reviews_public').select('*').eq('college_id', c.id).order('created_at', { ascending: false }).limit(50),
@@ -69,7 +70,9 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
     sb.from('college_placements').select('*').eq('college_id', c.id).order('year', { ascending: false }).limit(10),
     sb.from('cutoffs').select('*').eq('college_id', c.id).order('year', { ascending: false }).order('closing_rank').limit(100),
     sb.from('questions_public').select('*').eq('college_id', c.id).order('created_at', { ascending: false }).limit(10),
+    sb.from('quota_seats_public').select('*').eq('college_id', c.id).order('status').order('created_at', { ascending: false }).limit(12),
   ]);
+  const quotaList = (quota.data || []) as QuotaSeat[];
   const courseList = (courses.data || []) as Course[];
   const placeList = (places.data || []) as Place[];
   const reviewList = (reviews.data || []) as ReviewPublic[];
@@ -95,6 +98,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
 
   const tabs: [string, string][] = [
     ['overview', 'Overview'],
+    ...(show('quota') && quotaList.length ? [['quota', `Management quota (${quotaList.length})`] as [string, string]] : []),
     ...(show('courses') ? [['courses', `Courses & Fees (${courseList.length})`] as [string, string]] : []),
     ...(show('placements') && placementList.length ? [['placements', 'Placements'] as [string, string]] : []),
     ...(show('cutoffs') && cutoffList.length ? [['cutoffs', 'Cutoffs'] as [string, string]] : []),
@@ -200,6 +204,19 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
               </div>
             ) : null}
           </section>
+
+          {show('quota') && quotaList.length ? (
+            <section id="quota" className="scroll-mt-32">
+              <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">Management quota admission</h2>
+                  <p className="text-sm text-slate-500">Official fee, seats left and last date. Apply free; fees are paid only to the college.</p>
+                </div>
+                <Link href="/management-quota" className="text-sm font-semibold text-brand-700">All colleges →</Link>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">{quotaList.map((q) => <QuotaSeatCard key={q.id} s={q} showCollege={false} />)}</div>
+            </section>
+          ) : null}
 
           {show('courses') && <section id="courses" className="scroll-mt-32">
             <h2 className="mb-4 text-xl font-bold text-slate-900">Courses & fees</h2>
@@ -338,6 +355,11 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
           <div className="card p-5">
             <p className="text-xs text-slate-500">Fees per year</p>
             <p className="text-2xl font-extrabold text-slate-900">{range(c.fees_min, c.fees_max, c.currency)}</p>
+            {show('quota') && quotaList.some((q) => q.status === 'open') && (
+              <a href="#quota" className="mt-4 block rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-900 hover:bg-amber-100">
+                {quotaList.filter((q) => q.status === 'open').length} management quota seat listing{quotaList.filter((q) => q.status === 'open').length > 1 ? 's' : ''} open → Apply
+              </a>
+            )}
             {c.accepts_applications && (
               <div className="mt-4 rounded-xl bg-emerald-50 p-3">
                 <p className="mb-2 text-sm font-semibold text-emerald-800">Apply through StudyEarnstay{c.application_note ? ` · ${c.application_note}` : ''}</p>

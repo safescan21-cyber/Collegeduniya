@@ -5,7 +5,7 @@ import { SITE_URL } from '@/lib/format';
 export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base: MetadataRoute.Sitemap = ['', '/colleges', '/hostels', '/jobs', '/exams', '/news', '/questions', '/predictor', '/compare', '/apply', '/counselling', '/study-abroad/calculator', '/near-me', '/cities', '/partners'].map((p) => ({
+  const base: MetadataRoute.Sitemap = ['', '/colleges', '/hostels', '/jobs', '/exams', '/news', '/questions', '/predictor', '/compare', '/apply', '/management-quota', '/counselling', '/study-abroad/calculator', '/near-me', '/cities', '/partners'].map((p) => ({
     url: `${SITE_URL}${p}`, changeFrequency: 'daily', priority: p ? 0.8 : 1,
   }));
   if (!hasSupabase) return base;
