@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { ExternalLink } from 'lucide-react';
 import Predictor from '../Predictor';
 import RankFromMarks from '@/components/RankFromMarks';
+import PercentileRank from '@/components/PercentileRank';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { readRange } from '@/lib/sitemapPlan';
 
@@ -19,11 +20,12 @@ async function load(slug: string) {
   const cut = await readRange<any>((a, b) => sb.from('cutoffs').select('category, quota, home_state, year').eq('exam_slug', slug).range(a, b), 0, 20000);
   const { count: bands } = await sb.from('rank_bands').select('id', { count: 'exact', head: true }).eq('exam_slug', slug);
   const { data: bandCats } = await sb.from('rank_bands').select('category').eq('exam_slug', slug).limit(200);
+  const { data: stats } = await sb.from('exam_stats').select('year, session, total_candidates, source').eq('exam_slug', slug).order('year', { ascending: false }).limit(20);
   const latest = cut.length ? Math.max(...cut.map((c) => c.year)) : null;
   const { data: top } = latest ? await sb.from('cutoffs').select('course, closing_rank, quota, colleges(name, slug, city)').eq('exam_slug', slug).eq('year', latest)
     .eq('category', 'General').order('closing_rank', { ascending: true }).limit(15) : { data: [] as any[] };
   return {
-    exam, latest, bands: bands || 0,
+    exam, latest, bands: bands || 0, stats: (stats || []) as any[],
     categories: Array.from(new Set(['General', ...cut.map((c) => c.category)])),
     quotas: Array.from(new Set(cut.map((c) => c.quota).filter(Boolean))) as string[],
     states: Array.from(new Set(cut.map((c) => c.home_state).filter(Boolean))).sort() as string[],
@@ -37,7 +39,7 @@ export async function generateMetadata({ params }: { params: Promise<{ exam: str
   if (!d) return { title: 'Predictor not found' };
   const n = d.exam.short_name;
   return {
-    title: `${n} College Predictor ${YEAR} — colleges for your rank${d.bands ? ` + ${n} rank predictor` : ''}`,
+    title: `${n} College Predictor ${YEAR} — colleges for your rank${d.stats.length ? ` + ${n} percentile to rank` : d.bands ? ` + ${n} rank predictor` : ''}`,
     description: `Free ${n} college predictor: enter your rank, category and home state to see colleges and branches with a high, medium or low chance, from official ${d.latest || 'previous year'} closing ranks.`,
     alternates: { canonical: `/predictor/${d.exam.slug}` },
   };
@@ -63,7 +65,13 @@ export default async function ExamPredictor({ params }: { params: Promise<{ exam
       <p className="mt-1 text-slate-500">{exam.full_name}{exam.conducting_body ? ` · conducted by ${exam.conducting_body}` : ''}
         {exam.website && <> · <a href={exam.website} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-brand-700 underline">official site<ExternalLink size={12} /></a></>}</p>
 
-      {d.bands > 0 && <div className="mt-6 max-w-xl"><RankFromMarks exam={exam.slug} examName={exam.short_name} categories={d.bandCategories} /></div>}
+      {(d.bands > 0 || d.stats.length > 0) && (
+        <div className="mt-6 grid max-w-4xl gap-4 md:grid-cols-2">
+          {d.stats.length > 0 && <PercentileRank examName={exam.short_name} stats={d.stats} />}
+          {d.bands > 0 && <RankFromMarks exam={exam.slug} examName={exam.short_name} categories={d.bandCategories} />}
+        </div>
+      )}
+      <p className="mt-3 text-sm"><Link href={`/papers?exam=${exam.slug}`} className="text-brand-700 underline">{exam.short_name} previous-year papers & answer keys</Link></p>
 
       <div className="mt-6">
         <Suspense fallback={<div className="card h-64 animate-pulse" />}>

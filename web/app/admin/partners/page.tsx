@@ -19,7 +19,7 @@ export default function AdminPartners() {
           </table>
         )}
       </div>
-      <ResourceManager resource="college_partners" title="Partners" defaults={{ currency: 'INR', is_active: true, auto_share: false }}
+      <ResourceManager idKey="college_id" resource="college_partners" title="Partners" defaults={{ currency: 'INR', is_active: true, auto_share: false }}
         fields={[
           { name: 'college_id', label: 'College', type: 'college', required: true, full: true },
           { name: 'contact_name', label: 'Admission contact', type: 'text' }, { name: 'contact_email', label: 'Email (leads are sent here)', type: 'text' },

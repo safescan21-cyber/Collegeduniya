@@ -5,7 +5,7 @@ export default function AdminVisaGuides() {
   return (
     <div className="space-y-4">
       <p className="card p-4 text-sm text-slate-600">Write each guide from the official immigration website and link it. Immigration rules change — review guides every few months.</p>
-      <ResourceManager resource="visa_guides" title="Student visa guides" defaults={{ is_published: true }}
+      <ResourceManager idKey="country_code" resource="visa_guides" title="Student visa guides" defaults={{ is_published: true }}
         fields={[
           { name: 'country_code', label: 'Country code', type: 'text', required: true, placeholder: 'GB' },
           { name: 'title', label: 'Title', type: 'text', required: true, placeholder: 'UK Student visa for Indian students' },

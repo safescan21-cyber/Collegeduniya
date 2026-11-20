@@ -14,6 +14,7 @@ type Props = {
   statusOptions?: string[];
   tabs?: { label: string; params: Record<string, string> }[];
   exportName?: string;                      // table name for CSV export
+  idKey?: string;                           // primary key column when it isn't "id"
   noteField?: string;                       // inline editable note (e.g. admin_note)
   extraActions?: (row: any, patch: (body: any) => Promise<void>) => React.ReactNode;
   fixed?: Record<string, string>;
@@ -38,7 +39,7 @@ export async function downloadCsv(table: string) {
   URL.revokeObjectURL(a.href);
 }
 
-export default function ModerationList({ resource, title, columns, statusField, statusOptions, tabs, exportName, noteField, extraActions, fixed = {}, canDelete = true }: Props) {
+export default function ModerationList({ resource, title, columns, statusField, statusOptions, tabs, exportName, noteField, extraActions, fixed = {}, canDelete = true, idKey = 'id' }: Props) {
   const [rows, setRows] = useState<any[]>([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -101,11 +102,11 @@ export default function ModerationList({ resource, title, columns, statusField, 
             ) : rows.length === 0 ? (
               <tr><td colSpan={columns.length + 3} className="py-10 text-center text-slate-400">Nothing here.</td></tr>
             ) : rows.map((r) => (
-              <tr key={r.id} className="align-top hover:bg-slate-50">
+              <tr key={r[idKey]} className="align-top hover:bg-slate-50">
                 {columns.map((c) => <td key={c.key} className={`px-4 py-3 ${c.className || ''}`}>{c.render ? c.render(r) : String(r[c.key] ?? '—')}</td>)}
                 {statusField && (
                   <td className="px-4 py-3">
-                    <select value={r[statusField]} onChange={(e) => patch(r.id, { [statusField]: e.target.value })}
+                    <select value={r[statusField]} onChange={(e) => patch(r[idKey], { [statusField]: e.target.value })}
                       className={`${CHIP[r[statusField]] || 'chip'} cursor-pointer border-0 capitalize`}>
                       {statusOptions!.map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
                     </select>
@@ -114,13 +115,13 @@ export default function ModerationList({ resource, title, columns, statusField, 
                 {noteField && (
                   <td className="px-4 py-3">
                     <input defaultValue={r[noteField] || ''} placeholder="Add note…" className="input min-w-40 py-1.5 text-xs"
-                      onBlur={(e) => { if ((e.target.value || '') !== (r[noteField] || '')) patch(r.id, { [noteField]: e.target.value }); }} />
+                      onBlur={(e) => { if ((e.target.value || '') !== (r[noteField] || '')) patch(r[idKey], { [noteField]: e.target.value }); }} />
                   </td>
                 )}
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-1">
-                    {extraActions?.(r, (body) => patch(r.id, body))}
-                    {canDelete && <button onClick={() => del(r.id)} className="btn-ghost px-2 py-1.5 text-rose-600" aria-label="Delete"><Trash2 size={14} /></button>}
+                    {extraActions?.(r, (body) => patch(r[idKey], body))}
+                    {canDelete && <button onClick={() => del(r[idKey])} className="btn-ghost px-2 py-1.5 text-rose-600" aria-label="Delete"><Trash2 size={14} /></button>}
                   </div>
                 </td>
               </tr>

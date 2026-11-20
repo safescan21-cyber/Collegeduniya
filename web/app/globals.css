@@ -50,3 +50,10 @@ body { @apply bg-slate-50 text-slate-800 antialiased; }
 .prose-ses th { background: var(--color-slate-50); }
 .prose-ses img { border-radius: 0.75rem; margin: 1rem 0; }
 .prose-ses code { background: var(--color-slate-100); padding: 0.1rem 0.35rem; border-radius: 0.35rem; font-size: 0.9em; }
+
+/* Print: only the page content (used by the resume builder's "Download PDF") */
+@media print {
+  header, footer, .no-print, .fixed { display: none !important; }
+  main { padding: 0 !important; }
+  @page { margin: 14mm; }
+}

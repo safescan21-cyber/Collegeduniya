@@ -12,6 +12,7 @@ import chatRoutes from './routes/chat.js';
 import geoRoutes from './routes/geo.js';
 import paymentRoutes, { webhook as razorpayWebhook } from './routes/payments.js';
 import communityRoutes from './routes/community.js';
+import { startJobAlertScheduler } from './services/jobAlerts.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -44,4 +45,7 @@ app.use((err, _req, res, _next) => {
   res.status(status).json({ error: err.message || 'Server error' });
 });
 
-app.listen(PORT, () => console.log(`StudyEarnstay API running on http://localhost:${PORT}`));
+app.listen(PORT, () => {
+  console.log(`StudyEarnstay API running on http://localhost:${PORT}`);
+  startJobAlertScheduler();
+});

@@ -14,7 +14,7 @@ import { mailEnabled } from '../services/mailer.js';
 import { providersStatus } from '../services/jobs.js';
 import { providerName } from '../services/translate.js';
 import {
-  schemas, slugify, reviewUpdateV2, collegeBulk, applicationUpdate, userUpdate, moderation,
+  schemas, slugify, pointsGrant, reviewUpdateV2, collegeBulk, applicationUpdate, userUpdate, moderation,
 } from '../schemas.js';
 
 const router = Router();
@@ -268,6 +268,43 @@ router.post('/upload', upload.array('files', 10), wrap(async (req, res) => {
   res.json({ urls });
 }));
 
+// Documents (question papers, answer keys, notices): PDF only, 20 MB, into media/<folder>/
+const uploadDoc = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024, files: 5 },
+  fileFilter: (_req, file, cb) => (file.mimetype === 'application/pdf' ? cb(null, true) : cb(new Error('Only PDF files allowed'))),
+});
+
+router.post('/upload-doc', uploadDoc.array('files', 5), wrap(async (req, res) => {
+  const folder = slugify(String(req.body.folder || 'docs')) || 'docs';
+  const urls = [];
+  for (const f of req.files || []) {
+    if (f.buffer.subarray(0, 5).toString() !== '%PDF-') return fail(res, new Error(`${f.originalname} is not a valid PDF`), 422);
+    const base = slugify(f.originalname.replace(/\.pdf$/i, '')).slice(0, 50) || 'document';
+    const path = `${folder}/${base}-${crypto.randomBytes(4).toString('hex')}.pdf`;
+    const { error } = await supabase.storage.from('media').upload(path, f.buffer, { contentType: 'application/pdf', upsert: false });
+    if (error) return fail(res, error);
+    urls.push(supabase.storage.from('media').getPublicUrl(path).data.publicUrl);
+  }
+  res.json({ urls });
+}));
+
+// ---------------------------------------------------------------- rewards: manual points (bonus or correction)
+router.post('/rewards/grant', wrap(async (req, res) => {
+  const parsed = pointsGrant.safeParse(req.body);
+  if (!parsed.success) return res.status(422).json({ error: 'Validation failed', issues: parsed.error.flatten() });
+  const { data, error } = await supabase.from('reward_points')
+    .insert({ user_id: parsed.data.user_id, points: parsed.data.points, reason: 'admin', note: `${parsed.data.note} — by ${req.profile.full_name || req.user.email}` })
+    .select().single();
+  if (error) return fail(res, error);
+  res.status(201).json({ data });
+}));
+
+router.post('/job-alerts/run', wrap(async (req, res) => {
+  const { runJobAlerts } = await import('../services/jobAlerts.js');
+  res.json(await runJobAlerts({ dryRun: req.query.dry === '1' }));
+}));
+
 // ---------------------------------------------------------------- generic CRUD (content tables)
 const crudConfig = {
   colleges:           { search: ['name', 'city', 'country', 'state', 'district'], filters: ['is_published', 'accepts_applications', 'country', 'source', 'country_code', 'state', 'is_featured'], order: 'created_at' },
@@ -285,6 +322,9 @@ const crudConfig = {
   visa_guides:        { search: ['title', 'country_code'], filters: ['is_published'], order: 'updated_at', key: 'country_code' },
   college_partners:   { search: ['contact_name', 'contact_email'], filters: ['is_active', 'auto_share'], order: 'created_at', key: 'college_id', select: '*, colleges(name, slug, city)' },
   promotions:         { search: ['note'], filters: ['item_type', 'item_id'], order: 'created_at' },
+  exam_resources:     { search: ['title', 'exam_slug', 'session'], filters: ['exam_slug', 'kind', 'year', 'is_published'], order: 'created_at' },
+  exam_stats:         { search: ['exam_slug', 'source'], filters: ['exam_slug', 'year'], order: 'year' },
+  reward_catalog:     { search: ['code', 'title'], filters: ['is_active'], order: 'created_at', key: 'code' },
   quota_seats:        { search: ['course', 'academic_year'], filters: ['college_id', 'status', 'quota_type', 'level', 'is_published', 'open_to'], order: 'created_at',
                         select: '*, colleges(name, slug, city, country)' },
 };
@@ -373,6 +413,9 @@ const modConfig = {
   hostel_reviews: { select: '*, hostels(name, city), profiles(full_name, email)', filters: ['status', 'hostel_id'], search: ['body'] },
   newsletter_subscribers: { select: '*', filters: ['unsubscribed'], search: ['email'] },
   companies: { select: '*, profiles(full_name, email, phone)', filters: ['is_verified'], search: ['name', 'city', 'country'] },
+  reward_redemptions: { select: '*, profiles(full_name, email, phone), reward_catalog(title)', filters: ['status', 'user_id'], search: ['reward_code', 'voucher'] },
+  ambassadors: { select: '*, profiles(full_name, email, phone, referral_code), colleges(name, slug)', filters: ['status', 'college_id'], search: ['college_name', 'city'], key: 'user_id' },
+  reward_points: { select: '*, profiles(full_name, email)', filters: ['status', 'reason', 'user_id'], search: ['reason', 'note'] },
 };
 
 for (const [table, cfg] of Object.entries(modConfig)) {
@@ -390,13 +433,13 @@ for (const [table, cfg] of Object.entries(modConfig)) {
   router.patch(`/${table}/:id`, wrap(async (req, res) => {
     const parsed = moderation[table].safeParse(req.body);
     if (!parsed.success) return res.status(422).json({ error: 'Validation failed', issues: parsed.error.flatten() });
-    const { data, error } = await supabase.from(table).update(parsed.data).eq('id', req.params.id).select().single();
+    const { data, error } = await supabase.from(table).update(parsed.data).eq(cfg.key || 'id', req.params.id).select().single();
     if (error) return fail(res, error);
     res.json({ data });
   }));
 
   router.delete(`/${table}/:id`, wrap(async (req, res) => {
-    const { error } = await supabase.from(table).delete().eq('id', req.params.id);
+    const { error } = await supabase.from(table).delete().eq(cfg.key || 'id', req.params.id);
     if (error) return fail(res, error);
     res.json({ ok: true });
   }));

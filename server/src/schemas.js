@@ -228,6 +228,19 @@ schemas.promotions = z.object({
   starts_at: optStr, ends_at: str.min(10), note: optStr,
 });
 
+schemas.exam_resources = z.object({
+  exam_slug: str.min(2), kind: z.enum(['question_paper', 'answer_key', 'solution', 'syllabus', 'date_sheet', 'notice', 'analysis', 'sample_paper']),
+  title: str.min(3), year: optInt, session: optStr, file_url: optStr, source_url: url, is_published: bool,
+});
+schemas.exam_stats = z.object({
+  exam_slug: str.min(2), year: z.coerce.number().int().min(2000).max(2100), session: z.string().trim().min(1).default('All'),
+  total_candidates: z.coerce.number().int().positive(), source: str.min(5),
+});
+schemas.reward_catalog = z.object({
+  code: z.string().trim().toLowerCase().regex(/^[a-z0-9_-]{2,40}$/), title: str.min(3), points: z.coerce.number().int().positive(),
+  stock: optInt, is_active: bool,
+});
+
 schemas.exams = z.object({
   slug: optStr,
   short_name: str.min(2),
@@ -312,7 +325,14 @@ export const moderation = {
   hostel_reviews: z.object({ status: z.enum(['approved', 'pending', 'blocked']).optional(), body: str.min(5).optional() }),
   newsletter_subscribers: z.object({ unsubscribed: bool }),
   companies: z.object({ is_verified: bool }),
+  reward_redemptions: z.object({ status: z.enum(['requested', 'fulfilled', 'rejected']).optional(), voucher: optStr, admin_note: optStr }),
+  ambassadors: z.object({ status: z.enum(['applied', 'approved', 'rejected', 'paused']).optional(), admin_note: optStr }),
+  reward_points: z.object({ status: z.enum(['pending', 'approved', 'reversed']).optional(), note: optStr }),
 };
+
+export const pointsGrant = z.object({
+  user_id: z.string().uuid(), points: z.coerce.number().int().min(-100000).max(100000).refine((n) => n !== 0), note: str.min(3).max(200),
+});
 
 export const reviewUpdateV2 = reviewUpdate.extend({
   is_verified: bool,

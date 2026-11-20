@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   GraduationCap, Menu, X, LogOut, LayoutDashboard, ShieldCheck, MapPin, ChevronDown, Target, Scale,
   FilePlus2, Calculator, Newspaper, BookOpen, MessagesSquare, PlusCircle, PhoneCall, Globe2, Building2, BedDouble,
-  Armchair, Sparkles, Compass, UsersRound, MessageCircle, Award, Plane,
+  Armchair, Sparkles, Compass, UsersRound, MessageCircle, Award, Plane, Trophy, FileStack, TrendingUp, FileText, Gift, Megaphone,
 } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { useLang, LangSwitch } from './LangProvider';
@@ -19,9 +19,12 @@ const MAIN: { href: string; key: DictKey }[] = [
 ];
 
 const MORE: { href: string; key: DictKey; icon: any }[] = [
+  { href: '/top', key: 'nav.top', icon: Trophy },
   { href: '/cities', key: 'nav.cities', icon: Globe2 },
   { href: '/predictor', key: 'nav.predictor', icon: Target },
+  { href: '/papers', key: 'nav.papers', icon: FileStack },
   { href: '/compare', key: 'nav.compare', icon: Scale },
+  { href: '/trends', key: 'nav.trends', icon: TrendingUp },
   { href: '/apply', key: 'nav.apply', icon: FilePlus2 },
   { href: '/management-quota', key: 'nav.quota', icon: Armchair },
   { href: '/recommend', key: 'nav.recommend', icon: Sparkles },
@@ -31,6 +34,9 @@ const MORE: { href: string; key: DictKey; icon: any }[] = [
   { href: '/scholarships', key: 'nav.scholarships', icon: Award },
   { href: '/study-abroad/visa', key: 'nav.visa', icon: Plane },
   { href: '/study-abroad/calculator', key: 'nav.calculator', icon: Calculator },
+  { href: '/resume', key: 'nav.resume', icon: FileText },
+  { href: '/rewards', key: 'nav.rewards', icon: Gift },
+  { href: '/ambassador', key: 'nav.ambassador', icon: Megaphone },
   { href: '/news', key: 'nav.news', icon: Newspaper },
   { href: '/questions', key: 'nav.qa', icon: MessagesSquare },
   { href: '/near-me', key: 'nav.nearMe', icon: MapPin },

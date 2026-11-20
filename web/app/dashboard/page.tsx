@@ -3,9 +3,10 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
-  Briefcase, Star, User, Save, Trash2, Heart, FilePlus2, Building, Users, Download, Pencil, PlusCircle, GraduationCap, Home,
+  Briefcase, Star, User, Save, Trash2, Heart, FilePlus2, Building, Users, Download, Pencil, PlusCircle, GraduationCap, Home, BellRing, FileText, Gift,
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
+import { JobAlertManager } from '@/components/JobAlerts';
 import { Stars } from '@/components/Cards';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { range, timeAgo } from '@/lib/format';
@@ -16,7 +17,7 @@ const STATUS_CHIP: Record<string, string> = {
 };
 
 const QUOTA_CHIP: Record<string, string> = { submitted: 'chip', under_review: 'chip-amber', contacted: 'chip-amber', shortlisted: 'chip-green', offered: 'chip-green', admitted: 'chip-green', rejected: 'chip-red', withdrawn: 'chip' };
-type Tab = 'visits' | 'applications' | 'colleges' | 'saved' | 'listings' | 'reviews' | 'profile';
+type Tab = 'alerts' | 'visits' | 'applications' | 'colleges' | 'saved' | 'listings' | 'reviews' | 'profile';
 
 function Dashboard() {
   const { user, profile, loading, refreshProfile } = useAuth();
@@ -117,6 +118,7 @@ function Dashboard() {
   const TABS: { key: Tab; label: string; icon: any; n?: number }[] = [
     { key: 'applications', label: 'Job applications', icon: Briefcase, n: apps.length },
     { key: 'colleges', label: 'College applications', icon: FilePlus2, n: capps.length + qapps.length },
+    { key: 'alerts', label: 'Job alerts', icon: BellRing },
     { key: 'visits', label: 'PG visits', icon: Home, n: visits.length },
     { key: 'saved', label: 'Shortlist', icon: Heart, n: savedCount },
     { key: 'listings', label: 'My listings', icon: Building, n: myHostels.length + myJobs.length },
@@ -138,7 +140,7 @@ function Dashboard() {
           </div>
         </div>
         {profile?.is_blocked && <span className="chip-red">Your account is restricted — contact support</span>}
-        <div className="flex flex-wrap gap-2"><Link href="/messages" className="btn-ghost">Messages</Link><Link href="/jobs" className="btn-primary">Find jobs</Link><Link href="/post" className="btn-ghost"><PlusCircle size={16} />Post PG / Job</Link></div>
+        <div className="flex flex-wrap gap-2"><Link href="/messages" className="btn-ghost">Messages</Link><Link href="/resume" className="btn-ghost"><FileText size={16} />Resume</Link><Link href="/rewards" className="btn-ghost"><Gift size={16} />Rewards</Link><Link href="/jobs" className="btn-primary">Find jobs</Link><Link href="/post" className="btn-ghost"><PlusCircle size={16} />Post PG / Job</Link></div>
       </div>
 
       <div className="mt-6 flex gap-2 overflow-x-auto pb-1">
@@ -210,6 +212,7 @@ function Dashboard() {
           </div>
         ) : <Empty text="You haven't applied to any college through StudyEarnstay yet." href="/management-quota" cta="See management quota seats" />)}
 
+        {tab === 'alerts' && <JobAlertManager />}
         {tab === 'visits' && (visits.length ? (
           <div className="card divide-y divide-slate-100">
             {visits.map((v) => (
@@ -282,7 +285,7 @@ function Dashboard() {
                             {['pending', 'shortlisted', 'hired', 'rejected'].map((s) => <option key={s} value={s}>{s}</option>)}
                           </select>
                         </td>
-                        <td className="px-4 py-3">{a.resume_path ? <button onClick={() => resume(a.resume_path)} className="btn-ghost px-2 py-1.5"><Download size={14} /></button> : '—'}</td>
+                        <td className="px-4 py-3">{a.resume_path ? <button onClick={() => resume(a.resume_path)} className="btn-ghost px-2 py-1.5"><Download size={14} /></button> : '—'}{a.resume_snapshot && <a href={`/resume/view?app=${a.id}`} target="_blank" className="btn-ghost ms-1 px-2 py-1.5 text-xs">Resume</a>}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Briefcase } from 'lucide-react';
 import { JobCard, EmptyState } from '@/components/Cards';
 import FilterBar from '@/components/FilterBar';
+import { CreateAlertButton } from '@/components/JobAlerts';
 import Pagination from '@/components/Pagination';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { cleanTerm, distinctValues } from '@/lib/data';
@@ -37,6 +38,9 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
       if (sp.type) q = q.eq('job_type', sp.type);
       if (sp.remote === 'yes') q = q.eq('is_remote', true);
       if (sp.remote === 'no') q = q.eq('is_remote', false);
+      // student-visa friendly: most student visas cap term-time work at about 20 hours a week
+      if (sp.hours === '20') q = q.lte('hours_per_week', 20);
+      if (sp.hours === '10') q = q.lte('hours_per_week', 10);
       return q;
     };
     let q = sb.from('jobs').select('*', { count: 'exact' }).eq('is_published', true).eq('status', 'open');
@@ -69,9 +73,12 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
             { name: 'country', label: 'Country', type: 'select', options: countries },
             { name: 'city', label: 'City', type: 'city', placeholder: 'Any city worldwide' },
             { name: 'type', label: 'Job type', type: 'select', options: ['Part-time', 'Internship', 'Weekend', 'Freelance', 'Full-time'] },
-            { name: 'remote', label: 'Work mode', type: 'select', options: [{ value: 'yes', label: 'Remote' }, { value: 'no', label: 'On-site' }] },
+            { name: 'remote', label: 'Work mode', type: 'select', options: [{ value: 'yes', label: 'Work from home' }, { value: 'no', label: 'On-site' }] },
+            { name: 'hours', label: 'Hours per week', type: 'select', options: [{ value: '20', label: 'Up to 20 (student-visa friendly)' }, { value: '10', label: 'Up to 10' }] },
             { name: 'sort', label: 'Sort by', type: 'select', options: [{ value: 'pay', label: 'Highest pay' }] },
           ]} />
+          <div className="mt-4"><CreateAlertButton preset={{ keywords: sp.q || null, city: sp.city || null, country: sp.country || null, job_type: sp.type || null, remote_ok: sp.remote !== 'no' }} /></div>
+          <a href="/resume" className="mt-2 block text-center text-sm text-brand-700 underline">Build your resume free</a>
         </aside>
         <section>
           {jobs.length ? (

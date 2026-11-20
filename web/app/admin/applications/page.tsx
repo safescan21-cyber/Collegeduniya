@@ -65,7 +65,7 @@ function Applications() {
                       {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </td>
-                  <td className="px-4 py-3">{a.resume_path ? <button onClick={() => resume(a.id)} className="btn-ghost px-2 py-1.5"><Download size={14} />CV</button> : <span className="text-slate-400">—</span>}</td>
+                  <td className="px-4 py-3">{a.resume_path ? <button onClick={() => resume(a.id)} className="btn-ghost px-2 py-1.5"><Download size={14} />CV</button> : <span className="text-slate-400">—</span>}{a.resume_snapshot && <a href={`/resume/view?app=${a.id}`} target="_blank" className="btn-ghost ms-1 px-2 py-1.5 text-xs">Resume</a>}</td>
                 </tr>
               ))}
           </tbody>

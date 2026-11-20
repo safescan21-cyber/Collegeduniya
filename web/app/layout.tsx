@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import VisitTracker from '@/components/VisitTracker';
 import ChatWidget from '@/components/ChatWidget';
+import ReferralCapture from '@/components/ReferralCapture';
 import PwaRegister from '@/components/PwaRegister';
 import { ListTray } from '@/components/ActionButtons';
 import { SITE_URL } from '@/lib/format';
@@ -35,6 +36,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <AuthProvider>
             <Header />
             <VisitTracker />
+            <ReferralCapture />
             <PwaRegister />
             <main className="flex-1">{children}</main>
             <Footer />

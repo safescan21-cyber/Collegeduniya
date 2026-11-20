@@ -78,6 +78,7 @@ Browser ──► Next.js (web) ──► Supabase  (public reads, OTP login, re
 11. Run **`supabase/migrations/008_cities_languages.sql`** (districts + city names in every language + multilingual city search).
 12. Run **`supabase/migrations/009_security_hardening.sql`** (visitors can read only safe columns; fixed function search paths).
 13. Run **`supabase/migrations/010_roadmap.sql`** then **`010_seed_exams.sql`** (rankings, marks→rank, verified PG & visits, senior connect, roommates, messages, recommender, scholarships, visa guides, payments, lead partners).
+14. Run **`supabase/migrations/011_growth2.sql`** (top-college pages, job alerts, resumes, exam library, percentile → rank, rewards, referrals & ambassadors, salary trends).
 8. Load full college lists:
    ```bash
    npm run import:sheet -- ./All_Colleges.xlsx IN aishe   # India: official AISHE "All Colleges" list (~48k colleges)
@@ -312,6 +313,22 @@ npm run import:india -- ./aishe/         # ~65,000 institutions
 | **Android app** | `android/README.md` (Bubblewrap TWA) + `/.well-known/assetlinks.json` | Set `ANDROID_PACKAGE_NAME` + `ANDROID_SHA256_CERT_FINGERPRINTS` in web env. |
 | **Boost (paid)** | “Boost” button in the Owner/Employer portals. Listings appear first with a **Sponsored** label. | Set the `RAZORPAY_*` keys and add the webhook `https://<api>/api/payments/razorpay/webhook` (event `order.paid`). Prices are set on the server (`BOOST_PRICES`). |
 | **Lead partners** | Admin → Lead partners (price per lead, auto-share, monthly amount due); Leads → *Send to college* | Leads are shared only if the student ticked the consent box. Email needs `SMTP_URL`. |
+
+## 5f. Growth features (migration 011)
+
+| Feature | Where | You add the data |
+|---|---|---|
+| **Top colleges pages** | `/top`, `/top/engineering`, `/top/engineering/pune`, `/top/engineering/maharashtra`, `/top/engineering/in` | Nothing. Pages are generated for every stream × city/state/country with at least 3 published colleges, ranked by official ranking. They include ItemList, FAQ and breadcrumb JSON-LD and are added to `sitemap/0.xml`. |
+| **Job alerts** | “Email me new jobs like these” on `/jobs`; Dashboard → Job alerts | The API checks hourly and sends daily or weekly. Needs `SMTP_URL`. WhatsApp is optional: `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID`, `WHATSAPP_TEMPLATE` (an approved Meta template with one body variable); without these it falls back to email. Test with `POST /api/admin/job-alerts/run?dry=1`. Turn off with `JOB_ALERTS=off`. |
+| **Resume builder** | `/resume` (Download PDF = print → Save as PDF). The apply form ticks “Attach my StudyEarnstay resume”. Employers and admins open it at `/resume/view?app=…` | — |
+| **Student filters** | `/jobs` → Work mode (work from home) and “Hours per week ≤ 20 (student-visa friendly)” | — |
+| **Exam library** | `/papers`, plus a section on each exam page; Admin → Exam library (PDF upload up to 20 MB) | Only documents the exam body or board has published publicly, each with the official source URL. CBSE 10/12 and ICSE/ISC are added as exams. |
+| **Percentile → rank** | `/predictor/<exam>` (e.g. JEE Main, CAT) | Admin → Exam library → *Candidate counts*: the official number of candidates and its source. The tool stays hidden until this is filled in. |
+| **Rewards** | `/rewards`; Admin → Rewards | Automatic points: 50 per verified review, 10 per college or quota application, 20 per referral. Add catalog items (voucher title + points). Fulfil a request by typing the voucher code and setting *fulfilled*; *rejected* refunds the points. |
+| **Referrals & ambassadors** | Any link with `?ref=CODE`; `/ambassador` (apply, stats, 30-day leaderboard); Admin → Ambassadors | Referral points stay *pending* until the friend applies somewhere or reviews. A referral can only be claimed within 7 days of joining, and a student can't refer themselves. |
+| **Salary trends** | `/trends` | Uses the placement data you add to colleges: median by year, growth, and the top colleges by median package. |
+
+Also fixed in 011: admin actions made through the API (verifying a review, marking an answer official, changing a job-application status) were being silently undone by database guards. Visa-guide and lead-partner rows can now be edited and deleted from the admin pages.
 
 ## 6. Deploy on your own VPS (Ubuntu + Nginx + PM2)
 

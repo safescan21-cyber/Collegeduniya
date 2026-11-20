@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { DocRow, type ExamDoc } from '@/components/ExamDocs';
 import { notFound } from 'next/navigation';
 import { ExternalLink, Target, CalendarDays, Building2, Monitor, Repeat } from 'lucide-react';
 import EnquiryForm from '@/components/EnquiryForm';
@@ -30,9 +31,10 @@ export default async function ExamPage({ params }: { params: Promise<{ slug: str
   const e = await getExam((await params).slug);
   if (!e) notFound();
   const sb = supabasePublic();
-  const [{ data: cut }, { data: articles }] = await Promise.all([
+  const [{ data: cut }, { data: articles }, { data: docs }] = await Promise.all([
     sb.from('cutoffs').select('college_id, colleges(name, slug, city)').eq('exam_slug', e.slug).limit(500),
     sb.from('articles').select('slug, title, published_at').eq('exam_id', e.id).eq('is_published', true).order('published_at', { ascending: false }).limit(6),
+    sb.from('exam_resources').select('*').eq('exam_slug', e.slug).eq('is_published', true).order('year', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false }).limit(8),
   ]);
   const colleges = Array.from(new Map((cut || []).filter((x: any) => x.colleges).map((x: any) => [x.college_id, x.colleges])).values()) as { name: string; slug: string; city: string }[];
   const facts = [
@@ -69,6 +71,15 @@ export default async function ExamPage({ params }: { params: Promise<{ slug: str
               <Link href={`/predictor?exam=${e.slug}`} className="btn-primary py-1.5"><Target size={14} />Predict my colleges</Link>
             </div>
             <ul className="mt-3 grid gap-2 sm:grid-cols-2">{colleges.map((c) => <li key={c.slug}><Link href={`/colleges/${c.slug}#cutoffs`} className="text-brand-700 hover:underline">{c.name}</Link> <span className="text-xs text-slate-400">· {c.city}</span></li>)}</ul>
+          </section>
+        )}
+        {(docs || []).length > 0 && (
+          <section className="card overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-2 p-5 pb-3">
+              <h2 className="text-lg font-bold text-slate-900">{e.short_name} papers, answer keys & date sheets</h2>
+              <Link href={`/papers?exam=${e.slug}`} className="text-sm text-brand-700 underline">See all</Link>
+            </div>
+            {(docs as ExamDoc[]).map((d) => <DocRow key={d.id} d={d} />)}
           </section>
         )}
         {(articles || []).length > 0 && (

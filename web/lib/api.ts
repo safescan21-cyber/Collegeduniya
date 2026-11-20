@@ -42,3 +42,11 @@ export async function uploadImages(files: FileList | File[], folder: string): Pr
   const { urls } = await api<{ urls: string[] }>('/api/admin/upload', { method: 'POST', body: fd });
   return urls;
 }
+
+export async function uploadDocs(files: FileList | File[], folder: string): Promise<string[]> {
+  const fd = new FormData();
+  Array.from(files).forEach((f) => fd.append('files', f));
+  fd.append('folder', folder);
+  const { urls } = await api<{ urls: string[] }>('/api/admin/upload-doc', { method: 'POST', body: fd });
+  return urls;
+}
