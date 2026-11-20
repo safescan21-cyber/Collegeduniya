@@ -1,12 +1,12 @@
 import { supabase } from '../supabase.js';
 import { sendMail, mailEnabled } from './mailer.js';
+import { alertsReady, sendJobAlert } from './whatsapp.js';
 
 // Job alerts: every hour, find alerts that are due (daily = 24h since last send, weekly = 7 days), look for new
 // open jobs that match, and send one email (or one WhatsApp template message) per alert.
 //
-// WhatsApp uses the Meta WhatsApp Cloud API and an APPROVED template (Meta only allows templates for messages the
-// user didn't just reply to). Set WHATSAPP_TOKEN, WHATSAPP_PHONE_ID and WHATSAPP_TEMPLATE (e.g. "job_alert", with
-// one body variable {{1}} = "3 new jobs in Pune — studyearnstay.com/jobs?city=Pune"). Without these, WhatsApp alerts fall back to email.
+// WhatsApp alerts use services/whatsapp.js (WHATSAPP_TOKEN, WHATSAPP_PHONE_ID and WHATSAPP_TEMPLATE or WHATSAPP_NOTIFY_TEMPLATE).
+// Without them, WhatsApp alerts fall back to email.
 
 const SITE = (process.env.SITE_URL || 'https://studyearnstay.com').replace(/\/$/, '');
 const DAY = 86_400_000;
@@ -14,7 +14,7 @@ const DAY = 86_400_000;
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const clean = (s) => String(s || '').replace(/[%,()*\\]/g, ' ').trim().slice(0, 60);
 
-export const whatsappEnabled = () => Boolean(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID && process.env.WHATSAPP_TEMPLATE);
+export const whatsappEnabled = alertsReady;
 
 export function alertSearchUrl(a) {
   const p = new URLSearchParams();
@@ -58,21 +58,7 @@ function emailBody(a, jobs) {
   return { text, html };
 }
 
-async function sendWhatsapp(to, text) {
-  const phone = String(to || '').replace(/[^\d]/g, '');
-  if (!whatsappEnabled() || phone.length < 8) return false;
-  const res = await fetch(`https://graph.facebook.com/v21.0/${process.env.WHATSAPP_PHONE_ID}/messages`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      messaging_product: 'whatsapp', to: phone, type: 'template',
-      template: { name: process.env.WHATSAPP_TEMPLATE, language: { code: process.env.WHATSAPP_TEMPLATE_LANG || 'en' },
-        components: [{ type: 'body', parameters: [{ type: 'text', text: text.slice(0, 1000) }] }] },
-    }),
-  });
-  if (!res.ok) throw new Error(`WhatsApp ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  return true;
-}
+const sendWhatsapp = (to, text) => sendJobAlert(to, text);
 
 export async function runJobAlerts({ dryRun = false } = {}) {
   const now = Date.now();

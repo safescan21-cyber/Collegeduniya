@@ -8,6 +8,7 @@ import {
   Armchair, Sparkles, Compass, UsersRound, MessageCircle, Award, Plane, Trophy, FileStack, TrendingUp, FileText, Gift, Megaphone,
 } from 'lucide-react';
 import { useAuth } from './AuthProvider';
+import { NotificationBell } from './Notifications';
 import { useLang, LangSwitch } from './LangProvider';
 import type { DictKey } from '@/lib/i18n';
 
@@ -107,6 +108,7 @@ export default function Header() {
               {isAdmin && <Link href="/admin" className="btn-ghost px-3"><ShieldCheck size={16} />{t('auth.admin')}</Link>}
               {profile?.account_type === 'pg_owner' && <Link href="/owner" className="btn-ghost px-3"><BedDouble size={16} />{t('nav.ownerPortal')}</Link>}
               {profile?.account_type === 'employer' && <Link href="/employer" className="btn-ghost px-3"><Building2 size={16} />{t('nav.employerPortal')}</Link>}
+              <NotificationBell />
               <Link href="/dashboard" className="btn-ghost px-3"><LayoutDashboard size={16} />{profile?.full_name?.split(' ')[0] || t('auth.dashboard')}</Link>
               <button onClick={logout} className="btn-ghost px-3" aria-label={t('auth.logout')}><LogOut size={16} /></button>
             </>

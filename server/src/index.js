@@ -13,6 +13,9 @@ import geoRoutes from './routes/geo.js';
 import paymentRoutes, { webhook as razorpayWebhook } from './routes/payments.js';
 import communityRoutes from './routes/community.js';
 import { startJobAlertScheduler } from './services/jobAlerts.js';
+import { startNotifier } from './services/notifier.js';
+import hookRoutes from './routes/hooks.js';
+import { otpReady, notifyReady } from './services/whatsapp.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -22,10 +25,12 @@ app.set('trust proxy', 1); // behind Nginx on the VPS
 app.use(helmet());
 app.use(cors({ origin: origins, credentials: true }));
 app.post('/api/payments/razorpay/webhook', ...razorpayWebhook);   // needs the raw body, so before express.json
+app.use('/api/hooks', hookRoutes);                                  // Supabase Auth hooks (signed raw body)
 app.use(express.json({ limit: '2mb' }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'studyearnstay-api', time: new Date().toISOString() }));
+app.get('/api/whatsapp/status', (_req, res) => res.json({ login: otpReady(), notifications: notifyReady() }));
 
 app.use('/api', loadUser);
 app.use('/api/track', trackRoutes);
@@ -48,4 +53,5 @@ app.use((err, _req, res, _next) => {
 app.listen(PORT, () => {
   console.log(`StudyEarnstay API running on http://localhost:${PORT}`);
   startJobAlertScheduler();
+  startNotifier();
 });

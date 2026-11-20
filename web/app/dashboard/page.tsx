@@ -3,10 +3,11 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
-  Briefcase, Star, User, Save, Trash2, Heart, FilePlus2, Building, Users, Download, Pencil, PlusCircle, GraduationCap, Home, BellRing, FileText, Gift,
+  Briefcase, Star, User, Save, Trash2, Heart, FilePlus2, Building, Users, Download, Pencil, PlusCircle, GraduationCap, Home, BellRing, FileText, Gift, Bell, MessageCircle,
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { JobAlertManager } from '@/components/JobAlerts';
+import { NotificationList } from '@/components/Notifications';
 import { Stars } from '@/components/Cards';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { range, timeAgo } from '@/lib/format';
@@ -17,7 +18,7 @@ const STATUS_CHIP: Record<string, string> = {
 };
 
 const QUOTA_CHIP: Record<string, string> = { submitted: 'chip', under_review: 'chip-amber', contacted: 'chip-amber', shortlisted: 'chip-green', offered: 'chip-green', admitted: 'chip-green', rejected: 'chip-red', withdrawn: 'chip' };
-type Tab = 'alerts' | 'visits' | 'applications' | 'colleges' | 'saved' | 'listings' | 'reviews' | 'profile';
+type Tab = 'notifications' | 'alerts' | 'visits' | 'applications' | 'colleges' | 'saved' | 'listings' | 'reviews' | 'profile';
 
 function Dashboard() {
   const { user, profile, loading, refreshProfile } = useAuth();
@@ -33,7 +34,7 @@ function Dashboard() {
   const [myHostels, setMyHostels] = useState<any[]>([]);
   const [myJobs, setMyJobs] = useState<any[]>([]);
   const [applicants, setApplicants] = useState<any[]>([]);
-  const [form, setForm] = useState({ full_name: '', phone: '', city: '', country: '', course_interest: '' });
+  const [form, setForm] = useState({ full_name: '', phone: '', city: '', country: '', course_interest: '', whatsapp: '', whatsapp_opt_in: false });
   const [msg, setMsg] = useState('');
 
   const load = useCallback(async () => {
@@ -68,7 +69,7 @@ function Dashboard() {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
-    if (profile) setForm({ full_name: profile.full_name || '', phone: profile.phone || '', city: profile.city || '', country: profile.country || '', course_interest: profile.course_interest || '' });
+    if (profile) setForm({ full_name: profile.full_name || '', phone: profile.phone || '', city: profile.city || '', country: profile.country || '', course_interest: profile.course_interest || '', whatsapp: profile.whatsapp || '', whatsapp_opt_in: !!profile.whatsapp_opt_in });
   }, [profile]);
 
   if (loading) return <div className="card h-64 animate-pulse" />;
@@ -77,7 +78,9 @@ function Dashboard() {
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 3000); };
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from('profiles').update(form).eq('id', user.id);
+    const wa = form.whatsapp.trim();
+    if (form.whatsapp_opt_in && !/^\+\d[\d\s-]{7,16}$/.test(wa || form.phone.trim())) return flash('Add your WhatsApp number with country code, e.g. +91 98765 43210');
+    const { error } = await supabase.from('profiles').update({ ...form, whatsapp: wa || null }).eq('id', user.id);
     flash(error ? error.message : 'Profile saved ✓');
     refreshProfile();
   };
@@ -118,6 +121,7 @@ function Dashboard() {
   const TABS: { key: Tab; label: string; icon: any; n?: number }[] = [
     { key: 'applications', label: 'Job applications', icon: Briefcase, n: apps.length },
     { key: 'colleges', label: 'College applications', icon: FilePlus2, n: capps.length + qapps.length },
+    { key: 'notifications', label: 'Notifications', icon: Bell },
     { key: 'alerts', label: 'Job alerts', icon: BellRing },
     { key: 'visits', label: 'PG visits', icon: Home, n: visits.length },
     { key: 'saved', label: 'Shortlist', icon: Heart, n: savedCount },
@@ -212,6 +216,7 @@ function Dashboard() {
           </div>
         ) : <Empty text="You haven't applied to any college through StudyEarnstay yet." href="/management-quota" cta="See management quota seats" />)}
 
+        {tab === 'notifications' && <NotificationList />}
         {tab === 'alerts' && <JobAlertManager />}
         {tab === 'visits' && (visits.length ? (
           <div className="card divide-y divide-slate-100">
@@ -318,6 +323,14 @@ function Dashboard() {
             <div><label className="label">Course interested in</label><input className="input" value={form.course_interest} onChange={(e) => setForm({ ...form, course_interest: e.target.value })} placeholder="e.g. MBA" /></div>
             <div><label className="label">City</label><input className="input" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
             <div><label className="label">Country</label><input className="input" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} /></div>
+            <div className="rounded-xl bg-emerald-50 p-4 sm:col-span-2">
+              <p className="flex items-center gap-2 font-semibold text-slate-900"><MessageCircle size={16} className="text-emerald-600" />WhatsApp updates</p>
+              <p className="mt-1 text-xs text-slate-600">Application status, PG visit and message alerts on WhatsApp instead of email. You can switch this off any time.</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div><label className="label">WhatsApp number</label><input className="input" value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} placeholder={form.phone || '+91 98765 43210'} /></div>
+                <label className="flex items-center gap-2 self-end pb-2 text-sm"><input type="checkbox" className="h-4 w-4 accent-emerald-600" checked={form.whatsapp_opt_in} onChange={(e) => setForm({ ...form, whatsapp_opt_in: e.target.checked })} />Send me updates on WhatsApp</label>
+              </div>
+            </div>
             <div className="sm:col-span-2"><button className="btn-primary"><Save size={16} />Save profile</button></div>
           </form>
         )}

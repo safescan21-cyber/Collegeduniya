@@ -79,6 +79,7 @@ Browser ──► Next.js (web) ──► Supabase  (public reads, OTP login, re
 12. Run **`supabase/migrations/009_security_hardening.sql`** (visitors can read only safe columns; fixed function search paths).
 13. Run **`supabase/migrations/010_roadmap.sql`** then **`010_seed_exams.sql`** (rankings, marks→rank, verified PG & visits, senior connect, roommates, messages, recommender, scholarships, visa guides, payments, lead partners).
 14. Run **`supabase/migrations/011_growth2.sql`** (top-college pages, job alerts, resumes, exam library, percentile → rank, rewards, referrals & ambassadors, salary trends).
+15. Run **`supabase/migrations/012_whatsapp_notifications.sql`** (WhatsApp login + notifications outbox).
 8. Load full college lists:
    ```bash
    npm run import:sheet -- ./All_Colleges.xlsx IN aishe   # India: official AISHE "All Colleges" list (~48k colleges)
@@ -329,6 +330,39 @@ npm run import:india -- ./aishe/         # ~65,000 institutions
 | **Salary trends** | `/trends` | Uses the placement data you add to colleges: median by year, growth, and the top colleges by median package. |
 
 Also fixed in 011: admin actions made through the API (verifying a review, marking an answer official, changing a job-application status) were being silently undone by database guards. Visa-guide and lead-partner rows can now be edited and deleted from the admin pages.
+
+## 5g. WhatsApp login & notifications (migration 012)
+
+Everything is already built. It stays switched off until you connect a WhatsApp Business number, and email keeps working in the meantime.
+
+**What students get**
+- **Login page → WhatsApp tab:** they enter their number and get a 6-digit code on WhatsApp. No password or email is needed.
+- **Notifications:** sent on WhatsApp if they tick “Send me updates on WhatsApp” (at sign-up or in Dashboard → Profile), otherwise by email. Every notification also appears in the 🔔 bell and in Dashboard → Notifications.
+- **Events that notify someone:**
+  - a new job applicant (employer) and application status changes (student)
+  - college and management-quota application status changes
+  - PG visit requests (owner) and visit confirmations (student)
+  - new messages (at most one per conversation per hour)
+  - reward vouchers, verified reviews and ambassador approval
+- **How it works:** database triggers queue each event in `notifications`, and the API delivers the queue every minute. Admin actions, owner and employer portals and anything done in the browser are all covered.
+
+**Turn it on (once you have the number)**
+1. **Meta:** in Meta Business → WhatsApp → API setup, add your number. Note the **Phone number ID** and create a permanent **System User token** (permission `whatsapp_business_messaging`).
+2. **Templates:** create and get approved:
+   - `login_code`: category **Authentication**, with a *Copy code* button.
+   - `ses_update`: category **Utility**. Body, e.g.: `Hi! {{1}}. {{2}}`. Sample: `Application update: Tutor` / `Your application is now shortlisted. https://studyearnstay.com/dashboard`.
+   - (optional) `job_alert`: category **Utility**, one variable `{{1}}`.
+3. **`server/.env`:** `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID`, `WHATSAPP_OTP_TEMPLATE=login_code`, `WHATSAPP_NOTIFY_TEMPLATE=ses_update`, `WHATSAPP_TEMPLATE_LANG=en` (or `en_US`, whatever language you approved the templates in). Restart the API. `GET /api/whatsapp/status` should show `{"login":true,"notifications":true}`.
+4. **Supabase → Authentication → Sign In / Providers → Phone:** enable it.
+5. **Supabase → Authentication → Hooks → Send SMS hook:**
+   - Type HTTPS, URL `https://<your-api-domain>/api/hooks/send-sms`.
+   - Click *Generate secret* and put it in `server/.env` as `SEND_SMS_HOOK_SECRET=v1,whsec_…`.
+   - Supabase makes the code and our API delivers it on WhatsApp.
+6. **`web` env:** `NEXT_PUBLIC_WHATSAPP_LOGIN=on`, then rebuild/redeploy. The WhatsApp tab appears on `/login`.
+
+**Notes**
+- Meta charges per conversation (authentication and utility rates).
+- If WhatsApp sending fails, the login page asks the student to use email.
 
 ## 6. Deploy on your own VPS (Ubuntu + Nginx + PM2)
 

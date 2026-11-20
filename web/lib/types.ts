@@ -9,6 +9,8 @@ export type Profile = {
   role: 'student' | 'admin' | 'super_admin';
   account_type?: 'student' | 'pg_owner' | 'employer';
   preferred_lang?: string | null;
+  whatsapp?: string | null;
+  whatsapp_opt_in?: boolean;
   is_blocked: boolean;
   created_at: string;
 };

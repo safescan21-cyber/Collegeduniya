@@ -3,6 +3,7 @@ import { Briefcase } from 'lucide-react';
 import { JobCard, EmptyState } from '@/components/Cards';
 import FilterBar from '@/components/FilterBar';
 import { CreateAlertButton } from '@/components/JobAlerts';
+import { LiveJobs } from '@/components/LiveData';
 import Pagination from '@/components/Pagination';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { cleanTerm, distinctValues } from '@/lib/data';
@@ -59,6 +60,13 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
     total = count || 0;
   }
   const countries = await distinctValues('jobs', 'country');
+  // country code for the external job feed (Adzuna / Jooble): from ?country= or the city's record
+  let cc: string | null = null;
+  if (hasSupabase && sp.city) {
+    const sb = supabasePublic();
+    if (sp.country) cc = ((await sb.from('countries').select('code').ilike('name', sp.country).maybeSingle()).data as any)?.code || null;
+    if (!cc) cc = ((await sb.from('cities').select('country_code').ilike('name', cleanTerm(sp.city)).order('population', { ascending: false }).limit(1).maybeSingle()).data as any)?.country_code || null;
+  }
 
   return (
     <div className="container-x py-10">
@@ -85,6 +93,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{sponsored.map((x) => <div key={`sp-${x.id}`} className="relative"><JobCard j={x} /><span className="chip-amber absolute end-3 top-3 z-10">Sponsored</span></div>)}{jobs.filter((x) => !sponsored.some((y) => y.id === x.id)).map((j) => <JobCard key={j.id} j={j} />)}</div>
           ) : <EmptyState icon={<Briefcase size={28} />} title="No open jobs match" text="New student jobs are added daily — try a nearby city." />}
           <Pagination page={page} total={total} perPage={PER_PAGE} basePath="/jobs" params={sp} />
+          {sp.city && <div className="mt-8"><LiveJobs city={sp.city} country={cc} query={sp.q || (sp.type ? sp.type.toLowerCase() : 'part time')} /></div>}
         </section>
       </div>
     </div>
