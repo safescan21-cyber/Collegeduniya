@@ -82,6 +82,7 @@ Browser ──► Next.js (web) ──► Supabase  (public reads, OTP login, re
 15. Run **`supabase/migrations/012_whatsapp_notifications.sql`** (WhatsApp login + notifications outbox).
 16. Run **`supabase/migrations/013_mock_tests.sql`** (mock tests: patterns, AI question bank, attempts, scoring).
 17. Run **`supabase/migrations/014_mock_autopilot.sql`** (mock-test autopilot).
+18. Run **`supabase/migrations/015_profiles_presence.sql`** (public profiles, education, login history, who's online).
 8. Load full college lists:
    ```bash
    npm run import:sheet -- ./All_Colleges.xlsx IN aishe   # India: official AISHE "All Colleges" list (~48k colleges)
@@ -441,6 +442,37 @@ Go to **Admin → Mock tests → Autopilot → Turn on autopilot.** From then on
 **Other controls:**
 - Untick *Managed by autopilot* on an exam's pattern to run it by hand.
 - Set `MOCK_AUTOPILOT=off` in `server/.env` to stop the scheduler completely.
+
+## 5i. Student profiles, login history and who's online (migration 015)
+
+**Students (Dashboard)**
+- **Mock tests tab:** every test with score, right/wrong/skipped, percentile, a progress chart per exam, and links to solutions (or Resume for unfinished tests).
+- **Profile tab:**
+  - *Public profile*: username, headline and "about me". Anyone can view it at `/u/<username>` — name, city and education, never email or phone. Students can turn it off.
+  - *Education*: Class 10, Class 12, Diploma, UG, PG, PhD, with board/university, course, years, marks and city.
+  - *Recent logins*: device, city and time.
+- **Privacy switches:**
+  - show best mock scores on the profile (off by default)
+  - show first name and city in online alerts (off by default)
+- Public profiles are kept out of search engines (`noindex`).
+
+**Admins**
+- **Online now:** shown on the dashboard and at Admin → Online now, refreshed every 15 s.
+  - counts of people online, logged-in students and guests
+  - top cities and pages
+  - each session's name (if logged in), location, device, current page and time online
+- **Admin → Users:** last seen, a link to the public profile, and **logins & mock tests** for each student.
+
+**Silent "is online" alerts on the site**
+- A small pop-up in the bottom-left corner, with no sound, at most one every 20 s, never on the test screen.
+- Students who opted in appear as e.g. "Riya from Patna is online"; everyone else as "A student from Pune". Guests are always anonymous.
+- Visitors can close the pop-up to hide alerts on their device.
+
+**Location for alerts and the admin view**
+- **Cloudflare:** Rules → Managed Transforms → *Add visitor location headers*. Or **Nginx** with GeoIP2 and the free MaxMind GeoLite2-City database, passing `X-City` / `X-Region` / `X-Country` to the API.
+- Without either, logged-in students show their profile city and guests show no city.
+
+**How presence works:** each open tab sends a heartbeat every 60 s while visible; tabs silent for 2 minutes are counted offline. Rate limits are per tab, so a whole campus on one Wi-Fi address isn't blocked.
 
 ## 6. Deploy on your own VPS (Ubuntu + Nginx + PM2)
 

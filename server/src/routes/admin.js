@@ -300,6 +300,31 @@ router.post('/rewards/grant', wrap(async (req, res) => {
   res.status(201).json({ data });
 }));
 
+// ---------------------------------------------------------------- who is online now
+router.get('/online', wrap(async (_req, res) => {
+  const cutoff = new Date(Date.now() - 2 * 60_000).toISOString();
+  const dayAgo = new Date(Date.now() - 86400e3).toISOString();
+  const [{ data: live, error }, { count: today }] = await Promise.all([
+    supabase.from('site_presence').select('session_id, user_id, path, city, region, country, device, first_seen, last_seen, profiles(full_name, email, username, account_type)')
+      .gte('last_seen', cutoff).order('last_seen', { ascending: false }).limit(500),
+    supabase.from('site_presence').select('session_id', { count: 'exact', head: true }).gte('last_seen', dayAgo),
+  ]);
+  if (error) return fail(res, error);
+  const rows = live || [];
+  const users = new Set(rows.filter((r) => r.user_id).map((r) => r.user_id));
+  const byPage = {}; rows.forEach((r) => { byPage[r.path || '/'] = (byPage[r.path || '/'] || 0) + 1; });
+  const byCity = {}; rows.forEach((r) => { if (r.city) byCity[r.city] = (byCity[r.city] || 0) + 1; });
+  res.json({ online: rows.length, users: users.size, guests: rows.filter((r) => !r.user_id).length, sessions_24h: today || 0,
+    pages: Object.entries(byPage).sort((a, b) => b[1] - a[1]).slice(0, 8), cities: Object.entries(byCity).sort((a, b) => b[1] - a[1]).slice(0, 8), list: rows.slice(0, 100) });
+}));
+router.get('/users/:id/activity', wrap(async (req, res) => {
+  const [l, m] = await Promise.all([
+    supabase.from('login_events').select('*').eq('user_id', req.params.id).order('created_at', { ascending: false }).limit(20),
+    supabase.from('mock_attempts').select('id, title, status, score, max_score, percentile, started_at').eq('user_id', req.params.id).order('started_at', { ascending: false }).limit(20),
+  ]);
+  res.json({ logins: l.data || [], mocks: m.data || [] });
+}));
+
 // ---------------------------------------------------------------- mock tests (AI question bank)
 router.get('/mock/ai-status', wrap(async (_req, res) => {
   const { llmReady, llmProvider, llmModel } = await import('../services/llm.js');

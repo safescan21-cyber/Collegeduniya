@@ -11,6 +11,12 @@ export type Profile = {
   preferred_lang?: string | null;
   whatsapp?: string | null;
   whatsapp_opt_in?: boolean;
+  username?: string | null;
+  headline?: string | null;
+  bio?: string | null;
+  public_profile?: boolean;
+  show_mock_scores?: boolean;
+  show_online?: boolean;
   is_blocked: boolean;
   created_at: string;
 };

@@ -3,11 +3,12 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
-  Briefcase, Star, User, Save, Trash2, Heart, FilePlus2, Building, Users, Download, Pencil, PlusCircle, GraduationCap, Home, BellRing, FileText, Gift, Bell, MessageCircle,
+  Briefcase, Star, User, Save, Trash2, Heart, FilePlus2, Building, Users, Download, Pencil, PlusCircle, GraduationCap, Home, BellRing, FileText, Gift, Bell, MessageCircle, ClipboardCheck,
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { JobAlertManager } from '@/components/JobAlerts';
 import { NotificationList } from '@/components/Notifications';
+import { PublicProfileSettings, EducationEditor, LoginHistory, MockHistory } from '@/components/ProfileExtras';
 import { Stars } from '@/components/Cards';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { range, timeAgo } from '@/lib/format';
@@ -18,7 +19,7 @@ const STATUS_CHIP: Record<string, string> = {
 };
 
 const QUOTA_CHIP: Record<string, string> = { submitted: 'chip', under_review: 'chip-amber', contacted: 'chip-amber', shortlisted: 'chip-green', offered: 'chip-green', admitted: 'chip-green', rejected: 'chip-red', withdrawn: 'chip' };
-type Tab = 'notifications' | 'alerts' | 'visits' | 'applications' | 'colleges' | 'saved' | 'listings' | 'reviews' | 'profile';
+type Tab = 'mocks' | 'notifications' | 'alerts' | 'visits' | 'applications' | 'colleges' | 'saved' | 'listings' | 'reviews' | 'profile';
 
 function Dashboard() {
   const { user, profile, loading, refreshProfile } = useAuth();
@@ -121,6 +122,7 @@ function Dashboard() {
   const TABS: { key: Tab; label: string; icon: any; n?: number }[] = [
     { key: 'applications', label: 'Job applications', icon: Briefcase, n: apps.length },
     { key: 'colleges', label: 'College applications', icon: FilePlus2, n: capps.length + qapps.length },
+    { key: 'mocks', label: 'Mock tests', icon: ClipboardCheck },
     { key: 'notifications', label: 'Notifications', icon: Bell },
     { key: 'alerts', label: 'Job alerts', icon: BellRing },
     { key: 'visits', label: 'PG visits', icon: Home, n: visits.length },
@@ -216,6 +218,7 @@ function Dashboard() {
           </div>
         ) : <Empty text="You haven't applied to any college through StudyEarnstay yet." href="/management-quota" cta="See management quota seats" />)}
 
+        {tab === 'mocks' && <MockHistory />}
         {tab === 'notifications' && <NotificationList />}
         {tab === 'alerts' && <JobAlertManager />}
         {tab === 'visits' && (visits.length ? (
@@ -317,7 +320,9 @@ function Dashboard() {
         ) : <Empty text="You have not reviewed any college yet." href="/colleges" cta="Find your college" />)}
 
         {tab === 'profile' && (
-          <form onSubmit={saveProfile} className="card grid max-w-2xl gap-4 p-6 sm:grid-cols-2">
+          <div className="grid items-start gap-6 lg:grid-cols-2">
+          <div className="space-y-6">
+          <form onSubmit={saveProfile} className="card grid gap-4 p-6 sm:grid-cols-2">
             <div className="sm:col-span-2"><label className="label">Full name</label><input className="input" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
             <div><label className="label">Phone</label><input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
             <div><label className="label">Course interested in</label><input className="input" value={form.course_interest} onChange={(e) => setForm({ ...form, course_interest: e.target.value })} placeholder="e.g. MBA" /></div>
@@ -333,6 +338,10 @@ function Dashboard() {
             </div>
             <div className="sm:col-span-2"><button className="btn-primary"><Save size={16} />Save profile</button></div>
           </form>
+          <LoginHistory />
+          </div>
+          <div className="space-y-6"><PublicProfileSettings /><EducationEditor /></div>
+          </div>
         )}
       </div>
     </>
