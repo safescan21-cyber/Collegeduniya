@@ -39,7 +39,7 @@ function Dashboard() {
     const [a, ca, r, s, mh, mj, qa] = await Promise.all([
       supabase.from('job_applications').select('*, jobs(id, title, company, city)').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('college_applications').select('*, colleges(name, slug, city)').eq('user_id', user.id).order('created_at', { ascending: false }),
-      supabase.from('reviews').select('*, colleges(name, slug)').eq('user_id', user.id).order('created_at', { ascending: false }),
+      supabase.from('reviews').select('id, college_id, rating, title, body, status, is_verified, reward_status, created_at, colleges(name, slug)').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('saved_items').select('item_type, item_id').eq('user_id', user.id),
       supabase.from('hostels').select('*').eq('submitted_by', user.id).order('created_at', { ascending: false }),
       supabase.from('jobs').select('*').eq('created_by', user.id).order('created_at', { ascending: false }),

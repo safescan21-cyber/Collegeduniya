@@ -40,6 +40,7 @@ export default async function CollegesPage({ searchParams }: { searchParams: Pro
     if (sp.country) q = q.eq('country', sp.country);
     if (sp.city) q = q.ilike('city', cleanTerm(sp.city));
     if (sp.type) q = q.eq('type', sp.type);
+    if (sp.inst) q = q.eq('facts->>institution', sp.inst);
     if (sp.stream) q = q.contains('streams', [sp.stream]);
     if (sp.fees_max) q = q.lte('fees_min', Number(sp.fees_max));
     const sort = sp.sort || 'rank';
@@ -72,6 +73,7 @@ export default async function CollegesPage({ searchParams }: { searchParams: Pro
             { name: 'stream', label: 'Stream', type: 'select', options: ['Engineering', 'Management', 'Medical', 'Commerce', 'Arts', 'Science', 'Law', 'Design', 'Media'] },
             { name: 'level', label: 'Course level', type: 'select', options: ['UG', 'PG', 'Diploma', 'PhD', 'Certificate'] },
             { name: 'type', label: 'Ownership', type: 'select', options: ['Public', 'Private', 'Deemed', 'Autonomous'] },
+            { name: 'inst', label: 'Institution', type: 'select', options: ['University', 'College', 'Standalone institution'] },
             { name: 'fees_max', label: 'Max fees / year', type: 'text', placeholder: 'e.g. 200000' },
             { name: 'sort', label: 'Sort by', type: 'select', options: [
               { value: 'rank', label: 'Ranking' }, { value: 'fees_low', label: 'Fees: low to high' },

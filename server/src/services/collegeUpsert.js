@@ -27,10 +27,13 @@ export async function countryRow(input) {
 // Coordinates for "city/district + state" from the GeoNames table (no external calls)
 export async function cityLocator(countryCode) {
   const map = new Map();
+  const byDistrict = new Map();   // "pune|maharashtra" → most populous place in that district (district HQ)
   if (!countryCode) return () => null;
+  let cols = 'geoname_id, name, ascii_name, admin1, admin2, latitude, longitude, population';
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await supabase.from('cities').select('geoname_id, name, ascii_name, admin1, latitude, longitude, population')
+    let { data, error } = await supabase.from('cities').select(cols)
       .eq('country_code', countryCode).order('population', { ascending: false }).range(from, from + 999);
+    if (error && cols.includes('admin2')) { cols = cols.replace(' admin2,', ''); from -= 1000; continue; }   // migration 008 not run yet
     if (error || !data?.length) break;
     for (const c of data) {
       for (const n of new Set([c.name, c.ascii_name])) {
@@ -39,15 +42,27 @@ export async function cityLocator(countryCode) {
         if (!map.has(k1)) map.set(k1, c);
         if (!map.has(k2)) map.set(k2, c);
       }
+      if (c.admin2) {
+        const kd = `${clean(c.admin2)}|${(c.admin1 || '').toLowerCase()}`;
+        if (!byDistrict.has(kd)) byDistrict.set(kd, c);   // rows come most-populous first
+      }
     }
     if (data.length < 1000) break;
   }
-  const clean = (s) => String(s || '').toLowerCase().replace(/\b(district|dist\.?|city|urban|rural|nagar nigam)\b/g, '').replace(/\s+/g, ' ').trim();
-  return (place, state) => {
-    if (!place) return null;
-    const p = clean(place); const st = String(state || '').toLowerCase();
-    return map.get(`${p}|${st}`) || map.get(p) || null;
+  return (place, state, district) => {
+    const st = String(state || '').toLowerCase();
+    if (place) {
+      const p = clean(place);
+      const hit = map.get(`${p}|${st}`) || map.get(p);
+      if (hit) return hit;
+    }
+    const d = clean(district || place);
+    return d ? byDistrict.get(`${d}|${st}`) || null : null;
   };
+}
+
+function clean(s) {
+  return String(s || '').toLowerCase().replace(/\b(district|dist\.?|city|urban|rural|nagar nigam)\b/g, '').replace(/\s+/g, ' ').trim();
 }
 
 // Insert new rows whole; refresh known rows without touching slug, publish state or admin edits.

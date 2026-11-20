@@ -40,7 +40,7 @@ const GUESS = [
   ['address', /address/i],
   ['website', /web|url|site/i],
   ['established', /estab|founded|year of (est|start)|^year$/i],
-  ['management', /manag|owner|governance/i],
+  ['management', /man[ae]g|owner|governance/i],
   ['type', /type|category|kind/i],
   ['affiliated_to', /affiliat|university name|parent univ/i],
   ['phone', /phone|mobile|contact no|tel/i],
@@ -124,6 +124,15 @@ const toNum = (v) => { const n = Number(String(v || '').replace(/[^\d.-]/g, ''))
 const titleCase = (s) => String(s || '').toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase()).replace(/\b(Of|And|For|The|In)\b/g, (m) => m.toLowerCase());
 const cleanSite = (s) => { const v = String(s || '').trim(); if (!v || !/\./.test(v)) return null; return /^https?:\/\//i.test(v) ? v : `https://${v.replace(/^\/+/, '')}`; };
 
+// AISHE publishes three lists — universities (U-codes), colleges (C-) and standalone institutions (S-).
+export function detectAisheKind(headers) {
+  const h = headers.map((x) => String(x).toLowerCase());
+  if (h.some((x) => /standalone type/.test(x))) return { kind: 'Standalone institution', typeCol: headers[h.findIndex((x) => /standalone type/.test(x))] };
+  if (h.some((x) => /college type/.test(x))) return { kind: 'College', typeCol: headers[h.findIndex((x) => /college type/.test(x))] };
+  if (h.some((x) => /university type/.test(x))) return { kind: 'University', typeCol: headers[h.findIndex((x) => /university type/.test(x))] };
+  return null;
+}
+
 export async function importSheet({ token, mapping, country, source = 'upload', publish = true, titleCaseNames = true, startedBy = null, log = () => {} }) {
   const up = getUpload(token);
   if (!up) throw new Error('Upload expired — upload the file again');
@@ -139,6 +148,8 @@ export async function importSheet({ token, mapping, country, source = 'upload', 
 
   try {
     const locate = await cityLocator(ctry.code);
+    const aishe = detectAisheKind(up.headers);
+    const locCol = up.headers.find((x) => /^location$/i.test(String(x).trim()));   // AISHE: Urban / Rural
     const get = (r, k) => (mapping[k] ? String(r[mapping[k]] ?? '').trim() : '');
     const seen = new Set();
     let bad = 0;
@@ -154,20 +165,25 @@ export async function importSheet({ token, mapping, country, source = 'upload', 
       const ext = get(r, 'external_id') || slugify(`${name} ${district} ${state}`).slice(0, 120);
       if (seen.has(ext)) continue;
       seen.add(ext);
-      const loc = (toNum(get(r, 'latitude')) != null) ? null : locate(city, state) || locate(district, state);
+      const loc = (toNum(get(r, 'latitude')) != null) ? null : locate(city, state, district) || locate(null, state, district);
       const lat = toNum(get(r, 'latitude')) ?? loc?.latitude ?? null;
       const lng = toNum(get(r, 'longitude')) ?? loc?.longitude ?? null;
       const management = get(r, 'management') || null;
       const streams = get(r, 'streams') ? get(r, 'streams').split(/[,;|]/).map((s) => s.trim()).filter(Boolean).slice(0, 12) : undefined;
+      const facts = {};
+      if (aishe) { facts.institution = aishe.kind; if (r[aishe.typeCol]) facts.category = String(r[aishe.typeCol]).trim(); }
+      if (locCol && /^(urban|rural)$/i.test(String(r[locCol] || '').trim())) facts.area = titleCase(String(r[locCol]).trim());
+      const cityName = cityRaw ? city : (loc?.name || district);
       const hash = crypto.createHash('sha1').update(`${src}:${ext}`).digest('hex').slice(0, 6);
       rows.push({
         source: src, external_id: ext, name,
-        slug: `${slugify(`${name} ${city || state || ctry.name}`).slice(0, 70)}-${hash}`,
+        slug: `${slugify(`${name} ${cityName || state || ctry.name}`).slice(0, 70)}-${hash}`,
         country: ctry.name, country_code: ctry.code, state: state || null, district: district || null,
-        city: city || 'Not specified', city_geoname_id: loc?.geoname_id || null,
+        city: cityName || 'Not specified', city_geoname_id: loc?.geoname_id || null,
         address: get(r, 'address') || null, website: cleanSite(get(r, 'website')),
         established: toYear(get(r, 'established')), management,
-        type: typeFromManagement(management) !== 'Other' ? typeFromManagement(management) : typeFromManagement(get(r, 'type')),
+        type: typeFromManagement(management) !== 'Other' ? typeFromManagement(management)
+          : typeFromManagement(get(r, 'type') || (aishe ? r[aishe.typeCol] : '')),
         affiliated_to: get(r, 'affiliated_to') || null,
         phone: get(r, 'phone') || null, email: get(r, 'email') || null,
         latitude: lat, longitude: lng,
@@ -175,6 +191,7 @@ export async function importSheet({ token, mapping, country, source = 'upload', 
         currency: ctry.currency_code || null,
         ...(streams ? { streams } : {}),
         description: get(r, 'description') || null,
+        ...(Object.keys(facts).length ? { facts } : {}),
         is_published: Boolean(publish && (city || state)),
         data_updated_at: new Date().toISOString(),
       });

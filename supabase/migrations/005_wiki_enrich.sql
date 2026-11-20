@@ -42,3 +42,8 @@ select
 from public.colleges c
 where c.is_published;
 grant select on public.colleges_public to anon, authenticated;
+
+-- fast lookups for city pages / filters with large imports
+create index if not exists colleges_city_gid_idx on public.colleges (city_geoname_id);
+create index if not exists colleges_institution_idx on public.colleges ((facts->>'institution'));
+create index if not exists colleges_state_idx on public.colleges (country_code, state);

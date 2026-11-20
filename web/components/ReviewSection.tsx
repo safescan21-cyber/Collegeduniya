@@ -12,7 +12,8 @@ import type { ReviewPublic } from '@/lib/types';
 
 type Own = { id: string; rating: number; rating_faculty: number | null; rating_campus: number | null; rating_placement: number | null;
   title: string; body: string; course: string | null; batch_year: number | null; status: string;
-  is_verified?: boolean; reward_status?: string; proof_url?: string | null };
+  is_verified?: boolean; reward_status?: string; has_proof?: boolean | null };
+const OWN_COLS = 'id, college_id, user_id, rating, rating_faculty, rating_campus, rating_placement, title, body, course, batch_year, status, edited_by_admin, created_at, is_verified, reward_status, has_proof';
 
 function StarInput({ value, onChange, label }: { value: number; onChange: (v: number) => void; label: string }) {
   return (
@@ -46,7 +47,7 @@ export default function ReviewSection({ collegeId, collegeName, reviews, avg, co
 
   useEffect(() => {
     if (!user) return;
-    supabase.from('reviews').select('*').eq('college_id', collegeId).eq('user_id', user.id).maybeSingle()
+    supabase.from('reviews').select(OWN_COLS).eq('college_id', collegeId).eq('user_id', user.id).maybeSingle()
       .then(({ data }: { data: Own | null }) => {
         setOwn(data);
         if (data) setForm({
@@ -86,7 +87,7 @@ export default function ReviewSection({ collegeId, collegeName, reviews, avg, co
     if (error) return setMsg({ ok: false, text: error.message });
     setMsg({ ok: true, text: own ? 'Review updated.' : 'Thanks! Your review is live.' });
     setEditing(false);
-    const { data } = await supabase.from('reviews').select('*').eq('college_id', collegeId).eq('user_id', user.id).maybeSingle();
+    const { data } = await supabase.from('reviews').select(OWN_COLS).eq('college_id', collegeId).eq('user_id', user.id).maybeSingle();
     setOwn(data);
     router.refresh();
   };
@@ -168,7 +169,7 @@ export default function ReviewSection({ collegeId, collegeName, reviews, avg, co
           <div><label className="label">Title *</label><input required minLength={3} maxLength={120} className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Sum up your experience" /></div>
           <div><label className="label">Your review *</label><textarea required rows={5} maxLength={4000} className="input" value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} placeholder="Teaching, campus life, hostel, placements, fees value…" /></div>
           <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-600 hover:border-brand-400">
-            <Upload size={16} />{proof ? proof.name : own?.proof_url ? 'Proof uploaded ✓ (upload again to replace)' : 'Upload college ID / fee receipt to get verified (optional, private)'}
+            <Upload size={16} />{proof ? proof.name : own?.has_proof ? 'Proof uploaded ✓ (upload again to replace)' : 'Upload college ID / fee receipt to get verified (optional, private)'}
             <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => setProof(e.target.files?.[0] || null)} />
           </label>
           {msg && <p className={`text-sm ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}

@@ -11,6 +11,7 @@ import { ListTray } from '@/components/ActionButtons';
 import { SITE_URL } from '@/lib/format';
 import { getT } from '@/lib/i18n-server';
 import { RTL } from '@/lib/i18n';
+import HrefLang from '@/components/HrefLang';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -29,6 +30,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={lang} dir={RTL.has(lang) ? 'rtl' : 'ltr'}>
       <body className="flex min-h-screen flex-col">
+        <HrefLang />
         <LangProvider lang={lang} dict={dict}>
           <AuthProvider>
             <Header />

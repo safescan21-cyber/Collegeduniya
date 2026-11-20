@@ -278,7 +278,8 @@ returns json language sql stable security definer set search_path = public as $$
     'reviews',   (select count(*) from reviews where status = 'approved'),
     'questions', (select count(*) from questions where status = 'approved'),
     'exams',     (select count(*) from exams where is_published),
-    'cities',    (select count(*) from cities),
+    'cities',    (select case when k.reltuples > 50000 then k.reltuples::bigint else (select count(*) from cities) end
+                  from pg_class k where k.oid = 'public.cities'::regclass),
     'companies', (select count(*) from companies)
   );
 $$;

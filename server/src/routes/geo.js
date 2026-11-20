@@ -21,7 +21,8 @@ router.get('/fx', limit(120), wrap(async (req, res) => {
 
 // GET /api/cities?q=pun&country=IN
 router.get('/cities', limit(120), wrap(async (req, res) => {
-  const rows = await searchCities(req.query.q, req.query.country, Math.min(Number(req.query.limit) || 10, 20));
+  const lang = /^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$/.test(String(req.query.lang || '')) ? String(req.query.lang) : null;
+  const rows = await searchCities(req.query.q, req.query.country, Math.min(Number(req.query.limit) || 10, 20), lang);
   res.set('Cache-Control', 'public, max-age=3600').json({ data: rows });
 }));
 

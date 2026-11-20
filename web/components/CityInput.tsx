@@ -6,7 +6,7 @@ import { API_URL } from '@/lib/api';
 import { useLang } from './LangProvider';
 
 export type CityHit = {
-  geoname_id: number | null; name: string; admin1: string | null; country: string | null; country_code: string;
+  geoname_id: number | null; name: string; local_name?: string | null; admin1: string | null; country: string | null; country_code: string;
   latitude: number; longitude: number; population: number | null; slug: string | null; source: string;
 };
 
@@ -20,7 +20,7 @@ export default function CityInput({ name = 'city', defaultValue = '', placeholde
   onPick?: (c: CityHit) => void; className?: string;
 }) {
   const router = useRouter();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [q, setQ] = useState(defaultValue);
   const [hits, setHits] = useState<CityHit[]>([]);
   const [open, setOpen] = useState(false);
@@ -37,7 +37,7 @@ export default function CityInput({ name = 'city', defaultValue = '', placeholde
     const ctrl = new AbortController();
     const tm = setTimeout(async () => {
       try {
-        const p = new URLSearchParams({ q: term, limit: '8' });
+        const p = new URLSearchParams({ q: term, limit: '8', lang });
         if (country) p.set('country', country);
         const r = await fetch(`${API_URL}/api/cities?${p}`, { signal: ctrl.signal });
         const body = await r.json();
@@ -46,7 +46,7 @@ export default function CityInput({ name = 'city', defaultValue = '', placeholde
       setBusy(false);
     }, 220);
     return () => { clearTimeout(tm); ctrl.abort(); };
-  }, [q, country]);
+  }, [q, country, lang]);
 
   useEffect(() => {
     const close = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false); };
@@ -84,7 +84,7 @@ export default function CityInput({ name = 'city', defaultValue = '', placeholde
               <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => pick(c)}
                 className={`flex w-full items-center gap-2 px-3 py-2 text-start text-sm ${i === active ? 'bg-brand-50' : 'hover:bg-slate-50'}`}>
                 <span className="text-base">{flag(c.country_code)}</span>
-                <span className="min-w-0 flex-1 truncate"><strong>{c.name}</strong>{c.admin1 ? `, ${c.admin1}` : ''}<span className="text-slate-400"> · {c.country}</span></span>
+                <span className="min-w-0 flex-1 truncate"><strong>{c.local_name && c.local_name !== c.name ? c.local_name : c.name}</strong>{c.local_name && c.local_name !== c.name && <span className="text-slate-500"> ({c.name})</span>}{c.admin1 ? `, ${c.admin1}` : ''}<span className="text-slate-400"> · {c.country}</span></span>
                 {c.population ? <span className="text-[10px] text-slate-400">{c.population >= 1e6 ? `${(c.population / 1e6).toFixed(1)}M` : `${Math.round(c.population / 1e3)}k`}</span> : null}
               </button>
             </li>

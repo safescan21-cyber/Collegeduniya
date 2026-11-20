@@ -75,6 +75,8 @@ Browser ──► Next.js (web) ──► Supabase  (public reads, OTP login, re
 8. Run **`supabase/migrations/005_wiki_enrich.sql`** (Wikipedia text + Wikimedia Commons photos with credits).
 9. Run **`supabase/migrations/006_management_quota.sql`** (management / NRI quota seats + student applications).
 10. Run **`supabase/migrations/007_quota_global.sql`** (direct admission & quota seats for every country, any currency).
+11. Run **`supabase/migrations/008_cities_languages.sql`** (districts + city names in every language + multilingual city search).
+12. Run **`supabase/migrations/009_security_hardening.sql`** (visitors can read only safe columns; fixed function search paths).
 8. Load full college lists:
    ```bash
    npm run import:sheet -- ./All_Colleges.xlsx IN aishe   # India: official AISHE "All Colleges" list (~48k colleges)
@@ -251,6 +253,45 @@ Google Places photos are **not** free (billed per request and they must not be s
 - **Languages:** all page text, the form and the "how it works" steps are in the site dictionary, so they appear in all 39 languages. Eligibility, fee details, English requirement, scholarship and description have a *Translate* button.
 
 **Fee wording:** every page states that applying is free, that fees are paid only to the college against an official receipt, and that no donation or capitation money is taken. Several Indian states ban capitation fees, so keep listings to official fees only.
+
+## 5d. Every language, every city, every Indian college
+
+**Languages (133).**
+- Every language Google Translate supports is in the picker. You can search it by native or English name ("German", "தமிழ்").
+- English and Hindi are hand-written. The other languages are machine-translated once and cached in `translations`.
+  - Set `GOOGLE_TRANSLATE_API_KEY` (500K characters/month free).
+  - Or set `LIBRETRANSLATE_URL`. Languages LibreTranslate lacks fall back to English.
+- Right-to-left scripts (Arabic, Urdu, Persian, Pashto, Sindhi, Sorani, Hebrew, Yiddish, Uyghur, Dhivehi) flip the layout automatically.
+- Any page accepts **`?hl=<code>`**, e.g. `/colleges?hl=ta`. It switches the language and remembers it, so links can be shared per language.
+- Every public page carries `hreflang` tags for all 133 languages, so Google can index each version.
+
+**Every city, town and village (GeoNames, CC BY 4.0):**
+```bash
+cd server
+npm run import:cities -- cities15000 --names     # world: 33k cities + local names (start here)
+npm run import:cities -- IN --names              # ALL of India: every city, town & village (~500k+) + Hindi/Tamil/Bengali… names
+npm run import:cities -- IN,NP,BD,LK --names     # several countries
+npm run import:cities -- IN --min-pop 1          # only places with a known population
+```
+- **Existing URLs:** `/city/...` URLs never change on re-import. The biggest place keeps the plain slug, e.g. `pune-maharashtra-in`; same-named villages get an id suffix.
+- **Districts** are stored. AISHE colleges that list only a district are placed in the district HQ.
+- **Local names:** city search works in any script ("पुण", "புனே" → Pune), and city pages show the local name in the visitor's language.
+- **Size:** all of India is roughly 150–250 MB in Postgres (places + names). The Supabase free plan has 500 MB, so use Pro or your own Postgres for several large countries.
+
+**Every Indian college, university and standalone institution (AISHE, Ministry of Education):**
+1. Download *All Universities*, *All Colleges* and *All Standalone Institutions* (Excel) from https://dashboard.aishe.gov.in/hedirectory/. The same files are on aikosh.indiaai.gov.in as "All … as per AISHE Dashboard".
+2. Put the three files in one folder and run:
+```bash
+npm run import:india -- ./aishe/ --dry   # check the column mapping
+npm run import:india -- ./aishe/         # ~65,000 institutions
+```
+- The importer detects which list each file is. It stores the institution kind (University / College / Standalone institution), the AISHE category, Urban/Rural and management type. It also links each record to its town.
+- Re-running refreshes rows by AISHE code and never overwrites colleges your team edited.
+- The colleges page has an **Institution** filter, and college pages show the kind and category.
+
+**Sitemaps:**
+- `robots.txt` lists `/sitemap/0.xml` (pages, PGs, jobs, exams, news, Q&A, quota seats).
+- Then one file per 40,000 colleges, and one per 40,000 cities with population ≥ `SITEMAP_CITY_MIN_POP` (default 1000).
 
 ## 6. Deploy on your own VPS (Ubuntu + Nginx + PM2)
 

@@ -11,19 +11,27 @@ import type { College, Hostel, Job } from '@/lib/types';
 export type CityInfo = {
   geoname_id: number | null; name: string; admin1: string | null; country: string | null; country_code: string | null;
   latitude: number; longitude: number; population: number | null; timezone?: string | null; slug?: string | null;
+  admin2?: string | null; local_name?: string | null;
 };
 
 const flag = (cc?: string | null) => (cc && cc.length === 2 ? String.fromCodePoint(...cc.toUpperCase().split('').map((c) => 127397 + c.charCodeAt(0))) : '🌍');
 
 export default async function CityView({ city }: { city: CityInfo }) {
-  const { t } = await getT();
+  const { t, lang } = await getT();
+  if (hasSupabase && city.geoname_id && lang !== 'en' && !city.local_name) {
+    const { data } = await supabasePublic().rpc('city_local_name', { gid: city.geoname_id, p_lang: lang });
+    if (typeof data === 'string') city = { ...city, local_name: data };
+  }
+  const shown = city.local_name && city.local_name !== city.name ? city.local_name : city.name;
   let colleges: College[] = []; let hostels: Hostel[] = []; let jobs: Job[] = [];
   let nearbyCities: { name: string; slug: string; population: number }[] = [];
   if (hasSupabase) {
     const sb = supabasePublic();
     const name = city.name.replace(/[",()%]/g, '');
     const [inCity, near, hIn, hNear, j, nc] = await Promise.all([
-      sb.from('colleges_public').select('*').eq('is_published', true).ilike('city', name).order('ranking', { ascending: true, nullsFirst: false }).limit(24),
+      (city.geoname_id
+        ? sb.from('colleges_public').select('*').eq('is_published', true).or(`city_geoname_id.eq.${city.geoname_id},city.ilike."${name}"`)
+        : sb.from('colleges_public').select('*').eq('is_published', true).ilike('city', name)).order('ranking', { ascending: true, nullsFirst: false }).limit(24),
       sb.rpc('nearby_colleges', { lat: city.latitude, lng: city.longitude, radius_km: 40 }),
       sb.from('hostels').select('*, colleges(name, slug), hostel_rooms(beds_available)').eq('is_published', true).ilike('city', name).limit(12),
       sb.rpc('nearby_hostels', { lat: city.latitude, lng: city.longitude, radius_km: 25 }),
@@ -53,9 +61,9 @@ export default async function CityView({ city }: { city: CityInfo }) {
       <section className="bg-gradient-to-br from-brand-950 via-brand-900 to-brand-700 py-12 text-white">
         <div className="container-x">
           <Link href={city.country_code ? `/cities?country=${city.country_code}` : '/cities'} className="text-sm text-brand-200 hover:underline">{flag(city.country_code)} {city.country}</Link>
-          <h1 className="mt-2 text-4xl font-extrabold">{t('city.title')} {city.name}</h1>
+          <h1 className="mt-2 text-4xl font-extrabold">{t('city.title')} {shown}{shown !== city.name && <span className="ms-3 text-2xl font-semibold text-brand-200">{city.name}</span>}</h1>
           <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-brand-100">
-            <span className="flex items-center gap-1"><MapPin size={16} />{[city.admin1, city.country].filter(Boolean).join(', ')}</span>
+            <span className="flex items-center gap-1"><MapPin size={16} />{[city.admin2 && city.admin2 !== city.name ? city.admin2 : null, city.admin1, city.country].filter(Boolean).join(', ')}</span>
             {city.population ? <span className="flex items-center gap-1"><Users size={16} />{city.population.toLocaleString()} people</span> : null}
             {local && <span className="flex items-center gap-1"><Clock size={16} />Local time {local}</span>}
           </p>

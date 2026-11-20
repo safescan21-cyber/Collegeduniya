@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import CityView, { type CityInfo } from '@/components/CityView';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,8 +15,14 @@ async function getCity(slug: string) {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const c = await getCity((await params).slug);
   if (!c) return { title: 'City not found' };
+  const { lang } = await getT();
+  let local: string | null = null;
+  if (lang !== 'en' && c.geoname_id) {
+    const { data } = await supabasePublic().rpc('city_local_name', { gid: c.geoname_id, p_lang: lang });
+    if (typeof data === 'string' && data !== c.name) local = data;
+  }
   return {
-    title: `Colleges, PG & part-time jobs in ${c.name}, ${c.country}`,
+    title: `${local ? `${local} (${c.name})` : c.name}: colleges, PG & part-time jobs — ${c.country}`,
     description: `Find colleges and universities in ${c.name}, PGs and hostels nearby, hospitals, and part-time jobs for students — StudyEarnstay.`,
     alternates: { canonical: `/city/${c.slug}` },
   };

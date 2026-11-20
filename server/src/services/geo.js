@@ -17,10 +17,11 @@ export function distanceKm(lat1, lng1, lat2, lng2) {
 // ---------------------------------------------------------------- cities
 // 1) GeoNames table in Supabase (fast, ranked by population)
 // 2) OpenStreetMap Nominatim fallback for small towns not in the table
-export async function searchCities(q, country, limit = 10) {
+export async function searchCities(q, country, limit = 10, lang = null) {
   const term = String(q || '').trim().slice(0, 80);
   if (term.length < 2) return [];
-  const { data, error } = await supabase.rpc('search_cities', { q: term, country: country || null, lim: limit });
+  let { data, error } = await supabase.rpc('search_cities', { q: term, country: country || null, lim: limit, lang: lang || null });
+  if (error && /lang|function/i.test(error.message)) ({ data, error } = await supabase.rpc('search_cities', { q: term, country: country || null, lim: limit }));   // before migration 008
   const local = (!error && data) ? data.map((c) => ({ ...c, source: 'geonames' })) : [];
   if (local.length >= 3 || term.length < 3) return local;
 

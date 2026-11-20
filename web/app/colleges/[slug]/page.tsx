@@ -183,6 +183,8 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
               {c.management ? <span className="chip">{c.management}</span> : null}
               {c.affiliated_to ? <span className="chip">Affiliated to {c.affiliated_to}</span> : null}
               {c.district && c.district !== c.city ? <span className="chip">District: {c.district}</span> : null}
+              {(c as any).facts?.institution && <span className="chip">{(c as any).facts.institution}{(c as any).facts.category && (c as any).facts.category !== (c as any).facts.institution ? ` · ${(c as any).facts.category}` : ''}</span>}
+              {(c as any).facts?.area && <span className="chip">{(c as any).facts.area} area</span>}
               {(c as any).facts?.graduation_rate != null ? <span className="chip">Graduation rate {Math.round((c as any).facts.graduation_rate * 100)}%</span> : null}
               {(c as any).facts?.median_earnings_10y != null ? <span className="chip-green">Median earnings after 10 yrs {money((c as any).facts.median_earnings_10y, 'USD')}</span> : null}
             </div>
