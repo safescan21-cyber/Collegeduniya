@@ -305,6 +305,19 @@ router.get('/mock/ai-status', wrap(async (_req, res) => {
   const { llmReady, llmProvider, llmModel } = await import('../services/llm.js');
   res.json({ ready: llmReady(), provider: llmProvider() || null, model: llmReady() ? llmModel() : null, check_model: llmReady() ? llmModel(true) : null });
 }));
+// AI provider pool (free tiers + paid + self-hosted)
+router.get('/ai/providers', wrap(async (_req, res) => {
+  const { providerStatus, pool } = await import('../services/llm.js');
+  res.json({ data: providerStatus(), order: pool().map((p) => p.id) });
+}));
+router.post('/ai/providers/:id/test', wrap(async (req, res) => {
+  const { testProvider } = await import('../services/llm.js');
+  res.json(await testProvider(req.params.id));
+}));
+router.get('/ai/providers/:id/models', wrap(async (req, res) => {
+  const { listModels } = await import('../services/llm.js');
+  res.json({ data: await listModels(req.params.id).catch((e) => { throw Object.assign(e, { status: 502 }); }) });
+}));
 router.post('/mock/blueprint-draft', wrap(async (req, res) => {
   const slug = String(req.body?.exam_slug || '');
   const { draftBlueprint } = await import('../services/mockGen.js');

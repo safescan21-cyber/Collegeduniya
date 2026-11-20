@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Bot, Sparkles, Loader2, Plus, Trash2, Save, CheckCircle2, XCircle, Wand2, ShieldAlert, Pencil } from 'lucide-react';
 import ModerationList from '@/components/admin/ModerationList';
 import MockAutopilot from '@/components/admin/MockAutopilot';
+import AiProviders from '@/components/admin/AiProviders';
 import { api } from '@/lib/api';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { timeAgo } from '@/lib/format';
@@ -26,8 +27,8 @@ function AiStatus() {
   useEffect(() => { api('/api/admin/mock/ai-status').then(setS).catch(() => setS({ ready: false })); }, []);
   if (!s) return null;
   return s.ready
-    ? <p className="flex items-center gap-2 text-sm text-emerald-700"><Bot size={16} />AI connected: {s.provider} · {s.model}{s.check_model !== s.model ? ` (checks with ${s.check_model})` : ''}</p>
-    : <p className="flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800"><ShieldAlert size={16} />AI is not configured. Set <code>ANTHROPIC_API_KEY</code>, or <code>LLM_PROVIDER=openai</code> + <code>LLM_BASE_URL</code> for a model you host (Ollama / vLLM), in <code>server/.env</code>. You can still add questions by hand.</p>;
+    ? <p className="flex items-center gap-2 text-sm text-emerald-700"><Bot size={16} />AI connected: {s.provider} · writer {s.model} · checker {s.check_model}</p>
+    : <p className="flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800"><ShieldAlert size={16} />No AI connected yet. Add a free key (e.g. <code>GEMINI_API_KEY</code>, <code>GROQ_API_KEY</code>, <code>OPENROUTER_API_KEY</code>) in <code>server/.env</code> — see “AI providers” on the Autopilot tab. You can still add questions by hand.</p>;
 }
 
 // ---------------------------------------------------------------- pattern editor
@@ -269,7 +270,7 @@ export default function AdminMockTests() {
       </div>
       <div className="flex gap-2">{([['autopilot', 'Autopilot'], ['build', 'Pattern & generate'], ['review', 'Review questions'], ['reports', 'Student reports']] as const).map(([k, l]) => (
         <button key={k} onClick={() => setTab(k)} className={`${tab === k ? 'btn-primary' : 'btn-ghost'} py-1.5`}>{l}</button>))}</div>
-      {tab === 'autopilot' && <MockAutopilot onPickExam={(x) => { setSlug(x); setTab('build'); }} />}
+      {tab === 'autopilot' && <><MockAutopilot onPickExam={(x) => { setSlug(x); setTab('build'); }} /><AiProviders /></>}
       {tab === 'build' && <><PatternEditor exams={exams} slug={slug} setSlug={setSlug} onSaved={setBp} /><Generator slug={slug} bp={bp} onDone={bump} /></>}
       {tab === 'review' && (
         <>

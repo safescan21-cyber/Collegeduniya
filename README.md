@@ -388,14 +388,33 @@ Everything is already built. It stays switched off until you connect a WhatsApp 
 
 **Every exam at once (command line):** `npm run mock:setup` drafts an unpublished pattern for each exam that has none. Add `-- --questions 3` to also generate 3 draft questions per topic, or list exams: `npm run mock:setup -- jee-main neet-ug --questions 5`.
 
-**AI model (`server/.env`)**
-| Option | Settings |
-|---|---|
-| Claude (default) | `ANTHROPIC_API_KEY=…` (optional `LLM_MODEL`, default `claude-sonnet-5-5`) |
-| Your own model on the VPS (Ollama) | `curl -fsSL https://ollama.com/install.sh \| sh` → `ollama pull qwen2.5:14b-instruct` → `LLM_PROVIDER=openai`, `LLM_BASE_URL=http://localhost:11434/v1`, `LLM_MODEL=qwen2.5:14b-instruct` |
-| Any OpenAI-compatible API (vLLM, Groq, OpenRouter…) | `LLM_PROVIDER=openai`, `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` |
-| Different model for the double-check | `LLM_CHECK_MODEL=…` |
-| **Free: Gemini writes, Groq checks** (no card) | `LLM_PROVIDER=openai`, `LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai`, `LLM_API_KEY=<AI Studio key>`, `LLM_MODEL=<current Gemini Flash model>` · `LLM_CHECK_BASE_URL=https://api.groq.com/openai/v1`, `LLM_CHECK_API_KEY=<Groq key>`, `LLM_CHECK_MODEL=openai/gpt-oss-120b`. Set the autopilot daily budget to about 100–200 to stay inside free limits. |
+**AI providers (`server/.env`) — use as many free ones as you like**
+
+Add a key for each service you sign up for and restart the API.
+- The API uses them in order. When one is rate-limited, out of daily quota or down, it rests and the next takes over.
+- The answer double-check always goes to a different provider from the one that wrote the question.
+- Admin → Mock tests → Autopilot → **AI providers** shows each one's status, with a **Test** button and the live model list.
+
+| Variable | Service (free tier) | Default model (override with `<ID>_MODEL`) |
+|---|---|---|
+| `GEMINI_API_KEY` | Google AI Studio — free Flash/Gemma models | `gemini-3.8-flash` |
+| `GROQ_API_KEY` | Groq — ~1,000 req / 200K tokens a day | `openai/gpt-oss-120b` |
+| `SAMBANOVA_API_KEY` | SambaNova Cloud — ~20 req/day per model | `DeepSeek-V3.2` |
+| `OPENROUTER_API_KEY` | OpenRouter — `:free` models, 50 req/day (1,000 after a one-time $10 top-up) | `nvidia/nemotron-3-super-120b-a12b:free` |
+| `NVIDIA_API_KEY` | NVIDIA API catalog — prototyping access | `meta/llama-3.3-70b-instruct` |
+| `MISTRAL_API_KEY` | Mistral — free Experiment plan | `mistral-small-latest` |
+| `CEREBRAS_API_KEY` | Cerebras — starter credits | `gpt-oss-120b` |
+| `COHERE_API_KEY` | Cohere trial — 1,000 calls/month | `command-a-plus-05-2026` |
+| `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` | Workers AI — 10,000 neurons/day (small models) | `@cf/meta/llama-3.1-8b-instruct` |
+| `OLLAMA_MODEL` (+ `OLLAMA_URL`) | Your own server (Ollama) | e.g. `qwen2.5:14b-instruct` |
+| `LLM_BASE_URL` + `LLM_API_KEY` + `LLM_MODEL` | Any other OpenAI-compatible API (Sarvam, vLLM, Together…) | — |
+| `ANTHROPIC_API_KEY` | Claude (paid, strongest) | `claude-sonnet-5-5` (`LLM_ANTHROPIC_MODEL`) |
+
+**Order and limits**
+- Default order: Claude (if set) → Gemini → Groq → SambaNova → OpenRouter → NVIDIA → Mistral → Cerebras → custom → Ollama → Cohere → Cloudflare. Change it with `LLM_ORDER=gemini,groq,openrouter,…`.
+- Free limits and model names change often. If a test fails with "model not found", pick a name from the model list and set `<ID>_MODEL`.
+- With only free providers, keep the autopilot daily budget around 100–300 questions.
+- Free tiers may use what you send to improve their models. We only send exam questions and anonymous scores, never student names or contact details.
 
 **Notes**
 - **Model size:** a 14B model needs about 10 GB RAM (better with a GPU). Small local models make more mistakes, so keep manual review on and use the double-check.
