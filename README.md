@@ -11,6 +11,17 @@
 - 🛡️ **Multi-admin panel**: colleges (+ courses + nearby companies/hospitals), hostels, jobs, applications, reviews, users
 - 📈 **Visitor analytics**: visitors today, unique visitors (30 days), page views, signups, daily chart, top pages
 
+**Added in v2 (growth features)**
+
+| Area | Feature |
+|---|---|
+| Decide | ⚖️ Compare up to 4 colleges side by side · ❤️ Shortlist colleges, PGs and jobs · 🎯 College predictor from rank + category (uses last year's closing ranks) · 💷 Study-abroad cost, loan EMI & payback calculator |
+| Apply | 📝 One common application sent to many partner colleges · 📞 "Free counselling" + "Enquire" lead forms on every college/PG page (admin Leads inbox + CSV export) |
+| Trust | ✅ Verified college reviews (student uploads ID/fee receipt) with optional reward (set `NEXT_PUBLIC_REVIEW_REWARD`) · ⭐ PG/hostel reviews (food, safety, cleanliness) |
+| Content & SEO | 📰 News & guides (Markdown) · 📚 Exam pages · 💬 Q&A with expert answers · 📊 Placements and cutoffs on college pages · sitemap + schema.org (QAPage, NewsArticle, JobPosting) |
+| Supply | 🏠 PG owners and 💼 employers post listings themselves → admin approves → employers manage their own applicants |
+| Reach | 🤖 AI assistant answering from your own database (`ANTHROPIC_API_KEY`, falls back to links) · 📧 Newsletter signup · 📱 Installable app (PWA) · 🇮🇳 Hindi / English switch |
+
 ## Tech stack
 
 | Part | Tech | Folder |
@@ -32,6 +43,8 @@ Browser ──► Next.js (web) ──► Supabase  (public reads, OTP login, re
 1. Create a project at <https://supabase.com>.
 2. **SQL Editor** → paste and run `supabase/schema.sql` (tables, security rules, storage buckets, nearby search).
 3. (Optional) run `supabase/seed.sql` for demo colleges, hostels and jobs. **All seed fees/rents/jobs are sample data — edit or delete before launch.**
+4. Run **`supabase/migrations/002_growth.sql`** (shortlist, leads, PG reviews, owner/employer listings, Q&A, news, exams, newsletter, placements, cutoffs, predictor, common application).
+   Optional: `supabase/migrations/002_seed_demo.sql` adds sample exams, cutoffs, placements and one article so you can try the predictor and compare pages.
 4. **Authentication → Providers → Email**: enable Email, keep "Confirm email" ON.
 5. **Authentication → Email Templates → Magic Link** — replace the body so it sends a **code** instead of a link:
 
@@ -73,6 +86,14 @@ npm run dev                 # http://localhost:3000
 
 > 🔒 The `service_role` key goes **only** in `server/.env`. Never put it in `web/`.
 
+Optional settings:
+
+| File | Variable | What it does |
+|---|---|---|
+| `server/.env` | `ANTHROPIC_API_KEY` | Turns on AI answers in the "Ask StudyEarnstay" chat. Without it the chat replies with matching links. |
+| `server/.env` | `ANTHROPIC_MODEL` | Model for the chat (default `claude-haiku-5-5`). |
+| `web/.env.local` | `NEXT_PUBLIC_REVIEW_REWARD` | e.g. `₹100 Amazon voucher` — shows the "earn a reward for a verified review" banner. Leave empty to hide it. |
+
 ---
 
 ## 3. Pages
@@ -93,6 +114,12 @@ npm run dev                 # http://localhost:3000
 | `/admin/applications` | Change status (pending / shortlisted / hired / rejected), download CV |
 | `/admin/reviews` | Approve, block, edit, delete reviews |
 | `/admin/users` | Block / unblock students; super admin promotes admins |
+| `/compare`, `/predictor`, `/apply`, `/study-abroad/calculator` | Decision tools |
+| `/exams`, `/news`, `/questions`, `/counselling` | Content, Q&A and lead capture |
+| `/post` | PG owners / employers submit listings (reviewed by admin) |
+| `/admin/leads`, `/admin/college-applications` | Call-back requests and common applications (status, notes, CSV) |
+| `/admin/qa`, `/admin/hostel-reviews`, `/admin/articles`, `/admin/exams`, `/admin/newsletter` | Moderation and content |
+| `/admin/colleges/[id]` | Courses, **placements**, **cutoffs** (feed the predictor) and nearby places |
 
 ## 4. Roles & security
 

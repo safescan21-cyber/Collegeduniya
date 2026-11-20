@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Mail, KeyRound, ArrowLeft, GraduationCap } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
+import { useLang } from '@/components/LangProvider';
 
 type Mode = 'login' | 'register';
 
@@ -14,6 +15,7 @@ export default function LoginForm() {
   const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard';
   const supabase = supabaseBrowser();
   const { user, refreshProfile } = useAuth();
+  const { t } = useLang();
 
   const [mode, setMode] = useState<Mode>(params.get('mode') === 'register' ? 'register' : 'login');
   const [step, setStep] = useState<'email' | 'otp'>('email');
@@ -89,8 +91,8 @@ export default function LoginForm() {
     <div className="card w-full max-w-md p-8">
       <div className="mb-6 text-center">
         <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-brand-600 text-white"><GraduationCap /></span>
-        <h1 className="mt-4 text-2xl font-extrabold text-slate-900">{step === 'otp' ? 'Enter verification code' : mode === 'register' ? 'Create your free account' : 'Welcome back'}</h1>
-        <p className="mt-1 text-sm text-slate-500">{step === 'otp' ? info : 'No password — we email you a one-time code.'}</p>
+        <h1 className="mt-4 text-2xl font-extrabold text-slate-900">{step === 'otp' ? 'Enter verification code' : mode === 'register' ? t('login.create') : t('login.welcome')}</h1>
+        <p className="mt-1 text-sm text-slate-500">{step === 'otp' ? info : t('login.noPassword')}</p>
       </div>
 
       {step === 'email' && (
@@ -116,7 +118,7 @@ export default function LoginForm() {
               </div>
             </div>
             {err && <p className="text-sm text-rose-600">{err}</p>}
-            <button disabled={busy} className="btn-primary w-full">{busy ? 'Sending code…' : 'Send verification code'}</button>
+            <button disabled={busy} className="btn-primary w-full">{busy ? '…' : t('login.sendCode')}</button>
           </form>
         </>
       )}

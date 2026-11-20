@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { MapPin, Star, BadgeCheck, Clock, Building2, Wifi, Utensils, Briefcase, Home } from 'lucide-react';
 import type { College, Hostel, Job } from '@/lib/types';
 import { FALLBACK_IMG, range, timeAgo } from '@/lib/format';
+import { SaveButton, CompareButton } from './ActionButtons';
 
 export function Stars({ value, size = 14 }: { value: number; size?: number }) {
   return (
@@ -20,7 +21,13 @@ export function CollegeCard({ c, rating }: { c: Partial<College> & { slug: strin
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={c.cover_url || FALLBACK_IMG} alt={c.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
         {c.ranking ? <span className="absolute left-3 top-3 rounded-lg bg-white/95 px-2 py-1 text-xs font-bold text-brand-700">#{c.ranking} Rank</span> : null}
-        {c.type ? <span className="absolute right-3 top-3 rounded-lg bg-brand-950/80 px-2 py-1 text-xs font-medium text-white">{c.type}</span> : null}
+        {c.type ? <span className="absolute bottom-3 left-3 rounded-lg bg-brand-950/80 px-2 py-1 text-xs font-medium text-white">{c.type}</span> : null}
+        {c.id && (
+          <div className="absolute right-3 top-3 flex gap-1.5">
+            <CompareButton item={{ id: c.id, slug: c.slug, name: c.name, city: c.city }} />
+            <SaveButton type="college" id={c.id} />
+          </div>
+        )}
       </div>
       <div className="flex flex-1 flex-col p-4">
         <h3 className="line-clamp-2 font-bold text-slate-900 group-hover:text-brand-700">{c.name}</h3>
@@ -54,6 +61,7 @@ export function HostelCard({ h }: { h: Partial<Hostel> & { id: string; name: str
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={h.photos?.[0] || FALLBACK_IMG} alt={h.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
         <span className="absolute left-3 top-3 rounded-lg bg-white/95 px-2 py-1 text-xs font-bold text-slate-800">{h.type} · {h.gender}</span>
+        <div className="absolute right-3 top-3"><SaveButton type="hostel" id={h.id} /></div>
         {'distance' in h && (h as any).distance != null && (
           <span className="absolute bottom-3 left-3 rounded-lg bg-brand-950/80 px-2 py-1 text-xs text-white">{(h as any).distance} km away</span>
         )}
@@ -85,10 +93,11 @@ export function JobCard({ j }: { j: Partial<Job> & { id: string; title: string; 
             ? <img src={j.company_logo} alt="" className="h-full w-full rounded-xl object-cover" />
             : <Building2 size={20} />}
         </span>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h3 className="font-bold text-slate-900 group-hover:text-brand-700">{j.title}</h3>
           <p className="text-sm text-slate-500">{j.company}</p>
         </div>
+        <SaveButton type="job" id={j.id} />
       </div>
       <div className="mt-4 flex flex-wrap gap-1.5">
         <span className="chip-brand"><Briefcase size={12} />{j.job_type}</span>

@@ -3,7 +3,9 @@ import multer from 'multer';
 import crypto from 'node:crypto';
 import { supabase } from '../supabase.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/auth.js';
-import { schemas, slugify, reviewUpdate, applicationUpdate, userUpdate } from '../schemas.js';
+import {
+  schemas, slugify, reviewUpdateV2, applicationUpdate, userUpdate, moderation,
+} from '../schemas.js';
 
 const router = Router();
 router.use(requireAdmin);
@@ -11,10 +13,22 @@ router.use(requireAdmin);
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const fail = (res, error, code = 400) => res.status(code).json({ error: error.message || String(error) });
 const page = (req) => {
-  const limit = Math.min(parseInt(req.query.limit, 10) || 25, 100);
+  const limit = Math.min(parseInt(req.query.limit, 10) || 25, 500);
   const pageNo = Math.max(parseInt(req.query.page, 10) || 1, 1);
   return { from: (pageNo - 1) * limit, to: pageNo * limit - 1 };
 };
+const term = (q) => String(q || '').replace(/[%,()*"]/g, ' ').trim().slice(0, 80);
+
+// Apply simple equality filters from the query string (only whitelisted keys)
+function applyFilters(q, query, keys) {
+  for (const k of keys) {
+    const v = query[k];
+    if (v === undefined || v === '') continue;
+    if (v === 'true' || v === 'false') q = q.eq(k, v === 'true');
+    else q = q.eq(k, v);
+  }
+  return q;
+}
 
 // ---------------------------------------------------------------- me
 router.get('/me', (req, res) => res.json({ profile: req.profile }));
@@ -27,12 +41,13 @@ router.get('/stats', wrap(async (_req, res) => {
 
   const count = async (table, build = (q) => q) => {
     const { count: c, error } = await build(supabase.from(table).select('*', { count: 'exact', head: true }));
-    if (error) throw error;
+    if (error) return 0; // table may not exist yet if migration 002 not run
     return c || 0;
   };
 
   const [colleges, hostels, jobs, openJobs, users, reviews, pendingReviews, applications, pendingApps,
-    visitsToday, visits7, visits30, visitsAll, signups7] = await Promise.all([
+    visitsToday, visits7, visits30, visitsAll, signups7, newLeads, leads, collegeApps, newCollegeApps,
+    pendingHostels, pendingJobs, questions, subscribers] = await Promise.all([
     count('colleges'), count('hostels'), count('jobs'),
     count('jobs', (q) => q.eq('status', 'open')),
     count('profiles'), count('reviews'),
@@ -44,9 +59,16 @@ router.get('/stats', wrap(async (_req, res) => {
     count('site_visits', (q) => q.gte('created_at', iso(30))),
     count('site_visits'),
     count('profiles', (q) => q.gte('created_at', iso(7))),
+    count('leads', (q) => q.eq('status', 'new')),
+    count('leads'),
+    count('college_applications'),
+    count('college_applications', (q) => q.eq('status', 'submitted')),
+    count('hostels', (q) => q.eq('approval_status', 'pending')),
+    count('jobs', (q) => q.eq('approval_status', 'pending')),
+    count('questions'),
+    count('newsletter_subscribers', (q) => q.eq('unsubscribed', false)),
   ]);
 
-  // Last 30 days of visits for the chart + unique visitors + top pages
   const { data: recent, error } = await supabase
     .from('site_visits')
     .select('visitor_id, path, created_at')
@@ -70,7 +92,10 @@ router.get('/stats', wrap(async (_req, res) => {
   }
 
   res.json({
-    totals: { colleges, hostels, jobs, openJobs, users, reviews, pendingReviews, applications, pendingApps, signups7 },
+    totals: {
+      colleges, hostels, jobs, openJobs, users, reviews, pendingReviews, applications, pendingApps, signups7,
+      newLeads, leads, collegeApps, newCollegeApps, pendingHostels, pendingJobs, questions, subscribers,
+    },
     visits: {
       today: visitsToday, last7: visits7, last30: visits30, allTime: visitsAll,
       uniqueToday: uniqToday.size, unique30: uniq30.size,
@@ -101,26 +126,28 @@ router.post('/upload', upload.array('files', 10), wrap(async (req, res) => {
   res.json({ urls });
 }));
 
-// ---------------------------------------------------------------- generic CRUD
-const searchCols = {
-  colleges: ['name', 'city', 'country'],
-  hostels: ['name', 'city', 'country'],
-  jobs: ['title', 'company', 'city'],
-  courses: ['name'],
-  places: ['name'],
+// ---------------------------------------------------------------- generic CRUD (content tables)
+const crudConfig = {
+  colleges:           { search: ['name', 'city', 'country'], filters: ['is_published', 'accepts_applications', 'country'], order: 'created_at' },
+  courses:            { search: ['name'], filters: ['college_id', 'level'], order: 'created_at' },
+  places:             { search: ['name'], filters: ['college_id', 'kind'], order: 'created_at' },
+  hostels:            { search: ['name', 'city', 'country'], filters: ['approval_status', 'is_published', 'college_id'], order: 'created_at' },
+  jobs:               { search: ['title', 'company', 'city'], filters: ['approval_status', 'is_published', 'status', 'college_id'], order: 'created_at' },
+  exams:              { search: ['short_name', 'full_name', 'stream'], filters: ['level', 'is_published'], order: 'created_at' },
+  articles:           { search: ['title', 'excerpt'], filters: ['category', 'is_published'], order: 'published_at' },
+  college_placements: { search: ['course'], filters: ['college_id', 'year'], order: 'year' },
+  cutoffs:            { search: ['course'], filters: ['college_id', 'exam_slug', 'year', 'category'], order: 'year' },
 };
 
-for (const table of Object.keys(schemas)) {
+for (const [table, cfg] of Object.entries(crudConfig)) {
   const schema = schemas[table];
 
   router.get(`/${table}`, wrap(async (req, res) => {
     const { from, to } = page(req);
-    let q = supabase.from(table).select('*', { count: 'exact' }).order('created_at', { ascending: false }).range(from, to);
-    if (req.query.college_id) q = q.eq('college_id', req.query.college_id);
-    if (req.query.q) {
-      const term = String(req.query.q).replace(/[%,()]/g, ' ').trim();
-      q = q.or(searchCols[table].map((c) => `${c}.ilike.%${term}%`).join(','));
-    }
+    let q = supabase.from(table).select('*', { count: 'exact' }).order(cfg.order, { ascending: false }).range(from, to);
+    q = applyFilters(q, req.query, cfg.filters);
+    const t = term(req.query.q);
+    if (t) q = q.or(cfg.search.map((c) => `${c}.ilike.%${t}%`).join(','));
     const { data, count, error } = await q;
     if (error) return fail(res, error);
     res.json({ data, count });
@@ -136,11 +163,15 @@ for (const table of Object.keys(schemas)) {
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) return res.status(422).json({ error: 'Validation failed', issues: parsed.error.flatten() });
     const row = parsed.data;
-    if (table === 'colleges') {
-      row.slug = slugify(row.slug || `${row.name}-${row.city}`);
-      row.created_by = req.user.id;
+    if (table === 'colleges') { row.slug = slugify(row.slug || `${row.name}-${row.city}`); row.created_by = req.user.id; }
+    if (table === 'exams') row.slug = slugify(row.slug || row.short_name);
+    if (table === 'articles') {
+      row.slug = slugify(row.slug || row.title);
+      row.author_id = req.user.id;
+      row.author_name = row.author_name || req.profile.full_name || 'StudyEarnstay Team';
     }
     if (table === 'jobs') row.created_by = req.user.id;
+    if (['hostels', 'jobs'].includes(table) && !row.approval_status) row.approval_status = 'approved';
     const { data, error } = await supabase.from(table).insert(row).select().single();
     if (error) return fail(res, error);
     res.status(201).json({ data });
@@ -150,7 +181,10 @@ for (const table of Object.keys(schemas)) {
     const parsed = schema.partial().safeParse(req.body);
     if (!parsed.success) return res.status(422).json({ error: 'Validation failed', issues: parsed.error.flatten() });
     const row = parsed.data;
-    if (table === 'colleges' && row.slug) row.slug = slugify(row.slug);
+    if (row.slug) row.slug = slugify(row.slug);
+    // Approving a submitted listing publishes it; rejecting hides it
+    if (row.approval_status === 'approved' && row.is_published === undefined) row.is_published = true;
+    if (row.approval_status === 'rejected') row.is_published = false;
     const { data, error } = await supabase.from(table).update(row).eq('id', req.params.id).select().single();
     if (error) return fail(res, error);
     res.json({ data });
@@ -163,7 +197,69 @@ for (const table of Object.keys(schemas)) {
   }));
 }
 
-// ---------------------------------------------------------------- reviews moderation
+// ---------------------------------------------------------------- moderation tables (list / patch / delete)
+const modConfig = {
+  leads: {
+    select: '*, colleges(name, slug), hostels(name)', filters: ['status', 'kind', 'college_id'],
+    search: ['full_name', 'email', 'phone', 'city'],
+  },
+  college_applications: {
+    select: '*, colleges(name, slug, city)', filters: ['status', 'college_id', 'batch_id'],
+    search: ['full_name', 'email', 'phone', 'course'],
+  },
+  questions: { select: '*, colleges(name, slug), profiles(full_name, email)', filters: ['status', 'college_id'], search: ['title'] },
+  answers: { select: '*, questions(title), profiles(full_name, email)', filters: ['status', 'question_id'], search: ['body'] },
+  hostel_reviews: { select: '*, hostels(name, city), profiles(full_name, email)', filters: ['status', 'hostel_id'], search: ['body'] },
+  newsletter_subscribers: { select: '*', filters: ['unsubscribed'], search: ['email'] },
+};
+
+for (const [table, cfg] of Object.entries(modConfig)) {
+  router.get(`/${table}`, wrap(async (req, res) => {
+    const { from, to } = page(req);
+    let q = supabase.from(table).select(cfg.select, { count: 'exact' }).order('created_at', { ascending: false }).range(from, to);
+    q = applyFilters(q, req.query, cfg.filters);
+    const t = term(req.query.q);
+    if (t) q = q.or(cfg.search.map((c) => `${c}.ilike.%${t}%`).join(','));
+    const { data, count, error } = await q;
+    if (error) return fail(res, error);
+    res.json({ data, count });
+  }));
+
+  router.patch(`/${table}/:id`, wrap(async (req, res) => {
+    const parsed = moderation[table].safeParse(req.body);
+    if (!parsed.success) return res.status(422).json({ error: 'Validation failed', issues: parsed.error.flatten() });
+    const { data, error } = await supabase.from(table).update(parsed.data).eq('id', req.params.id).select().single();
+    if (error) return fail(res, error);
+    res.json({ data });
+  }));
+
+  router.delete(`/${table}/:id`, wrap(async (req, res) => {
+    const { error } = await supabase.from(table).delete().eq('id', req.params.id);
+    if (error) return fail(res, error);
+    res.json({ ok: true });
+  }));
+}
+
+// CSV export for leads, applications and newsletter
+router.get('/export/:table.csv', wrap(async (req, res) => {
+  const allowed = { leads: '*', college_applications: '*', newsletter_subscribers: '*', job_applications: '*' };
+  const table = req.params.table;
+  if (!allowed[table]) return fail(res, new Error('Not exportable'), 404);
+  const { data, error } = await supabase.from(table).select(allowed[table]).order('created_at', { ascending: false }).limit(10000);
+  if (error) return fail(res, error);
+  const rows = data || [];
+  const cols = rows.length ? Object.keys(rows[0]) : ['id'];
+  const esc = (v) => {
+    const s = v === null || v === undefined ? '' : Array.isArray(v) ? v.join('; ') : typeof v === 'object' ? JSON.stringify(v) : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const csv = [cols.join(','), ...rows.map((r) => cols.map((c) => esc(r[c])).join(','))].join('\n');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${table}-${new Date().toISOString().slice(0, 10)}.csv"`);
+  res.send('﻿' + csv);
+}));
+
+// ---------------------------------------------------------------- college reviews moderation
 router.get('/reviews', wrap(async (req, res) => {
   const { from, to } = page(req);
   let q = supabase
@@ -171,21 +267,29 @@ router.get('/reviews', wrap(async (req, res) => {
     .select('*, colleges(name, slug), profiles(full_name, email)', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(from, to);
-  if (req.query.status) q = q.eq('status', req.query.status);
-  if (req.query.college_id) q = q.eq('college_id', req.query.college_id);
+  q = applyFilters(q, req.query, ['status', 'college_id', 'reward_status', 'is_verified']);
   const { data, count, error } = await q;
   if (error) return fail(res, error);
   res.json({ data, count });
 }));
 
 router.patch('/reviews/:id', wrap(async (req, res) => {
-  const parsed = reviewUpdate.safeParse(req.body);
+  const parsed = reviewUpdateV2.safeParse(req.body);
   if (!parsed.success) return res.status(422).json({ error: 'Validation failed', issues: parsed.error.flatten() });
   const row = { ...parsed.data };
   if (row.title || row.body || row.rating) row.edited_by_admin = true;
   const { data, error } = await supabase.from('reviews').update(row).eq('id', req.params.id).select().single();
   if (error) return fail(res, error);
   res.json({ data });
+}));
+
+// Signed link to the private proof (college ID / fee receipt) a reviewer uploaded
+router.get('/reviews/:id/proof', wrap(async (req, res) => {
+  const { data: r, error } = await supabase.from('reviews').select('proof_url').eq('id', req.params.id).single();
+  if (error || !r?.proof_url) return fail(res, new Error('No proof uploaded'), 404);
+  const { data, error: e2 } = await supabase.storage.from('resumes').createSignedUrl(r.proof_url, 300);
+  if (e2) return fail(res, e2);
+  res.json({ url: data.signedUrl });
 }));
 
 router.delete('/reviews/:id', wrap(async (req, res) => {
@@ -202,8 +306,7 @@ router.get('/applications', wrap(async (req, res) => {
     .select('*, jobs(title, company, city)', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(from, to);
-  if (req.query.status) q = q.eq('status', req.query.status);
-  if (req.query.job_id) q = q.eq('job_id', req.query.job_id);
+  q = applyFilters(q, req.query, ['status', 'job_id']);
   const { data, count, error } = await q;
   if (error) return fail(res, error);
   res.json({ data, count });
@@ -230,10 +333,8 @@ router.get('/users', wrap(async (req, res) => {
   const { from, to } = page(req);
   let q = supabase.from('profiles').select('*', { count: 'exact' }).order('created_at', { ascending: false }).range(from, to);
   if (req.query.role) q = q.eq('role', req.query.role);
-  if (req.query.q) {
-    const term = String(req.query.q).replace(/[%,()]/g, ' ').trim();
-    q = q.or(`email.ilike.%${term}%,full_name.ilike.%${term}%,phone.ilike.%${term}%`);
-  }
+  const t = term(req.query.q);
+  if (t) q = q.or(`email.ilike.%${t}%,full_name.ilike.%${t}%,phone.ilike.%${t}%`);
   const { data, count, error } = await q;
   if (error) return fail(res, error);
   res.json({ data, count });

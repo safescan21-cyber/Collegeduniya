@@ -1,16 +1,23 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, GraduationCap, Home, Briefcase, Star, FileText, Users, ShieldAlert } from 'lucide-react';
+import { BarChart3, GraduationCap, Home, Briefcase, Star, FileText, Users, ShieldAlert, PhoneCall, FilePlus2, MessagesSquare, Newspaper, BookOpen, Mail, MessageSquareHeart } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 
 const NAV = [
   { href: '/admin', label: 'Dashboard', icon: BarChart3 },
+  { href: '/admin/leads', label: 'Leads', icon: PhoneCall },
+  { href: '/admin/college-applications', label: 'College apps', icon: FilePlus2 },
   { href: '/admin/colleges', label: 'Colleges', icon: GraduationCap },
   { href: '/admin/hostels', label: 'PG & Hostels', icon: Home },
   { href: '/admin/jobs', label: 'Jobs', icon: Briefcase },
-  { href: '/admin/applications', label: 'Applications', icon: FileText },
-  { href: '/admin/reviews', label: 'Reviews', icon: Star },
+  { href: '/admin/applications', label: 'Job applications', icon: FileText },
+  { href: '/admin/reviews', label: 'College reviews', icon: Star },
+  { href: '/admin/hostel-reviews', label: 'PG reviews', icon: MessageSquareHeart },
+  { href: '/admin/qa', label: 'Q&A', icon: MessagesSquare },
+  { href: '/admin/articles', label: 'News & guides', icon: Newspaper },
+  { href: '/admin/exams', label: 'Exams', icon: BookOpen },
+  { href: '/admin/newsletter', label: 'Newsletter', icon: Mail },
   { href: '/admin/users', label: 'Users & Admins', icon: Users },
 ];
 

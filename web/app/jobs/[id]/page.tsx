@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { MapPin, Clock, Briefcase, CalendarDays, Building2, GraduationCap } from 'lucide-react';
 import ApplyForm from '@/components/ApplyForm';
+import { SaveButton, ShareButtons } from '@/components/ActionButtons';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { range, SITE_URL, timeAgo } from '@/lib/format';
 import type { Job } from '@/lib/types';
@@ -63,6 +64,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
             </div>
             <p className="mt-5 text-2xl font-bold text-emerald-700">{range(j.pay_min, j.pay_max, j.currency)} <span className="text-base font-normal text-slate-500">/ {j.pay_unit}</span></p>
             <p className="mt-1 text-xs text-slate-400">Posted {timeAgo(j.created_at)}</p>
+            <div className="mt-4 flex flex-wrap gap-2"><SaveButton type="job" id={j.id} variant="button" /><ShareButtons title={`${j.title} at ${j.company}`} path={`/jobs/${j.id}`} /></div>
           </div>
           <div className="card p-6">
             <h2 className="font-bold text-slate-900">Job description</h2>

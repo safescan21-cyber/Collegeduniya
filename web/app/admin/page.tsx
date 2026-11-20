@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Eye, Users, UserPlus, GraduationCap, Home, Briefcase, Star, FileText, Loader2 } from 'lucide-react';
+import { Eye, Users, UserPlus, GraduationCap, Home, Briefcase, Star, FileText, Loader2, PhoneCall, FilePlus2, Clock, MessagesSquare, Mail } from 'lucide-react';
 import { api } from '@/lib/api';
 
 type Stats = {
@@ -65,6 +65,12 @@ export default function AdminHome() {
         <Tile icon={Users} label="Visitors (30 days)" value={s.visits.unique30} sub={`${s.visits.last30} views · ${s.visits.last7} in 7 days`} />
         <Tile icon={Eye} label="All-time page views" value={s.visits.allTime} />
         <Tile icon={UserPlus} label="Registered students" value={s.totals.users} sub={`+${s.totals.signups7} this week`} href="/admin/users" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Tile icon={PhoneCall} label="New leads" value={s.totals.newLeads ?? 0} sub={`${s.totals.leads ?? 0} total`} href="/admin/leads" />
+        <Tile icon={FilePlus2} label="New college applications" value={s.totals.newCollegeApps ?? 0} sub={`${s.totals.collegeApps ?? 0} total`} href="/admin/college-applications" />
+        <Tile icon={Clock} label="Listings to approve" value={(s.totals.pendingHostels ?? 0) + (s.totals.pendingJobs ?? 0)} sub={`${s.totals.pendingHostels ?? 0} PG · ${s.totals.pendingJobs ?? 0} jobs`} href="/admin/hostels" />
+        <Tile icon={Mail} label="Newsletter" value={s.totals.subscribers ?? 0} sub={`${s.totals.questions ?? 0} questions asked`} href="/admin/newsletter" />
       </div>
       <VisitsChart daily={s.daily} />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">

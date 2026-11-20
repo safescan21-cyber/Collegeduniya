@@ -30,6 +30,8 @@ const COLLEGE_FIELDS: FieldDef[] = [
   { name: 'logo_url', label: 'Logo', type: 'image' },
   { name: 'cover_url', label: 'Cover photo', type: 'image' },
   { name: 'photos', label: 'Gallery photos', type: 'images' },
+  { name: 'accepts_applications', label: 'Accepts StudyEarnstay application', type: 'bool' },
+  { name: 'application_note', label: 'Application note', type: 'text', placeholder: 'No application fee' },
   { name: 'is_featured', label: 'Featured on home', type: 'bool' },
   { name: 'is_published', label: 'Published', type: 'bool' },
 ];
@@ -49,7 +51,7 @@ export default function AdminColleges() {
       ]}
       rowActions={(r) => (
         <>
-          <Link href={`/admin/colleges/${r.id}`} className="btn-ghost px-2 py-1.5" title="Courses & nearby places"><ListTree size={14} /></Link>
+          <Link href={`/admin/colleges/${r.id}`} className="btn-ghost px-2 py-1.5" title="Courses, placements, cutoffs & nearby"><ListTree size={14} /></Link>
           <a href={`/colleges/${r.slug}`} target="_blank" className="btn-ghost px-2 py-1.5" title="View"><ExternalLink size={14} /></a>
         </>
       )}

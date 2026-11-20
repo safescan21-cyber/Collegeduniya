@@ -23,8 +23,9 @@ type Props = {
   columns: ColumnDef[];
   defaults?: Record<string, any>;
   fixed?: Record<string, any>; // always sent & used as list filter (e.g. college_id)
-  rowActions?: (row: any) => React.ReactNode;
+  rowActions?: (row: any, reload: () => void) => React.ReactNode;
   searchable?: boolean;
+  quickFilters?: { label: string; params: Record<string, string> }[];
 };
 
 function CollegePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -129,7 +130,8 @@ function FieldInput({ f, value, onChange, folder }: { f: FieldDef; value: any; o
   }
 }
 
-export default function ResourceManager({ resource, title, fields, columns, defaults = {}, fixed = {}, rowActions, searchable = true }: Props) {
+export default function ResourceManager({ resource, title, fields, columns, defaults = {}, fixed = {}, rowActions, searchable = true, quickFilters }: Props) {
+  const [qf, setQf] = useState(0);
   const [rows, setRows] = useState<any[]>([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -144,14 +146,15 @@ export default function ResourceManager({ resource, title, fields, columns, defa
 
   const load = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams({ page: String(page), limit: String(LIMIT), ...JSON.parse(fixedKey) });
+    const params = new URLSearchParams({ page: String(page), limit: String(LIMIT), ...JSON.parse(fixedKey), ...(quickFilters?.[qf]?.params || {}) });
     if (search) params.set('q', search);
     try {
       const r = await api(`/api/admin/${resource}?${params}`);
       setRows(r.data); setCount(r.count);
     } catch (e: any) { setErr(e.message); }
     setLoading(false);
-  }, [resource, page, search, fixedKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resource, page, search, fixedKey, qf]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -191,6 +194,14 @@ export default function ResourceManager({ resource, title, fields, columns, defa
         </div>
       </div>
 
+      {quickFilters && (
+        <div className="mb-4 flex flex-wrap gap-1">
+          {quickFilters.map((f, i) => (
+            <button key={f.label} onClick={() => { setQf(i); setPage(1); }} className={`${qf === i ? 'btn-primary' : 'btn-ghost'} py-1.5`}>{f.label}</button>
+          ))}
+        </div>
+      )}
+
       {err && !editing && <p className="mb-3 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{err}</p>}
 
       <div className="card overflow-x-auto">
@@ -208,7 +219,7 @@ export default function ResourceManager({ resource, title, fields, columns, defa
                 {columns.map((c) => <td key={c.key} className="px-4 py-3">{c.render ? c.render(r) : String(r[c.key] ?? '—')}</td>)}
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-1">
-                    {rowActions?.(r)}
+                    {rowActions?.(r, load)}
                     <button onClick={() => { setErr(''); setEditing({ ...r }); }} className="btn-ghost px-2 py-1.5" aria-label="Edit"><Pencil size={14} /></button>
                     <button onClick={() => remove(r)} className="btn-ghost px-2 py-1.5 text-rose-600" aria-label="Delete"><Trash2 size={14} /></button>
                   </div>

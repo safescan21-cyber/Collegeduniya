@@ -1,13 +1,18 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { MapPin, Globe, Phone, Mail, Calendar, Award, Building2, Hospital, Landmark, Bus, CheckCircle2 } from 'lucide-react';
+import {
+  MapPin, Globe, Phone, Mail, Calendar, Award, Building2, Hospital, Landmark, Bus, CheckCircle2, TrendingUp, Target,
+} from 'lucide-react';
 import { HostelCard, JobCard, Stars, EmptyState } from '@/components/Cards';
 import ReviewSection from '@/components/ReviewSection';
 import Gallery from '@/components/Gallery';
+import EnquiryForm from '@/components/EnquiryForm';
+import { SaveButton, CompareButton, ShareButtons, ApplyCartButton } from '@/components/ActionButtons';
+import { AskForm, QuestionList } from '@/components/QuestionsBlock';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { FALLBACK_IMG, money, range, SITE_URL } from '@/lib/format';
-import type { College, Course, Place, Hostel, Job, ReviewPublic } from '@/lib/types';
+import type { College, Course, Place, Hostel, Job, ReviewPublic, Placement, Cutoff, QuestionPublic } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,8 +27,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const c = await getCollege(slug);
   if (!c) return { title: 'College not found' };
   return {
-    title: `${c.name}, ${c.city} — Fees, Courses, Reviews, Hostels`,
-    description: (c.description || `${c.name} in ${c.city}, ${c.country}: courses, fees, reviews, nearby PG & hostels and part-time jobs.`).slice(0, 160),
+    title: `${c.name}, ${c.city} — Fees, Courses, Placements, Reviews, Hostels`,
+    description: (c.description || `${c.name} in ${c.city}, ${c.country}: courses, fees, placements, cutoffs, reviews, nearby PG & hostels and part-time jobs.`).slice(0, 160),
     alternates: { canonical: `/colleges/${c.slug}` },
     openGraph: { images: c.cover_url ? [c.cover_url] : [] },
   };
@@ -33,28 +38,43 @@ const PLACE_ICON: Record<string, React.ReactNode> = {
   company: <Building2 size={18} />, hospital: <Hospital size={18} />, bank: <Landmark size={18} />, transport: <Bus size={18} />, other: <MapPin size={18} />,
 };
 
+const pkg = (v: number | null, cur: string | null, unit: string | null) => {
+  if (v == null) return '—';
+  if ((cur || 'INR') === 'INR' && (unit || 'year') === 'year' && v >= 100000) return `₹${(v / 100000).toFixed(v % 100000 ? 1 : 0)} LPA`;
+  return `${money(v, cur || 'INR')}${unit === 'month' ? ' / month' : ''}`;
+};
+
 export default async function CollegePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const c = await getCollege(slug);
   if (!c) notFound();
 
   const sb = supabasePublic();
-  const [courses, places, reviews, rating, hostels, jobs] = await Promise.all([
+  const cityQ = c.city.replace(/[",()]/g, '');
+  const [courses, places, reviews, rating, hostels, jobs, placements, cutoffs, questions] = await Promise.all([
     sb.from('courses').select('*').eq('college_id', c.id).order('level').order('name'),
     sb.from('places').select('*').eq('college_id', c.id).order('distance_km', { ascending: true, nullsFirst: false }),
     sb.from('reviews_public').select('*').eq('college_id', c.id).order('created_at', { ascending: false }).limit(50),
     sb.from('college_ratings').select('*').eq('college_id', c.id).maybeSingle(),
-    sb.from('hostels').select('*').eq('is_published', true).or(`college_id.eq.${c.id},city.eq."${c.city.replace(/[",()]/g, '')}"`).limit(8),
-    sb.from('jobs').select('*').eq('is_published', true).eq('status', 'open').or(`college_id.eq.${c.id},city.eq."${c.city.replace(/[",()]/g, '')}"`).order('created_at', { ascending: false }).limit(6),
+    sb.from('hostels').select('*').eq('is_published', true).or(`college_id.eq.${c.id},city.eq."${cityQ}"`).limit(8),
+    sb.from('jobs').select('*').eq('is_published', true).eq('status', 'open').or(`college_id.eq.${c.id},city.eq."${cityQ}"`).order('created_at', { ascending: false }).limit(6),
+    sb.from('college_placements').select('*').eq('college_id', c.id).order('year', { ascending: false }).limit(10),
+    sb.from('cutoffs').select('*').eq('college_id', c.id).order('year', { ascending: false }).order('closing_rank').limit(100),
+    sb.from('questions_public').select('*').eq('college_id', c.id).order('created_at', { ascending: false }).limit(10),
   ]);
   const courseList = (courses.data || []) as Course[];
   const placeList = (places.data || []) as Place[];
   const reviewList = (reviews.data || []) as ReviewPublic[];
+  const placementList = (placements.data || []) as Placement[];
+  const cutoffList = (cutoffs.data || []) as Cutoff[];
+  const questionList = (questions.data || []) as QuestionPublic[];
   const companies = placeList.filter((p) => p.kind === 'company');
   const hospitals = placeList.filter((p) => p.kind === 'hospital');
   const otherPlaces = placeList.filter((p) => !['company', 'hospital'].includes(p.kind));
   const avg = rating.data?.avg_rating ? Number(rating.data.avg_rating) : 0;
   const count = rating.data?.review_count || 0;
+  const latestPlacement = placementList[0];
+  const listItem = { id: c.id, slug: c.slug, name: c.name, city: c.city };
 
   const jsonLd = {
     '@context': 'https://schema.org', '@type': 'CollegeOrUniversity', name: c.name, url: `${SITE_URL}/colleges/${c.slug}`,
@@ -63,39 +83,53 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
     ...(count ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: avg, reviewCount: count, bestRating: 5 } } : {}),
   };
 
-  const tabs = [
-    ['overview', 'Overview'], ['courses', `Courses & Fees (${courseList.length})`], ['reviews', `Reviews (${count})`],
+  const tabs: [string, string][] = [
+    ['overview', 'Overview'], ['courses', `Courses & Fees (${courseList.length})`],
+    ...(placementList.length ? [['placements', 'Placements'] as [string, string]] : []),
+    ...(cutoffList.length ? [['cutoffs', 'Cutoffs'] as [string, string]] : []),
+    ['reviews', `Reviews (${count})`], ['qa', `Q&A (${questionList.length})`],
     ['hostels', 'PG & Hostels'], ['jobs', 'Part-time Jobs'], ['nearby', 'Nearby'],
-    ...(c.photos?.length ? [['gallery', 'Gallery']] : []),
+    ...(c.photos?.length ? [['gallery', 'Gallery'] as [string, string]] : []),
   ];
+
+  // Cutoffs grouped by exam → latest year only
+  const cutoffByExam: Record<string, Cutoff[]> = {};
+  for (const x of cutoffList) (cutoffByExam[x.exam_slug] ||= []).push(x);
+  for (const k of Object.keys(cutoffByExam)) {
+    const maxYear = Math.max(...cutoffByExam[k].map((x) => x.year));
+    cutoffByExam[k] = cutoffByExam[k].filter((x) => x.year === maxYear);
+  }
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      {/* Header */}
       <section className="relative h-72 bg-brand-950 sm:h-80">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={c.cover_url || FALLBACK_IMG} alt={c.name} className="absolute inset-0 h-full w-full object-cover opacity-50" />
         <div className="absolute inset-0 bg-gradient-to-t from-brand-950 via-brand-950/60 to-transparent" />
         <div className="container-x relative flex h-full items-end pb-8">
-          <div className="flex items-end gap-5">
-            {c.logo_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={c.logo_url} alt="" className="hidden h-24 w-24 rounded-2xl border-4 border-white bg-white object-contain sm:block" />
-            )}
-            <div className="text-white">
-              <div className="mb-2 flex flex-wrap gap-2">
-                {c.type && <span className="chip bg-white/15 text-white">{c.type}</span>}
-                {c.accreditation && <span className="chip bg-white/15 text-white"><Award size={12} />{c.accreditation}</span>}
-                {c.ranking && <span className="chip bg-accent-500 text-slate-900">#{c.ranking} Rank</span>}
+          <div className="flex w-full flex-wrap items-end justify-between gap-4">
+            <div className="flex items-end gap-5">
+              {c.logo_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={c.logo_url} alt="" className="hidden h-24 w-24 rounded-2xl border-4 border-white bg-white object-contain sm:block" />
+              )}
+              <div className="text-white">
+                <div className="mb-2 flex flex-wrap gap-2">
+                  {c.type && <span className="chip bg-white/15 text-white">{c.type}</span>}
+                  {c.accreditation && <span className="chip bg-white/15 text-white"><Award size={12} />{c.accreditation}</span>}
+                  {c.ranking && <span className="chip bg-accent-500 text-slate-900">#{c.ranking} Rank</span>}
+                  {c.accepts_applications && <span className="chip bg-emerald-500 text-white">Applications open</span>}
+                </div>
+                <h1 className="text-3xl font-extrabold leading-tight sm:text-4xl">{c.name}</h1>
+                <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-brand-100">
+                  <span className="flex items-center gap-1"><MapPin size={16} />{[c.city, c.state, c.country].filter(Boolean).join(', ')}</span>
+                  {c.established && <span className="flex items-center gap-1"><Calendar size={16} />Estd. {c.established}</span>}
+                  {count > 0 && <span className="flex items-center gap-1"><Stars value={avg} />{avg} ({count})</span>}
+                </p>
               </div>
-              <h1 className="text-3xl font-extrabold leading-tight sm:text-4xl">{c.name}</h1>
-              <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-brand-100">
-                <span className="flex items-center gap-1"><MapPin size={16} />{[c.city, c.state, c.country].filter(Boolean).join(', ')}</span>
-                {c.established && <span className="flex items-center gap-1"><Calendar size={16} />Estd. {c.established}</span>}
-                {count > 0 && <span className="flex items-center gap-1"><Stars value={avg} />{avg} ({count})</span>}
-              </p>
             </div>
+            <div className="flex gap-2"><CompareButton item={listItem} /><SaveButton type="college" id={c.id} /></div>
           </div>
         </div>
       </section>
@@ -108,11 +142,21 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
         </div>
       </nav>
 
-      <div className="container-x grid gap-8 py-10 lg:grid-cols-[1fr_320px]">
+      <div className="container-x grid gap-8 py-10 lg:grid-cols-[1fr_340px]">
         <div className="min-w-0 space-y-10">
           <section id="overview" className="card scroll-mt-32 p-6">
-            <h2 className="text-xl font-bold text-slate-900">About {c.short_name || c.name}</h2>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <h2 className="text-xl font-bold text-slate-900">About {c.short_name || c.name}</h2>
+              <ShareButtons title={`${c.name} — fees, courses & reviews`} path={`/colleges/${c.slug}`} />
+            </div>
             <p className="mt-3 whitespace-pre-line leading-relaxed text-slate-600">{c.description || 'Details coming soon.'}</p>
+            {latestPlacement && (
+              <div className="mt-5 grid grid-cols-3 gap-3 rounded-xl bg-emerald-50 p-4 text-center">
+                <div><p className="text-xs text-emerald-700">Average package</p><p className="font-bold text-emerald-900">{pkg(latestPlacement.avg_package, latestPlacement.currency, latestPlacement.package_unit)}</p></div>
+                <div><p className="text-xs text-emerald-700">Highest package</p><p className="font-bold text-emerald-900">{pkg(latestPlacement.highest_package, latestPlacement.currency, latestPlacement.package_unit)}</p></div>
+                <div><p className="text-xs text-emerald-700">Placement rate</p><p className="font-bold text-emerald-900">{latestPlacement.placement_rate != null ? `${latestPlacement.placement_rate}%` : '—'}</p></div>
+              </div>
+            )}
             {c.streams?.length ? (
               <div className="mt-5"><p className="label">Streams</p><div className="flex flex-wrap gap-2">{c.streams.map((s) => <span key={s} className="chip-brand">{s}</span>)}</div></div>
             ) : null}
@@ -149,8 +193,72 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             ) : <EmptyState title="Courses not added yet" />}
           </section>
 
+          {placementList.length > 0 && (
+            <section id="placements" className="scroll-mt-32">
+              <h2 className="mb-4 flex items-center gap-2 text-xl font-bold text-slate-900"><TrendingUp size={20} className="text-emerald-600" />Placements</h2>
+              <div className="card overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                    <tr><th className="px-4 py-3">Year</th><th className="px-4 py-3">Course</th><th className="px-4 py-3">Average</th><th className="px-4 py-3">Median</th><th className="px-4 py-3">Highest</th><th className="px-4 py-3">Placed</th></tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {placementList.map((p) => (
+                      <tr key={p.id}>
+                        <td className="px-4 py-3 font-semibold">{p.year}</td>
+                        <td className="px-4 py-3">{p.course || 'All'}</td>
+                        <td className="px-4 py-3">{pkg(p.avg_package, p.currency, p.package_unit)}</td>
+                        <td className="px-4 py-3">{pkg(p.median_package, p.currency, p.package_unit)}</td>
+                        <td className="px-4 py-3 font-semibold text-emerald-700">{pkg(p.highest_package, p.currency, p.package_unit)}</td>
+                        <td className="px-4 py-3">{p.placement_rate != null ? `${p.placement_rate}%` : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {latestPlacement?.top_recruiters?.length ? (
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-sm"><span className="font-semibold text-slate-700">Top recruiters:</span>{latestPlacement.top_recruiters.map((r) => <span key={r} className="chip">{r}</span>)}</div>
+              ) : null}
+              {latestPlacement?.source && <p className="mt-2 text-xs text-slate-400">Source: {latestPlacement.source}</p>}
+            </section>
+          )}
+
+          {cutoffList.length > 0 && (
+            <section id="cutoffs" className="scroll-mt-32">
+              <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+                <h2 className="text-xl font-bold text-slate-900">Cutoffs (closing ranks)</h2>
+                <Link href="/predictor" className="btn-ghost py-1.5"><Target size={14} />Check my chances</Link>
+              </div>
+              <div className="space-y-4">
+                {Object.entries(cutoffByExam).map(([exam, rows]) => (
+                  <div key={exam} className="card overflow-x-auto">
+                    <p className="border-b border-slate-100 px-4 py-3 font-semibold text-slate-900">
+                      <Link href={`/exams/${exam}`} className="hover:text-brand-700">{exam.replace(/-/g, ' ').toUpperCase()}</Link> · {rows[0].year}
+                    </p>
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="px-4 py-2">Course</th><th className="px-4 py-2">Category</th><th className="px-4 py-2">Quota</th><th className="px-4 py-2">Opening</th><th className="px-4 py-2">Closing</th></tr></thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {rows.map((r) => (
+                          <tr key={r.id}><td className="px-4 py-2">{r.course}</td><td className="px-4 py-2">{r.category}</td><td className="px-4 py-2">{r.quota || '—'}</td><td className="px-4 py-2">{r.opening_rank?.toLocaleString() ?? '—'}</td><td className="px-4 py-2 font-semibold">{r.closing_rank.toLocaleString()}</td></tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           <section id="reviews" className="scroll-mt-32">
             <ReviewSection collegeId={c.id} collegeName={c.name} reviews={reviewList} avg={avg} count={count} />
+          </section>
+
+          <section id="qa" className="scroll-mt-32 space-y-4">
+            <div className="flex items-end justify-between">
+              <h2 className="text-xl font-bold text-slate-900">Questions about {c.short_name || c.name}</h2>
+              <Link href={`/questions?college=${c.id}`} className="text-sm font-semibold text-brand-700 hover:underline">All questions</Link>
+            </div>
+            <QuestionList items={questionList} showCollege={false} />
+            <AskForm collegeId={c.id} collegeName={c.short_name || c.name} />
           </section>
 
           <section id="hostels" className="scroll-mt-32">
@@ -160,7 +268,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             </div>
             {(hostels.data || []).length ? (
               <div className="grid gap-5 sm:grid-cols-2">{(hostels.data as Hostel[]).map((h) => <HostelCard key={h.id} h={h} />)}</div>
-            ) : <EmptyState title="No PG or hostel listed yet" text="Check back soon — new stays are added every week." />}
+            ) : <EmptyState title="No PG or hostel listed yet" text="Own a PG nearby? List it free from “Post PG / Job”." />}
           </section>
 
           <section id="jobs" className="scroll-mt-32">
@@ -191,9 +299,16 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
         </div>
 
         <aside className="space-y-5">
-          <div className="card sticky top-32 p-5">
+          <div className="card p-5">
             <p className="text-xs text-slate-500">Fees per year</p>
             <p className="text-2xl font-extrabold text-slate-900">{range(c.fees_min, c.fees_max, c.currency)}</p>
+            {c.accepts_applications && (
+              <div className="mt-4 rounded-xl bg-emerald-50 p-3">
+                <p className="mb-2 text-sm font-semibold text-emerald-800">Apply through StudyEarnstay{c.application_note ? ` · ${c.application_note}` : ''}</p>
+                <ApplyCartButton item={listItem} />
+              </div>
+            )}
+            <div className="mt-4 flex gap-2"><CompareButton item={listItem} variant="button" /><SaveButton type="college" id={c.id} variant="button" /></div>
             <div className="mt-5 space-y-3 text-sm">
               {c.website && <a href={c.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-brand-700 hover:underline"><Globe size={16} />Official website</a>}
               {c.phone && <a href={`tel:${c.phone}`} className="flex items-center gap-2 text-slate-700"><Phone size={16} />{c.phone}</a>}
@@ -205,6 +320,9 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
                 href={`https://www.google.com/maps/search/?api=1&query=${c.latitude},${c.longitude}`}>Open in Google Maps</a>
             ) : null}
             <a href="#reviews" className="btn-primary mt-2 w-full">Write a review</a>
+          </div>
+          <div className="lg:sticky lg:top-32">
+            <EnquiryForm kind="college" collegeId={c.id} title={`Enquire about ${c.short_name || c.name}`} subtitle="Admission, fees, scholarships — get a call back." compact />
           </div>
         </aside>
       </div>

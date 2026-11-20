@@ -1,11 +1,11 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import { Ban, CheckCircle2, Pencil, Trash2, Loader2, X } from 'lucide-react';
+import { Ban, CheckCircle2, Pencil, Trash2, Loader2, X, BadgeCheck, FileSearch, Gift } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Stars } from '@/components/Cards';
 import { timeAgo } from '@/lib/format';
 
-const FILTERS = ['', 'approved', 'pending', 'blocked'];
+const FILTERS = ['', 'approved', 'pending', 'blocked', 'unverified-proof', 'reward-eligible'];
 
 export default function AdminReviews() {
   const [status, setStatus] = useState('');
@@ -18,7 +18,9 @@ export default function AdminReviews() {
   const load = useCallback(async () => {
     setLoading(true);
     const p = new URLSearchParams({ page: String(page), limit: '20' });
-    if (status) p.set('status', status);
+    if (status === 'unverified-proof') { p.set('is_verified', 'false'); }
+    else if (status === 'reward-eligible') { p.set('reward_status', 'eligible'); }
+    else if (status) p.set('status', status);
     const r = await api(`/api/admin/reviews?${p}`).catch(() => ({ data: [], count: 0 }));
     setRows(r.data); setCount(r.count); setLoading(false);
   }, [status, page]);
@@ -39,7 +41,7 @@ export default function AdminReviews() {
         <h1 className="text-xl font-bold text-slate-900">Reviews <span className="text-sm font-normal text-slate-400">({count})</span></h1>
         <div className="flex gap-1">
           {FILTERS.map((f) => (
-            <button key={f || 'all'} onClick={() => { setStatus(f); setPage(1); }} className={`${status === f ? 'btn-primary' : 'btn-ghost'} py-1.5 capitalize`}>{f || 'All'}</button>
+            <button key={f || 'all'} onClick={() => { setStatus(f); setPage(1); }} className={`${status === f ? 'btn-primary' : 'btn-ghost'} py-1.5 capitalize`}>{f === 'unverified-proof' ? 'Not verified' : f === 'reward-eligible' ? 'Reward to pay' : f || 'All'}</button>
           ))}
         </div>
       </div>
@@ -55,11 +57,18 @@ export default function AdminReviews() {
                   <div className="mt-1 flex items-center gap-2"><Stars value={r.rating} />
                     <span className={r.status === 'approved' ? 'chip-green' : r.status === 'blocked' ? 'chip-red' : 'chip-amber'}>{r.status}</span>
                     {r.edited_by_admin && <span className="chip">edited</span>}
+                    {r.is_verified && <span className="chip-green"><BadgeCheck size={12} />verified</span>}
+                    {r.reward_status !== 'none' && <span className="chip-amber">reward {r.reward_status}</span>}
                   </div>
                 </div>
                 <div className="flex gap-1">
                   {r.status !== 'approved' && <button onClick={() => patch(r.id, { status: 'approved' })} className="btn-ghost px-2 py-1.5 text-emerald-700" title="Approve"><CheckCircle2 size={14} />Approve</button>}
                   {r.status !== 'blocked' && <button onClick={() => patch(r.id, { status: 'blocked' })} className="btn-ghost px-2 py-1.5 text-rose-600" title="Block"><Ban size={14} />Block</button>}
+                  {r.proof_url && <button onClick={async () => { try { const { url } = await api(`/api/admin/reviews/${r.id}/proof`); window.open(url, '_blank'); } catch (e: any) { alert(e.message); } }} className="btn-ghost px-2 py-1.5" title="View proof"><FileSearch size={14} />Proof</button>}
+                  <button onClick={() => patch(r.id, { is_verified: !r.is_verified })} className={`btn-ghost px-2 py-1.5 ${r.is_verified ? 'text-emerald-700' : ''}`} title="Toggle verified"><BadgeCheck size={14} />{r.is_verified ? 'Verified' : 'Verify'}</button>
+                  <select value={r.reward_status} onChange={(e) => patch(r.id, { reward_status: e.target.value })} className="input w-auto py-1.5 text-xs" title="Reward">
+                    <option value="none">No reward</option><option value="eligible">Reward: eligible</option><option value="paid">Reward: paid</option>
+                  </select>
                   <button onClick={() => setEdit({ ...r })} className="btn-ghost px-2 py-1.5" title="Edit"><Pencil size={14} /></button>
                   <button onClick={() => del(r.id)} className="btn-ghost px-2 py-1.5 text-rose-600" title="Delete"><Trash2 size={14} /></button>
                 </div>

@@ -1,30 +1,44 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/components/AuthProvider';
+import { LangProvider } from '@/components/LangProvider';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import VisitTracker from '@/components/VisitTracker';
+import ChatWidget from '@/components/ChatWidget';
+import PwaRegister from '@/components/PwaRegister';
+import { ListTray } from '@/components/ActionButtons';
 import { SITE_URL } from '@/lib/format';
+import { getLang } from '@/lib/i18n-server';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: 'StudyEarnstay — Colleges, PG & Hostels, Part-time Jobs for Students', template: '%s | StudyEarnstay' },
   description:
-    'Search colleges worldwide with courses, fees and real student reviews. Find PG and hostels near campus and apply for part-time jobs — StudyEarnstay.com',
-  keywords: ['colleges', 'universities', 'college fees', 'PG near college', 'student hostel', 'part-time jobs for students', 'study abroad'],
+    'Search colleges worldwide with courses, fees, placements and real student reviews. Predict colleges from your rank, find PG and hostels near campus and apply for part-time jobs — StudyEarnstay.com',
+  keywords: ['colleges', 'universities', 'college fees', 'college predictor', 'compare colleges', 'PG near college', 'student hostel', 'part-time jobs for students', 'study abroad'],
   openGraph: { siteName: 'StudyEarnstay', type: 'website', url: SITE_URL },
+  appleWebApp: { capable: true, title: 'StudyEarnstay', statusBarStyle: 'default' },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export const viewport: Viewport = { themeColor: '#4338ca' };
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const lang = await getLang();
   return (
-    <html lang="en">
+    <html lang={lang}>
       <body className="flex min-h-screen flex-col">
-        <AuthProvider>
-          <Header />
-          <VisitTracker />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </AuthProvider>
+        <LangProvider lang={lang}>
+          <AuthProvider>
+            <Header />
+            <VisitTracker />
+            <PwaRegister />
+            <main className="flex-1">{children}</main>
+            <Footer />
+            <ListTray />
+            <ChatWidget />
+          </AuthProvider>
+        </LangProvider>
       </body>
     </html>
   );

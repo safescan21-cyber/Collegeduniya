@@ -7,6 +7,8 @@ import rateLimit from 'express-rate-limit';
 import { loadUser } from './middleware/auth.js';
 import adminRoutes from './routes/admin.js';
 import trackRoutes from './routes/track.js';
+import publicRoutes from './routes/public.js';
+import chatRoutes from './routes/chat.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -22,6 +24,8 @@ app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'studyearnst
 
 app.use('/api', loadUser);
 app.use('/api/track', trackRoutes);
+app.use('/api', publicRoutes);       // /api/leads, /api/newsletter
+app.use('/api/chat', chatRoutes);
 app.use('/api/admin', rateLimit({ windowMs: 60_000, limit: 300 }), adminRoutes);
 
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));

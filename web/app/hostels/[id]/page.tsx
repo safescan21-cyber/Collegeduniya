@@ -3,7 +3,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { MapPin, Phone, Mail, BadgeCheck, CheckCircle2, User, GraduationCap } from 'lucide-react';
 import Gallery from '@/components/Gallery';
-import { HostelCard } from '@/components/Cards';
+import { HostelCard, Stars } from '@/components/Cards';
+import HostelReviews from '@/components/HostelReviews';
+import EnquiryForm from '@/components/EnquiryForm';
+import { SaveButton, ShareButtons } from '@/components/ActionButtons';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { FALLBACK_IMG, range } from '@/lib/format';
 import type { Hostel } from '@/lib/types';
@@ -28,7 +31,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function HostelPage({ params }: { params: Promise<{ id: string }> }) {
   const h = await getHostel((await params).id);
   if (!h) notFound();
-  const { data: more } = await supabasePublic().from('hostels').select('*').eq('is_published', true).eq('city', h.city).neq('id', h.id).limit(3);
+  const sb = supabasePublic();
+  const [{ data: more }, { data: reviews }, { data: rating }] = await Promise.all([
+    sb.from('hostels').select('*').eq('is_published', true).eq('city', h.city).neq('id', h.id).limit(3),
+    sb.from('hostel_reviews_public').select('*').eq('hostel_id', h.id).order('created_at', { ascending: false }).limit(30),
+    sb.from('hostel_ratings').select('*').eq('hostel_id', h.id).maybeSingle(),
+  ]);
+  const avg = rating?.avg_rating ? Number(rating.avg_rating) : 0;
   const photos = h.photos?.length ? h.photos : [FALLBACK_IMG];
 
   return (
@@ -42,7 +51,11 @@ export default async function HostelPage({ params }: { params: Promise<{ id: str
           </div>
           <div>
             <div className="flex flex-wrap gap-2"><span className="chip-brand">{h.type}</span><span className="chip">{h.gender}</span>{h.is_verified && <span className="chip-green"><BadgeCheck size={12} />Verified</span>}</div>
-            <h1 className="mt-3 text-3xl font-extrabold text-slate-900">{h.name}</h1>
+            <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+              <h1 className="text-3xl font-extrabold text-slate-900">{h.name}</h1>
+              <SaveButton type="hostel" id={h.id} variant="button" />
+            </div>
+            {avg > 0 && <p className="mt-1 flex items-center gap-1 text-sm text-slate-600"><Stars value={avg} />{avg} · {rating?.review_count} reviews</p>}
             <p className="mt-2 flex items-center gap-1 text-slate-500"><MapPin size={16} />{[h.address, h.city, h.country].filter(Boolean).join(', ')}</p>
             {h.colleges && <Link href={`/colleges/${h.colleges.slug}`} className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline"><GraduationCap size={16} />Near {h.colleges.name}</Link>}
           </div>
@@ -55,9 +68,11 @@ export default async function HostelPage({ params }: { params: Promise<{ id: str
             ) : null}
           </div>
           {photos.length > 1 && <div><h2 className="mb-3 font-bold text-slate-900">Photos</h2><Gallery photos={photos} alt={h.name} /></div>}
+          <ShareButtons title={`${h.name} — ${h.type} in ${h.city}`} path={`/hostels/${h.id}`} />
+          <HostelReviews hostelId={h.id} reviews={(reviews || []) as any} avg={avg} count={rating?.review_count || 0} />
         </div>
-        <aside>
-          <div className="card sticky top-24 p-5">
+        <aside className="space-y-5">
+          <div className="card p-5">
             <p className="text-xs text-slate-500">Rent</p>
             <p className="text-2xl font-extrabold text-slate-900">{range(h.rent_min, h.rent_max, h.currency)}<span className="text-base font-normal text-slate-500"> / {h.rent_period || 'month'}</span></p>
             <div className="mt-5 space-y-3 text-sm">
@@ -67,6 +82,9 @@ export default async function HostelPage({ params }: { params: Promise<{ id: str
               {h.contact_email && <a href={`mailto:${h.contact_email}`} className="flex items-center gap-2 text-brand-700"><Mail size={16} />{h.contact_email}</a>}
               {h.latitude && h.longitude ? <a className="btn-ghost w-full" target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${h.latitude},${h.longitude}`}>View on map</a> : null}
             </div>
+          </div>
+          <div className="lg:sticky lg:top-24">
+            <EnquiryForm kind="hostel" hostelId={h.id} title="Ask about a room" subtitle="Availability, visit time, deposit — we’ll connect you." compact />
           </div>
         </aside>
       </div>
