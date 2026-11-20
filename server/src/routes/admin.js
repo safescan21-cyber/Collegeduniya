@@ -300,6 +300,41 @@ router.post('/rewards/grant', wrap(async (req, res) => {
   res.status(201).json({ data });
 }));
 
+// ---------------------------------------------------------------- mock tests (AI question bank)
+router.get('/mock/ai-status', wrap(async (_req, res) => {
+  const { llmReady, llmProvider, llmModel } = await import('../services/llm.js');
+  res.json({ ready: llmReady(), provider: llmProvider() || null, model: llmReady() ? llmModel() : null, check_model: llmReady() ? llmModel(true) : null });
+}));
+router.post('/mock/blueprint-draft', wrap(async (req, res) => {
+  const slug = String(req.body?.exam_slug || '');
+  const { draftBlueprint } = await import('../services/mockGen.js');
+  res.json({ data: await draftBlueprint(slug) });
+}));
+router.post('/mock/generate', wrap(async (req, res) => {
+  const b = req.body || {};
+  const { generateQuestions } = await import('../services/mockGen.js');
+  res.json(await generateQuestions({ slug: String(b.exam_slug || ''), section: String(b.section || ''), topic: b.topic ? String(b.topic) : null,
+    difficulty: ['easy', 'medium', 'hard'].includes(b.difficulty) ? b.difficulty : 'mixed', count: parseInt(b.count, 10) || 10 }));
+}));
+router.post('/mock/generate-bank', wrap(async (req, res) => {
+  const { startBankJob } = await import('../services/mockGen.js');
+  res.status(202).json(startBankJob({ slug: String(req.body?.exam_slug || ''), perTopic: Math.max(1, Math.min(10, parseInt(req.body?.per_topic, 10) || 3)) }));
+}));
+router.get('/mock/jobs/:id', wrap(async (req, res) => {
+  const { jobStatus } = await import('../services/mockGen.js');
+  const j = jobStatus(req.params.id);
+  if (!j) return fail(res, new Error('Job not found (finished jobs are kept for 6 hours)'), 404);
+  res.json(j);
+}));
+router.post('/mock/bulk-questions', wrap(async (req, res) => {
+  const ids = (req.body?.ids || []).filter((x) => /^[0-9a-f-]{36}$/.test(x)).slice(0, 500);
+  const status = req.body?.status;
+  if (!ids.length || !['approved', 'rejected', 'draft'].includes(status)) return fail(res, new Error('ids and status required'), 422);
+  const { error } = await supabase.from('mock_questions').update({ status }).in('id', ids);
+  if (error) return fail(res, error);
+  res.json({ ok: true, count: ids.length });
+}));
+
 router.post('/job-alerts/run', wrap(async (req, res) => {
   const { runJobAlerts } = await import('../services/jobAlerts.js');
   res.json(await runJobAlerts({ dryRun: req.query.dry === '1' }));
@@ -324,6 +359,8 @@ const crudConfig = {
   promotions:         { search: ['note'], filters: ['item_type', 'item_id'], order: 'created_at' },
   exam_resources:     { search: ['title', 'exam_slug', 'session'], filters: ['exam_slug', 'kind', 'year', 'is_published'], order: 'created_at' },
   exam_stats:         { search: ['exam_slug', 'source'], filters: ['exam_slug', 'year'], order: 'year' },
+  mock_blueprints:    { search: ['title', 'exam_slug'], filters: ['is_published'], order: 'updated_at', key: 'exam_slug' },
+  mock_questions:     { search: ['stem', 'topic', 'section'], filters: ['exam_slug', 'section', 'status', 'ai_check', 'difficulty', 'source'], order: 'created_at' },
   reward_catalog:     { search: ['code', 'title'], filters: ['is_active'], order: 'created_at', key: 'code' },
   quota_seats:        { search: ['course', 'academic_year'], filters: ['college_id', 'status', 'quota_type', 'level', 'is_published', 'open_to'], order: 'created_at',
                         select: '*, colleges(name, slug, city, country)' },
@@ -415,6 +452,7 @@ const modConfig = {
   companies: { select: '*, profiles(full_name, email, phone)', filters: ['is_verified'], search: ['name', 'city', 'country'] },
   reward_redemptions: { select: '*, profiles(full_name, email, phone), reward_catalog(title)', filters: ['status', 'user_id'], search: ['reward_code', 'voucher'] },
   ambassadors: { select: '*, profiles(full_name, email, phone, referral_code), colleges(name, slug)', filters: ['status', 'college_id'], search: ['college_name', 'city'], key: 'user_id' },
+  mock_question_reports: { select: '*, mock_questions(id, exam_slug, section, stem, status), profiles(full_name, email)', filters: ['status', 'question_id'], search: ['reason'] },
   reward_points: { select: '*, profiles(full_name, email)', filters: ['status', 'reason', 'user_id'], search: ['reason', 'note'] },
 };
 

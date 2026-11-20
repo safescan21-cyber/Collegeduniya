@@ -161,6 +161,7 @@ const en = {
   'nav.messages': 'Messages',
   'nav.scholarships': 'Scholarships',
   'nav.visa': 'Student visa guides',
+  'nav.mock': 'Free mock tests',
   'nav.top': 'Top colleges',
   'nav.papers': 'Papers & answer keys',
   'nav.trends': 'Salary trends',

@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, GraduationCap, Home, Briefcase, Star, FileText, Users, ShieldAlert, PhoneCall, FilePlus2, MessagesSquare, Newspaper, BookOpen, Mail, MessageSquareHeart, Building2, DatabaseZap, Armchair, ClipboardList, ChartColumn, Trophy, Award, Plane, Handshake, Rocket, CreditCard, Flag, UsersRound, CalendarCheck, FileStack, Gift, Megaphone } from 'lucide-react';
+import { BarChart3, GraduationCap, Home, Briefcase, Star, FileText, Users, ShieldAlert, PhoneCall, FilePlus2, MessagesSquare, Newspaper, BookOpen, Mail, MessageSquareHeart, Building2, DatabaseZap, Armchair, ClipboardList, ChartColumn, Trophy, Award, Plane, Handshake, Rocket, CreditCard, Flag, UsersRound, CalendarCheck, FileStack, Gift, Megaphone, ClipboardCheck } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 
 const NAV = [
@@ -20,6 +20,7 @@ const NAV = [
   { href: '/admin/articles', label: 'News & guides', icon: Newspaper },
   { href: '/admin/exams', label: 'Exams', icon: BookOpen },
   { href: '/admin/exam-library', label: 'Exam library', icon: FileStack },
+  { href: '/admin/mock-tests', label: 'Mock tests', icon: ClipboardCheck },
   { href: '/admin/newsletter', label: 'Newsletter', icon: Mail },
   { href: '/admin/companies', label: 'Companies', icon: Building2 },
   { href: '/admin/pg-visits', label: 'PG visits', icon: CalendarCheck },

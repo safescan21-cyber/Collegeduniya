@@ -14,6 +14,9 @@ import paymentRoutes, { webhook as razorpayWebhook } from './routes/payments.js'
 import communityRoutes from './routes/community.js';
 import { startJobAlertScheduler } from './services/jobAlerts.js';
 import { startNotifier } from './services/notifier.js';
+import { startMockSweeper } from './services/mockResults.js';
+import mockRoutes from './routes/mock.js';
+import { llmReady, llmProvider, llmModel } from './services/llm.js';
 import hookRoutes from './routes/hooks.js';
 import { otpReady, notifyReady } from './services/whatsapp.js';
 
@@ -38,6 +41,7 @@ app.use('/api', publicRoutes);       // /api/leads, /api/newsletter
 app.use('/api/chat', chatRoutes);
 app.use('/api', geoRoutes);         // /api/cities, /api/nearby, /api/local-jobs, /api/translate, /api/languages
 app.use('/api/payments', paymentRoutes);
+app.use('/api/mock', mockRoutes);
 app.use('/api', communityRoutes);    // /api/notify/visit, /api/notify/message
 app.use('/api/admin', rateLimit({ windowMs: 60_000, limit: 300 }), adminRoutes);
 
@@ -54,4 +58,6 @@ app.listen(PORT, () => {
   console.log(`StudyEarnstay API running on http://localhost:${PORT}`);
   startJobAlertScheduler();
   startNotifier();
+  startMockSweeper();
+  console.log(`[ai] ${llmReady() ? `${llmProvider()} · ${llmModel()}` : 'not configured — mock-test generation and AI feedback are off (rule-based feedback still works)'}`);
 });

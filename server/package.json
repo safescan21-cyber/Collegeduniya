@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "StudyEarnstay.com Node.js API — admin, uploads, visitor analytics",
+  "description": "StudyEarnstay.com Node.js API \u2014 admin, uploads, visitor analytics",
   "main": "src/index.js",
   "scripts": {
     "dev": "node --watch src/index.js",
@@ -16,7 +16,8 @@
     "import:india": "node scripts/import-india.js",
     "import:cities:india": "node scripts/import-cities.js IN --names",
     "import:cutoffs": "node scripts/import-cutoffs.js",
-    "import:rankings": "node scripts/import-rankings.js"
+    "import:rankings": "node scripts/import-rankings.js",
+    "mock:setup": "node scripts/mock-setup.js"
   },
   "engines": {
     "node": ">=20"

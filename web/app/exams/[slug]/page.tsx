@@ -31,6 +31,7 @@ export default async function ExamPage({ params }: { params: Promise<{ slug: str
   const e = await getExam((await params).slug);
   if (!e) notFound();
   const sb = supabasePublic();
+  const { data: mockBp } = await sb.from('mock_blueprints').select('title').eq('exam_slug', e.slug).eq('is_published', true).maybeSingle();
   const [{ data: cut }, { data: articles }, { data: docs }] = await Promise.all([
     sb.from('cutoffs').select('college_id, colleges(name, slug, city)').eq('exam_slug', e.slug).limit(500),
     sb.from('articles').select('slug, title, published_at').eq('exam_id', e.id).eq('is_published', true).order('published_at', { ascending: false }).limit(6),
@@ -88,7 +89,8 @@ export default async function ExamPage({ params }: { params: Promise<{ slug: str
         )}
       </div>
       <aside className="space-y-5">
-        {e.website && <a href={e.website} target="_blank" rel="noopener noreferrer" className="btn-primary w-full"><ExternalLink size={16} />Official website</a>}
+        {mockBp && <Link href={`/mock-tests/${e.slug}`} className="btn-primary w-full">Take a free {e.short_name} mock test</Link>}
+        {e.website && <a href={e.website} target="_blank" rel="noopener noreferrer" className={mockBp ? 'btn-ghost w-full' : 'btn-primary w-full'}><ExternalLink size={16} />Official website</a>}
         <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">Dates and rules change every year — always confirm on the official website before applying.</p>
         <div className="lg:sticky lg:top-24"><EnquiryForm compact title={`Need help with ${e.short_name}?`} subtitle="Get free guidance on colleges and counselling." /></div>
       </aside>

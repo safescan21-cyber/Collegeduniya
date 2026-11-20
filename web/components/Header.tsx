@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   GraduationCap, Menu, X, LogOut, LayoutDashboard, ShieldCheck, MapPin, ChevronDown, Target, Scale,
   FilePlus2, Calculator, Newspaper, BookOpen, MessagesSquare, PlusCircle, PhoneCall, Globe2, Building2, BedDouble,
-  Armchair, Sparkles, Compass, UsersRound, MessageCircle, Award, Plane, Trophy, FileStack, TrendingUp, FileText, Gift, Megaphone,
+  Armchair, Sparkles, Compass, UsersRound, MessageCircle, Award, Plane, Trophy, FileStack, TrendingUp, FileText, Gift, Megaphone, ClipboardCheck,
 } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { NotificationBell } from './Notifications';
@@ -20,6 +20,7 @@ const MAIN: { href: string; key: DictKey }[] = [
 ];
 
 const MORE: { href: string; key: DictKey; icon: any }[] = [
+  { href: '/mock-tests', key: 'nav.mock', icon: ClipboardCheck },
   { href: '/top', key: 'nav.top', icon: Trophy },
   { href: '/cities', key: 'nav.cities', icon: Globe2 },
   { href: '/predictor', key: 'nav.predictor', icon: Target },

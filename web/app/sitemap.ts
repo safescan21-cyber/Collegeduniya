@@ -31,7 +31,7 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
     return rows.map((r) => ({ url: `${SITE_URL}/city/${r.slug}`, priority: 0.6 }));
   }
 
-  const base: MetadataRoute.Sitemap = ['', '/colleges', '/hostels', '/jobs', '/exams', '/news', '/questions', '/predictor', '/compare', '/apply', '/management-quota', '/recommend', '/career-quiz', '/roommates', '/scholarships', '/study-abroad/visa', '/counselling', '/study-abroad/calculator', '/near-me', '/cities', '/partners', '/top', '/papers', '/trends', '/rewards', '/ambassador'].map((p) => ({
+  const base: MetadataRoute.Sitemap = ['', '/colleges', '/hostels', '/jobs', '/exams', '/news', '/questions', '/predictor', '/compare', '/apply', '/management-quota', '/recommend', '/career-quiz', '/roommates', '/scholarships', '/study-abroad/visa', '/counselling', '/study-abroad/calculator', '/near-me', '/cities', '/partners', '/top', '/mock-tests', '/papers', '/trends', '/rewards', '/ambassador'].map((p) => ({
     url: `${SITE_URL}${p}`, changeFrequency: 'daily', priority: p ? 0.8 : 1,
   }));
   const [h, j, e, a, q, qs, qc, cc] = await Promise.all([
@@ -47,6 +47,7 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
   const tops = await readRange<any>((a, b) => sb.rpc('stream_place_counts', { p_min: 3 }).range(a, b), 0, 20000);
   const topUrls = new Set<string>();
   for (const r of tops) { topUrls.add(topPath(r.stream_slug)); topUrls.add(topPath(r.stream_slug, r.place_slug)); }
+  const { data: mocks } = await sb.rpc('mock_catalog');
   const [ex, sch, visa] = await Promise.all([
     sb.from('exams').select('slug').eq('is_published', true).neq('level', 'Abroad').limit(500),
     sb.from('scholarships').select('slug, updated_at').eq('is_published', true).limit(5000),
@@ -54,6 +55,7 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
   ]);
   return [
     ...base,
+    ...((mocks || []) as any[]).filter((m) => Number(m.ready_questions) > 0).map((m) => ({ url: `${SITE_URL}/mock-tests/${m.exam_slug}`, changeFrequency: 'weekly' as const, priority: 0.8 })),
     ...Array.from(topUrls).map((u) => ({ url: `${SITE_URL}${u}`, changeFrequency: 'weekly' as const, priority: 0.8 })),
     ...((cc.data || []) as any[]).map((r) => ({ url: `${SITE_URL}/cities?country=${r.code}`, priority: 0.5 })),
     ...(h.data || []).map((r) => ({ url: `${SITE_URL}/hostels/${r.id}`, lastModified: r.updated_at, priority: 0.6 })),

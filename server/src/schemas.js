@@ -236,6 +236,22 @@ schemas.exam_stats = z.object({
   exam_slug: str.min(2), year: z.coerce.number().int().min(2000).max(2100), session: z.string().trim().min(1).default('All'),
   total_candidates: z.coerce.number().int().positive(), source: str.min(5),
 });
+const mockSection = z.object({
+  name: str.min(1).max(60), topics: z.array(str.max(80)).max(40).default([]),
+  questions: z.coerce.number().int().min(1).max(200), correct: z.coerce.number().min(0).max(100).default(1), wrong: z.coerce.number().min(-100).max(0).default(0),
+});
+const jsonish = (schema) => z.preprocess((v) => { if (typeof v !== 'string') return v; try { return JSON.parse(v); } catch { return v; } }, schema);
+schemas.mock_blueprints = z.object({
+  exam_slug: str.min(2), title: str.min(3).max(120), duration_min: z.coerce.number().int().min(5).max(360),
+  sections: jsonish(z.array(mockSection).min(1).max(12)), instructions: optStr, pattern_source: optStr,
+  is_published: bool, auto_publish_verified: bool,
+});
+schemas.mock_questions = z.object({
+  exam_slug: str.min(2), section: str.min(1).max(60), topic: optStr, difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
+  stem: str.min(10).max(4000), options: jsonish(z.array(str.min(1).max(500)).min(2).max(6)), answer: z.coerce.number().int().min(0).max(5),
+  explanation: optStr, status: z.enum(['draft', 'approved', 'rejected']).optional(), source: z.enum(['ai', 'manual']).optional(),
+});   // the database also checks that answer < number of options
+
 schemas.reward_catalog = z.object({
   code: z.string().trim().toLowerCase().regex(/^[a-z0-9_-]{2,40}$/), title: str.min(3), points: z.coerce.number().int().positive(),
   stock: optInt, is_active: bool,
@@ -327,6 +343,7 @@ export const moderation = {
   companies: z.object({ is_verified: bool }),
   reward_redemptions: z.object({ status: z.enum(['requested', 'fulfilled', 'rejected']).optional(), voucher: optStr, admin_note: optStr }),
   ambassadors: z.object({ status: z.enum(['applied', 'approved', 'rejected', 'paused']).optional(), admin_note: optStr }),
+  mock_question_reports: z.object({ status: z.enum(['open', 'fixed', 'dismissed']).optional() }),
   reward_points: z.object({ status: z.enum(['pending', 'approved', 'reversed']).optional(), note: optStr }),
 };
 

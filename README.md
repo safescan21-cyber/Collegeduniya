@@ -80,6 +80,7 @@ Browser ──► Next.js (web) ──► Supabase  (public reads, OTP login, re
 13. Run **`supabase/migrations/010_roadmap.sql`** then **`010_seed_exams.sql`** (rankings, marks→rank, verified PG & visits, senior connect, roommates, messages, recommender, scholarships, visa guides, payments, lead partners).
 14. Run **`supabase/migrations/011_growth2.sql`** (top-college pages, job alerts, resumes, exam library, percentile → rank, rewards, referrals & ambassadors, salary trends).
 15. Run **`supabase/migrations/012_whatsapp_notifications.sql`** (WhatsApp login + notifications outbox).
+16. Run **`supabase/migrations/013_mock_tests.sql`** (mock tests: patterns, AI question bank, attempts, scoring).
 8. Load full college lists:
    ```bash
    npm run import:sheet -- ./All_Colleges.xlsx IN aishe   # India: official AISHE "All Colleges" list (~48k colleges)
@@ -363,6 +364,40 @@ Everything is already built. It stays switched off until you connect a WhatsApp 
 **Notes**
 - Meta charges per conversation (authentication and utility rates).
 - If WhatsApp sending fails, the login page asks the student to use email.
+
+## 5h. Mock tests with AI (migration 013)
+
+**Students**
+- **Catalogue:** `/mock-tests`, with Indian and international exams.
+- **Taking a test:** each test has an exam-style timer and a question palette. Students can mark questions for review, answers save automatically, and they can resume after closing the page. When time runs out the test submits itself.
+- **Results:**
+  - score, percentile among StudyEarnstay test-takers, accuracy, and section- and topic-wise analysis
+  - **“Where to improve”**: weak topics and a 2-week study plan
+  - every answer with an explanation, plus a “Report a problem” button
+- **Email:** the result goes out by email (needs `SMTP_URL`) and also appears in the 🔔 bell, or on WhatsApp if the student opted in.
+- **Security:** answers never reach the browser before submission. Scoring and percentile are calculated in the database.
+
+**Admin → Mock tests**
+1. **Pattern:** pick an exam → *Draft pattern with AI* → check sections, question counts, marking and duration against the official notice → paste that link → save.
+2. **Generate:** per section/topic (up to 20 at a time), or *Fill question bank* for the whole exam.
+   - The AI writes original questions with explanations.
+   - A second AI pass then answers each one without seeing the key: **agree** means likely correct; **disagree** means fix or reject it.
+3. **Review:** approve or reject (*Approve all AI-checked on this page* speeds this up), edit, or add questions by hand. Tick *Auto-approve AI-checked* on a pattern to skip manual review for questions where the check agreed.
+4. **Publish** the pattern. Students only ever get *approved* questions. Reports from students appear under *Student reports*.
+
+**Every exam at once (command line):** `npm run mock:setup` drafts an unpublished pattern for each exam that has none. Add `-- --questions 3` to also generate 3 draft questions per topic, or list exams: `npm run mock:setup -- jee-main neet-ug --questions 5`.
+
+**AI model (`server/.env`)**
+| Option | Settings |
+|---|---|
+| Claude (default) | `ANTHROPIC_API_KEY=…` (optional `LLM_MODEL`, default `claude-sonnet-5-5`) |
+| Your own model on the VPS (Ollama) | `curl -fsSL https://ollama.com/install.sh \| sh` → `ollama pull qwen2.5:14b-instruct` → `LLM_PROVIDER=openai`, `LLM_BASE_URL=http://localhost:11434/v1`, `LLM_MODEL=qwen2.5:14b-instruct` |
+| Any OpenAI-compatible API (vLLM, Groq, OpenRouter…) | `LLM_PROVIDER=openai`, `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` |
+| Different model for the double-check | `LLM_CHECK_MODEL=…` |
+
+**Notes**
+- **Model size:** a 14B model needs about 10 GB RAM (better with a GPU). Small local models make more mistakes, so keep manual review on and use the double-check.
+- **Without AI:** feedback still works (rule-based weak topics and plan), and you can add questions by hand.
 
 ## 6. Deploy on your own VPS (Ubuntu + Nginx + PM2)
 
