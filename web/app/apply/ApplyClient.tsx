@@ -24,7 +24,7 @@ export default function ApplyClient() {
   const [done, setDone] = useState<number | null>(null);
 
   useEffect(() => {
-    supabase.from('colleges').select('id, slug, name, city, country, application_note').eq('is_published', true).eq('accepts_applications', true).order('name').limit(200)
+    supabase.from('colleges_public').select('id, slug, name, city, country, application_note').eq('is_published', true).eq('accepts_applications', true).order('name').limit(200)
       .then(({ data }: { data: Partner[] | null }) => setPartners(data || []));
   }, [supabase]);
 

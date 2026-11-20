@@ -30,15 +30,17 @@ export default async function CollegesPage({ searchParams }: { searchParams: Pro
 
   if (hasSupabase) {
     const sb = supabasePublic();
-    const select = sp.level ? '*, courses!inner(level)' : '*';
-    let q = sb.from('colleges').select(select, { count: 'exact' }).eq('is_published', true);
+    let q = sb.from('colleges_public').select('*', { count: 'exact' });
+    if (sp.level) {
+      const { data: lv } = await sb.from('courses').select('college_id').eq('level', sp.level).limit(5000);
+      q = q.in('id', Array.from(new Set((lv || []).map((x: any) => x.college_id))).slice(0, 1000).concat(['00000000-0000-0000-0000-000000000000']));
+    }
     const term = cleanTerm(sp.q);
-    if (term) q = q.or(`name.ilike.%${term}%,short_name.ilike.%${term}%,city.ilike.%${term}%,country.ilike.%${term}%`);
+    if (term) q = q.or(`name.ilike.%${term}%,short_name.ilike.%${term}%,city.ilike.%${term}%,state.ilike.%${term}%,district.ilike.%${term}%,country.ilike.%${term}%`);
     if (sp.country) q = q.eq('country', sp.country);
     if (sp.city) q = q.ilike('city', cleanTerm(sp.city));
     if (sp.type) q = q.eq('type', sp.type);
     if (sp.stream) q = q.contains('streams', [sp.stream]);
-    if (sp.level) q = q.eq('courses.level', sp.level);
     if (sp.fees_max) q = q.lte('fees_min', Number(sp.fees_max));
     const sort = sp.sort || 'rank';
     q = sort === 'fees_low' ? q.order('fees_min', { ascending: true, nullsFirst: false })

@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic';
 
 async function getCollege(slug: string) {
   if (!hasSupabase) return null;
-  const { data } = await supabasePublic().from('colleges').select('*').eq('slug', slug).eq('is_published', true).maybeSingle();
+  const { data } = await supabasePublic().from('colleges_public').select('*').eq('slug', slug).maybeSingle();
   return data as College | null;
 }
 
@@ -83,6 +83,8 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
   const count = rating.data?.review_count || 0;
   const latestPlacement = placementList[0];
   const listItem = { id: c.id, slug: c.slug, name: c.name, city: c.city };
+  const hidden = new Set(c.hidden_sections || []);
+  const show = (s: string) => !hidden.has(s);
 
   const jsonLd = {
     '@context': 'https://schema.org', '@type': 'CollegeOrUniversity', name: c.name, url: `${SITE_URL}/colleges/${c.slug}`,
@@ -92,12 +94,16 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
   };
 
   const tabs: [string, string][] = [
-    ['overview', 'Overview'], ['courses', `Courses & Fees (${courseList.length})`],
-    ...(placementList.length ? [['placements', 'Placements'] as [string, string]] : []),
-    ...(cutoffList.length ? [['cutoffs', 'Cutoffs'] as [string, string]] : []),
-    ['reviews', `Reviews (${count})`], ['qa', `Q&A (${questionList.length})`],
-    ['hostels', 'PG & Hostels'], ['jobs', 'Part-time Jobs'], ['nearby', 'Nearby'],
-    ...(c.photos?.length ? [['gallery', 'Gallery'] as [string, string]] : []),
+    ['overview', 'Overview'],
+    ...(show('courses') ? [['courses', `Courses & Fees (${courseList.length})`] as [string, string]] : []),
+    ...(show('placements') && placementList.length ? [['placements', 'Placements'] as [string, string]] : []),
+    ...(show('cutoffs') && cutoffList.length ? [['cutoffs', 'Cutoffs'] as [string, string]] : []),
+    ...(show('reviews') ? [['reviews', `Reviews (${count})`] as [string, string]] : []),
+    ...(show('qa') ? [['qa', `Q&A (${questionList.length})`] as [string, string]] : []),
+    ...(show('hostels') ? [['hostels', 'PG & Hostels'] as [string, string]] : []),
+    ...(show('jobs') ? [['jobs', 'Part-time Jobs'] as [string, string]] : []),
+    ...(show('nearby') ? [['nearby', 'Nearby'] as [string, string]] : []),
+    ...(show('gallery') && c.photos?.length ? [['gallery', 'Gallery'] as [string, string]] : []),
   ];
 
   // Cutoffs grouped by exam → latest year only
@@ -159,9 +165,17 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             </div>
             <TranslateText text={c.description || 'Details coming soon.'} className="mt-3 whitespace-pre-line leading-relaxed text-slate-600" />
             {(c as any).source && (c as any).source !== 'admin' && (
-              <p className="mt-3 text-xs text-slate-400">Basic profile from public data ({(c as any).source === 'hipolabs' ? 'Hipolabs university list' : 'Wikidata'}{(c as any).wikidata_id ? ' + Wikidata' : ''}). Fees and courses are added by our team — <Link href="/counselling" className="underline">ask us</Link> for details.</p>
+              <p className="mt-3 text-xs text-slate-400">Profile from public data ({({ hipolabs: 'Hipolabs university list', wikidata: 'Wikidata', aishe: 'AISHE, Govt. of India', scorecard: 'U.S. College Scorecard' } as Record<string, string>)[(c as any).source] || (c as any).source}{(c as any).wikidata_id ? ' + Wikidata' : ''}). <Link href="/counselling" className="underline">Ask us</Link> for current fees and admission details.</p>
             )}
-            {(c as any).students_count ? <p className="mt-2 text-sm text-slate-600">About {(c as any).students_count.toLocaleString()} students</p> : null}
+            <div className="mt-3 flex flex-wrap gap-2 text-sm">
+              {c.students_count ? <span className="chip">~{c.students_count.toLocaleString()} students</span> : null}
+              {c.admission_rate != null ? <span className="chip">Admission rate {Math.round(Number(c.admission_rate) * 100)}%</span> : null}
+              {c.management ? <span className="chip">{c.management}</span> : null}
+              {c.affiliated_to ? <span className="chip">Affiliated to {c.affiliated_to}</span> : null}
+              {c.district && c.district !== c.city ? <span className="chip">District: {c.district}</span> : null}
+              {(c as any).facts?.graduation_rate != null ? <span className="chip">Graduation rate {Math.round((c as any).facts.graduation_rate * 100)}%</span> : null}
+              {(c as any).facts?.median_earnings_10y != null ? <span className="chip-green">Median earnings after 10 yrs {money((c as any).facts.median_earnings_10y, 'USD')}</span> : null}
+            </div>
             {latestPlacement && (
               <div className="mt-5 grid grid-cols-3 gap-3 rounded-xl bg-emerald-50 p-4 text-center">
                 <div><p className="text-xs text-emerald-700">Average package</p><p className="font-bold text-emerald-900">{pkg(latestPlacement.avg_package, latestPlacement.currency, latestPlacement.package_unit)}</p></div>
@@ -181,7 +195,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             ) : null}
           </section>
 
-          <section id="courses" className="scroll-mt-32">
+          {show('courses') && <section id="courses" className="scroll-mt-32">
             <h2 className="mb-4 text-xl font-bold text-slate-900">Courses & fees</h2>
             {courseList.length ? (
               <div className="card overflow-x-auto">
@@ -203,9 +217,9 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
                 </table>
               </div>
             ) : <EmptyState title="Courses not added yet" />}
-          </section>
+          </section>}
 
-          {placementList.length > 0 && (
+          {show('placements') && placementList.length > 0 && (
             <section id="placements" className="scroll-mt-32">
               <h2 className="mb-4 flex items-center gap-2 text-xl font-bold text-slate-900"><TrendingUp size={20} className="text-emerald-600" />Placements</h2>
               <div className="card overflow-x-auto">
@@ -234,7 +248,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             </section>
           )}
 
-          {cutoffList.length > 0 && (
+          {show('cutoffs') && cutoffList.length > 0 && (
             <section id="cutoffs" className="scroll-mt-32">
               <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
                 <h2 className="text-xl font-bold text-slate-900">Cutoffs (closing ranks)</h2>
@@ -260,20 +274,20 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             </section>
           )}
 
-          <section id="reviews" className="scroll-mt-32">
+          {show('reviews') && <section id="reviews" className="scroll-mt-32">
             <ReviewSection collegeId={c.id} collegeName={c.name} reviews={reviewList} avg={avg} count={count} />
-          </section>
+          </section>}
 
-          <section id="qa" className="scroll-mt-32 space-y-4">
+          {show('qa') && <section id="qa" className="scroll-mt-32 space-y-4">
             <div className="flex items-end justify-between">
               <h2 className="text-xl font-bold text-slate-900">Questions about {c.short_name || c.name}</h2>
               <Link href={`/questions?college=${c.id}`} className="text-sm font-semibold text-brand-700 hover:underline">All questions</Link>
             </div>
             <QuestionList items={questionList} showCollege={false} />
             <AskForm collegeId={c.id} collegeName={c.short_name || c.name} />
-          </section>
+          </section>}
 
-          <section id="hostels" className="scroll-mt-32">
+          {show('hostels') && <section id="hostels" className="scroll-mt-32">
             <div className="mb-4 flex items-end justify-between">
               <h2 className="text-xl font-bold text-slate-900">PG & hostels near {c.short_name || c.name}</h2>
               <Link href={cityRow?.slug ? `/city/${cityRow.slug}` : `/hostels?city=${encodeURIComponent(c.city)}`} className="text-sm font-semibold text-brand-700 hover:underline">See all in {c.city}</Link>
@@ -281,9 +295,9 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             {(hostels.data || []).length ? (
               <div className="grid gap-5 sm:grid-cols-2">{(hostels.data as Hostel[]).map((h) => <HostelCard key={h.id} h={h} />)}</div>
             ) : <EmptyState title="No PG or hostel listed yet" text="Own a PG nearby? List it free from “Post PG / Job”." />}
-          </section>
+          </section>}
 
-          <section id="jobs" className="scroll-mt-32">
+          {show('jobs') && <section id="jobs" className="scroll-mt-32">
             <div className="mb-4 flex items-end justify-between">
               <h2 className="text-xl font-bold text-slate-900">Part-time jobs near campus</h2>
               <Link href={`/jobs?city=${encodeURIComponent(c.city)}`} className="text-sm font-semibold text-brand-700 hover:underline">All jobs in {c.city}</Link>
@@ -292,9 +306,9 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
               <div className="grid gap-5 sm:grid-cols-2">{(jobs.data as Job[]).map((j) => <JobCard key={j.id} j={j} />)}</div>
             ) : <EmptyState title="No StudyEarnstay jobs near this college yet" text="See live listings from job sites below." />}
             <div className="mt-5"><LiveJobs city={c.city === 'Not specified' ? c.country : c.city} country={countryCode} /></div>
-          </section>
+          </section>}
 
-          <section id="nearby" className="scroll-mt-32">
+          {show('nearby') && <section id="nearby" className="scroll-mt-32">
             <h2 className="mb-4 text-xl font-bold text-slate-900">Nearby companies, hospitals & services</h2>
             {c.latitude != null && c.longitude != null && (
               <div className="mb-5"><LiveNearby lat={c.latitude} lng={c.longitude} kinds={['hospital', 'pharmacy', 'pg', 'transport', 'bus', 'bank', 'food']} /></div>
@@ -304,9 +318,9 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
               <PlaceList title="Hospitals" items={hospitals} />
               {otherPlaces.length > 0 && <PlaceList title="Banks & transport" items={otherPlaces} />}
             </div>
-          </section>
+          </section>}
 
-          {c.photos?.length ? (
+          {show('gallery') && c.photos?.length ? (
             <section id="gallery" className="scroll-mt-32">
               <h2 className="mb-4 text-xl font-bold text-slate-900">Gallery</h2>
               <Gallery photos={c.photos} alt={c.name} />
@@ -335,11 +349,11 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
               <a className="btn-ghost mt-5 w-full" target="_blank" rel="noopener noreferrer"
                 href={`https://www.google.com/maps/search/?api=1&query=${c.latitude},${c.longitude}`}>Open in Google Maps</a>
             ) : null}
-            <a href="#reviews" className="btn-primary mt-2 w-full">Write a review</a>
+            {show('reviews') && <a href="#reviews" className="btn-primary mt-2 w-full">Write a review</a>}
           </div>
-          <div className="lg:sticky lg:top-32">
+          {show('enquiry') && <div className="lg:sticky lg:top-32">
             <EnquiryForm kind="college" collegeId={c.id} title={`Enquire about ${c.short_name || c.name}`} subtitle="Admission, fees, scholarships — get a call back." compact />
-          </div>
+          </div>}
         </aside>
       </div>
     </>

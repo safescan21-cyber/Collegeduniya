@@ -1,61 +1,71 @@
 'use client';
 import Link from 'next/link';
-import { ListTree, ExternalLink } from 'lucide-react';
-import ResourceManager, { type FieldDef } from '@/components/admin/ResourceManager';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { ExternalLink, EyeOff, Eye, Settings2 } from 'lucide-react';
+import ResourceManager from '@/components/admin/ResourceManager';
+import { api } from '@/lib/api';
+import { COLLEGE_FIELDS, HIDEABLE_FIELDS, HIDEABLE_SECTIONS } from '@/lib/adminFields';
 import { range } from '@/lib/format';
 
-const COLLEGE_FIELDS: FieldDef[] = [
-  { name: 'name', label: 'College name', type: 'text', required: true, full: true },
-  { name: 'short_name', label: 'Short name', type: 'text', placeholder: 'IIT Delhi' },
-  { name: 'slug', label: 'URL slug', type: 'text', help: 'Leave empty to auto-generate' },
-  { name: 'type', label: 'Ownership', type: 'select', options: ['Public', 'Private', 'Deemed', 'Autonomous', 'Other'], required: true },
-  { name: 'accreditation', label: 'Accreditation', type: 'text', placeholder: 'NAAC A+' },
-  { name: 'country', label: 'Country', type: 'text', required: true },
-  { name: 'state', label: 'State / Region', type: 'text' },
-  { name: 'city', label: 'City', type: 'text', required: true },
-  { name: 'address', label: 'Address', type: 'text' },
-  { name: 'latitude', label: 'Latitude', type: 'number', help: 'Right-click on Google Maps → copy coordinates' },
-  { name: 'longitude', label: 'Longitude', type: 'number' },
-  { name: 'established', label: 'Established (year)', type: 'number' },
-  { name: 'ranking', label: 'Ranking', type: 'number' },
-  { name: 'fees_min', label: 'Min fees / year', type: 'number' },
-  { name: 'fees_max', label: 'Max fees / year', type: 'number' },
-  { name: 'currency', label: 'Currency', type: 'select', options: ['INR', 'USD', 'GBP', 'EUR', 'CAD', 'AUD', 'AED', 'SGD', 'NZD'], required: true },
-  { name: 'website', label: 'Website', type: 'text' },
-  { name: 'email', label: 'Email', type: 'text' },
-  { name: 'phone', label: 'Phone', type: 'text' },
-  { name: 'streams', label: 'Streams', type: 'tags', placeholder: 'Engineering, Management' },
-  { name: 'facilities', label: 'Facilities', type: 'tags', placeholder: 'Library, Hostel, Wi-Fi' },
-  { name: 'description', label: 'About', type: 'textarea' },
-  { name: 'logo_url', label: 'Logo', type: 'image' },
-  { name: 'cover_url', label: 'Cover photo', type: 'image' },
-  { name: 'photos', label: 'Gallery photos', type: 'images' },
-  { name: 'accepts_applications', label: 'Accepts StudyEarnstay application', type: 'bool' },
-  { name: 'application_note', label: 'Application note', type: 'text', placeholder: 'No application fee' },
-  { name: 'is_featured', label: 'Featured on home', type: 'bool' },
-  { name: 'is_published', label: 'Published', type: 'bool' },
-];
+const bulk = (action: string, values?: string[]) => async (ids: string[]) => {
+  await api('/api/admin/colleges/bulk', { method: 'POST', body: JSON.stringify({ ids, action, values }) });
+};
 
 export default function AdminColleges() {
+  const router = useRouter();
+  const [hideWhat, setHideWhat] = useState('fees');
+  const isSection = HIDEABLE_SECTIONS.some((s) => s.key === hideWhat);
+
   return (
-    <ResourceManager
-      resource="colleges"
-      title="Colleges"
-      fields={COLLEGE_FIELDS}
-      defaults={{ type: 'Private', currency: 'INR', is_published: true, country: 'India' }}
-      quickFilters={[{ label: 'All', params: {} }, { label: 'Added by us', params: { source: 'admin' } }, { label: 'Imported', params: { source: 'hipolabs' } }, { label: 'Hidden (need city)', params: { is_published: 'false' } }]}
-      columns={[
-        { key: 'name', label: 'College', render: (r) => <div><p className="font-semibold text-slate-900">{r.name}</p><p className="text-xs text-slate-500">{r.city}, {r.country}{r.source && r.source !== 'admin' ? ` · ${r.source}` : ''}</p></div> },
-        { key: 'fees', label: 'Fees', render: (r) => range(r.fees_min, r.fees_max, r.currency) },
-        { key: 'ranking', label: 'Rank', render: (r) => r.ranking ?? '—' },
-        { key: 'is_published', label: 'Status', render: (r) => r.is_published ? <span className="chip-green">Live</span> : <span className="chip">Draft</span> },
-      ]}
-      rowActions={(r) => (
-        <>
-          <Link href={`/admin/colleges/${r.id}`} className="btn-ghost px-2 py-1.5" title="Courses, placements, cutoffs & nearby"><ListTree size={14} /></Link>
-          <a href={`/colleges/${r.slug}`} target="_blank" className="btn-ghost px-2 py-1.5" title="View"><ExternalLink size={14} /></a>
-        </>
-      )}
-    />
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm">
+        <span className="font-semibold text-slate-700">Bulk show / hide:</span>
+        <select value={hideWhat} onChange={(e) => setHideWhat(e.target.value)} className="input w-auto py-1.5 text-sm">
+          <optgroup label="Fields">{HIDEABLE_FIELDS.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}</optgroup>
+          <optgroup label="Sections">{HIDEABLE_SECTIONS.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}</optgroup>
+        </select>
+        <span className="text-slate-500">— tick colleges below, then use the buttons that appear above the table.</span>
+      </div>
+      <ResourceManager
+        resource="colleges"
+        title="Colleges"
+        fields={COLLEGE_FIELDS}
+        defaults={{ type: 'Private', currency: 'INR', is_published: true, country: 'India' }}
+        onEditRow={(r) => router.push(`/admin/colleges/${r.id}`)}
+        quickFilters={[
+          { label: 'All', params: {} }, { label: 'Visible', params: { is_published: 'true' } }, { label: 'Hidden', params: { is_published: 'false' } },
+          { label: 'Featured', params: { is_featured: 'true' } }, { label: 'Added by us', params: { source: 'admin' } },
+          { label: 'AISHE', params: { source: 'aishe' } }, { label: 'Hipolabs', params: { source: 'hipolabs' } }, { label: 'US Scorecard', params: { source: 'scorecard' } },
+        ]}
+        bulkActions={[
+          { label: 'Show on site', run: bulk('publish') },
+          { label: 'Hide from site', run: bulk('hide') },
+          { label: 'Feature', run: bulk('feature') },
+          { label: 'Unfeature', run: bulk('unfeature') },
+          { label: `Hide “${[...HIDEABLE_FIELDS, ...HIDEABLE_SECTIONS].find((x) => x.key === hideWhat)?.label}”`, run: (ids) => bulk(isSection ? 'hide_sections' : 'hide_fields', [hideWhat])(ids) },
+          { label: `Show “${[...HIDEABLE_FIELDS, ...HIDEABLE_SECTIONS].find((x) => x.key === hideWhat)?.label}”`, run: (ids) => bulk(isSection ? 'show_sections' : 'show_fields', [hideWhat])(ids) },
+          { label: 'Delete', danger: true, run: bulk('delete') },
+        ]}
+        columns={[
+          { key: 'name', label: 'College', render: (r) => (
+            <div><Link href={`/admin/colleges/${r.id}`} className="font-semibold text-slate-900 hover:text-brand-700">{r.name}</Link>
+              <p className="text-xs text-slate-500">{[r.city, r.state, r.country].filter((x) => x && x !== 'Not specified').join(', ')}{r.source && r.source !== 'admin' ? ` · ${r.source}` : ''}</p></div>) },
+          { key: 'fees', label: 'Fees', render: (r) => <span className={(r.hidden_fields || []).includes('fees') ? 'text-slate-400 line-through' : ''}>{range(r.fees_min, r.fees_max, r.currency)}</span> },
+          { key: 'is_published', label: 'Status', render: (r) => (
+            <div className="flex flex-wrap gap-1">
+              {r.is_published ? <span className="chip-green"><Eye size={12} />Visible</span> : <span className="chip"><EyeOff size={12} />Hidden</span>}
+              {r.is_featured && <span className="chip-amber">Featured</span>}
+              {((r.hidden_fields || []).length + (r.hidden_sections || []).length) > 0 && <span className="chip" title={[...(r.hidden_fields || []), ...(r.hidden_sections || [])].join(', ')}>{(r.hidden_fields || []).length + (r.hidden_sections || []).length} hidden parts</span>}
+            </div>) },
+        ]}
+        rowActions={(r) => (
+          <>
+            <Link href={`/admin/colleges/${r.id}`} className="btn-ghost px-2 py-1.5" title="Full editor & visibility"><Settings2 size={14} /></Link>
+            {r.is_published && <a href={`/colleges/${r.slug}`} target="_blank" className="btn-ghost px-2 py-1.5" title="View"><ExternalLink size={14} /></a>}
+          </>
+        )}
+      />
+    </div>
   );
 }

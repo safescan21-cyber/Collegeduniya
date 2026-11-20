@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { supabase } from '../supabase.js';
 import { fetchJson } from './http.js';
 import { slugify } from '../schemas.js';
+import { upsertColleges } from './collegeUpsert.js';
 
 // Import colleges for a country from two open sources and merge them:
 //   1. Hipolabs university-domains list  → name, website, domains (10,000+ institutions, no key)
@@ -177,34 +178,7 @@ export async function importCountry(countryInput, { startedBy = null, dryRun = f
     const seenWiki = new Set();
     for (const r of toSave) { if (r.wikidata_id) { if (seenWiki.has(r.wikidata_id)) r.wikidata_id = null; else seenWiki.add(r.wikidata_id); } }
 
-    // New rows are inserted whole. Rows imported before only get their source data refreshed:
-    // slug (URLs), publish state and anything an admin typed in (fees, description…) are kept,
-    // and a city the admin filled in is never replaced by "Not specified".
-    const newRows = toSave.filter((r) => !known.has(`${r.source}:${r.external_id}`));
-    const refresh = toSave.filter((r) => known.has(`${r.source}:${r.external_id}`)).map((r) => {
-      const { slug, is_published, ...rest } = r;
-      if (!rest.logo_url) delete rest.logo_url;
-      if (!rest.cover_url) delete rest.cover_url;
-      return rest;
-    });
-    const groups = [
-      ['insert', newRows],
-      ['refresh-with-city', refresh.filter((r) => r.city !== 'Not specified')],
-      ['refresh-no-city', refresh.filter((r) => r.city === 'Not specified').map(({ city, state, ...r }) => r)],
-    ];
-    for (const [label, list] of groups) {
-      // supabase-js needs the same columns in every row of one request → group by column set
-      const byShape = new Map();
-      for (const r of list) { const k = Object.keys(r).sort().join(','); (byShape.get(k) || byShape.set(k, []).get(k)).push(r); }
-      for (const shape of byShape.values()) {
-        for (let i = 0; i < shape.length; i += 500) {
-          const chunk = shape.slice(i, i + 500);
-          const { error } = await supabase.from('colleges').upsert(chunk, { onConflict: 'source,external_id' });
-          if (error) throw error;
-        }
-      }
-      if (list.length) log(`${label}: ${list.length}`);
-    }
+    await upsertColleges(toSave, { log });
     await finish({ status: 'done', inserted, updated, skipped, message: `Hipolabs ${hipo.length}, Wikidata ${wiki.length}` });
     return { country, total: rows.length, inserted, updated, skipped };
   } catch (e) {

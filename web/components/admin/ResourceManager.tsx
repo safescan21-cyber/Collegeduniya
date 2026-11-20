@@ -26,6 +26,8 @@ type Props = {
   rowActions?: (row: any, reload: () => void) => React.ReactNode;
   searchable?: boolean;
   quickFilters?: { label: string; params: Record<string, string> }[];
+  bulkActions?: { label: string; danger?: boolean; run: (ids: string[]) => Promise<void> }[];
+  onEditRow?: (row: any) => void;
 };
 
 function CollegePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -60,7 +62,7 @@ function CollegePicker({ value, onChange }: { value: string; onChange: (v: strin
   );
 }
 
-function FieldInput({ f, value, onChange, folder }: { f: FieldDef; value: any; onChange: (v: any) => void; folder: string }) {
+export function FieldInput({ f, value, onChange, folder }: { f: FieldDef; value: any; onChange: (v: any) => void; folder: string }) {
   const [uploading, setUploading] = useState(false);
   const doUpload = async (files: FileList | null, multi: boolean) => {
     if (!files?.length) return;
@@ -130,8 +132,9 @@ function FieldInput({ f, value, onChange, folder }: { f: FieldDef; value: any; o
   }
 }
 
-export default function ResourceManager({ resource, title, fields, columns, defaults = {}, fixed = {}, rowActions, searchable = true, quickFilters }: Props) {
+export default function ResourceManager({ resource, title, fields, columns, defaults = {}, fixed = {}, rowActions, searchable = true, quickFilters, bulkActions, onEditRow }: Props) {
   const [qf, setQf] = useState(0);
+  const [sel, setSel] = useState<Set<string>>(new Set());
   const [rows, setRows] = useState<any[]>([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -202,25 +205,42 @@ export default function ResourceManager({ resource, title, fields, columns, defa
         </div>
       )}
 
+      {bulkActions && sel.size > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl bg-brand-50 p-3 text-sm">
+          <span className="font-semibold text-brand-800">{sel.size} selected</span>
+          {bulkActions.map((a) => (
+            <button key={a.label} className={`${a.danger ? 'btn-danger' : 'btn-ghost'} py-1.5`}
+              onClick={async () => { if (a.danger && !confirm(`${a.label} ${sel.size} item(s)?`)) return; try { await a.run(Array.from(sel)); setSel(new Set()); load(); } catch (e: any) { alert(e.message); } }}>{a.label}</button>
+          ))}
+          <button onClick={() => setSel(new Set())} className="text-xs text-slate-500 hover:underline">Clear</button>
+        </div>
+      )}
+
       {err && !editing && <p className="mb-3 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{err}</p>}
 
       <div className="card overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-            <tr>{columns.map((c) => <th key={c.key} className="px-4 py-3">{c.label}</th>)}<th className="px-4 py-3 text-right">Actions</th></tr>
+            <tr>
+              {bulkActions && <th className="w-8 px-3 py-3"><input type="checkbox" className="accent-brand-600" checked={rows.length > 0 && rows.every((r) => sel.has(r.id))}
+                onChange={(e) => setSel(e.target.checked ? new Set(rows.map((r) => r.id)) : new Set())} aria-label="Select all" /></th>}
+              {columns.map((c) => <th key={c.key} className="px-4 py-3">{c.label}</th>)}<th className="px-4 py-3 text-right">Actions</th>
+            </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan={columns.length + 1} className="px-4 py-10 text-center text-slate-400"><Loader2 className="mx-auto animate-spin" /></td></tr>
+              <tr><td colSpan={columns.length + 2} className="px-4 py-10 text-center text-slate-400"><Loader2 className="mx-auto animate-spin" /></td></tr>
             ) : rows.length === 0 ? (
-              <tr><td colSpan={columns.length + 1} className="px-4 py-10 text-center text-slate-400">Nothing here yet.</td></tr>
+              <tr><td colSpan={columns.length + 2} className="px-4 py-10 text-center text-slate-400">Nothing here yet.</td></tr>
             ) : rows.map((r) => (
-              <tr key={r.id} className="hover:bg-slate-50">
+              <tr key={r.id} className={`hover:bg-slate-50 ${sel.has(r.id) ? 'bg-brand-50/50' : ''}`}>
+                {bulkActions && <td className="px-3 py-3"><input type="checkbox" className="accent-brand-600" checked={sel.has(r.id)}
+                  onChange={(e) => setSel((p) => { const n = new Set(p); if (e.target.checked) n.add(r.id); else n.delete(r.id); return n; })} aria-label="Select" /></td>}
                 {columns.map((c) => <td key={c.key} className="px-4 py-3">{c.render ? c.render(r) : String(r[c.key] ?? '—')}</td>)}
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-1">
                     {rowActions?.(r, load)}
-                    <button onClick={() => { setErr(''); setEditing({ ...r }); }} className="btn-ghost px-2 py-1.5" aria-label="Edit"><Pencil size={14} /></button>
+                    <button onClick={() => { if (onEditRow) return onEditRow(r); setErr(''); setEditing({ ...r }); }} className="btn-ghost px-2 py-1.5" aria-label="Edit"><Pencil size={14} /></button>
                     <button onClick={() => remove(r)} className="btn-ghost px-2 py-1.5 text-rose-600" aria-label="Delete"><Trash2 size={14} /></button>
                   </div>
                 </td>

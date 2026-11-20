@@ -46,7 +46,7 @@ function Dashboard() {
     setMyHostels(mh.data || []); setMyJobs(mj.data || []);
     const ids = (t: string) => (s.data || []).filter((x: any) => x.item_type === t).map((x: any) => x.item_id);
     const [sc, sh, sj] = await Promise.all([
-      ids('college').length ? supabase.from('colleges').select('id, slug, name, city, country, fees_min, fees_max, currency').in('id', ids('college')) : { data: [] },
+      ids('college').length ? supabase.from('colleges_public').select('id, slug, name, city, country, fees_min, fees_max, currency').in('id', ids('college')) : { data: [] },
       ids('hostel').length ? supabase.from('hostels').select('id, name, type, city, rent_min, rent_max, currency').in('id', ids('hostel')) : { data: [] },
       ids('job').length ? supabase.from('jobs').select('id, title, company, city, pay_min, pay_max, currency, pay_unit').in('id', ids('job')) : { data: [] },
     ]);

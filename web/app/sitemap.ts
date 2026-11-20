@@ -11,7 +11,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (!hasSupabase) return base;
   const sb = supabasePublic();
   const [c, h, j, e, a, q, ct] = await Promise.all([
-    sb.from('colleges').select('slug, updated_at').eq('is_published', true).limit(5000),
+    sb.from('colleges_public').select('slug, updated_at').eq('is_published', true).limit(5000),
     sb.from('hostels').select('id, updated_at').eq('is_published', true).limit(5000),
     sb.from('jobs').select('id, updated_at').eq('is_published', true).eq('status', 'open').limit(5000),
     sb.from('exams').select('slug, updated_at').eq('is_published', true).limit(1000),

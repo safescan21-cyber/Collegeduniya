@@ -24,7 +24,7 @@ async function load() {
   if (!hasSupabase) return { colleges: [], hostels: [], jobs: [], articles: [] };
   const sb = supabasePublic();
   const [c, h, j, a] = await Promise.all([
-    sb.from('colleges').select('*').eq('is_published', true).order('is_featured', { ascending: false }).order('ranking', { ascending: true, nullsFirst: false }).limit(8),
+    sb.from('colleges_public').select('*').eq('is_published', true).order('is_featured', { ascending: false }).order('ranking', { ascending: true, nullsFirst: false }).limit(8),
     sb.from('hostels').select('*, colleges(name, slug)').eq('is_published', true).order('created_at', { ascending: false }).limit(4),
     sb.from('jobs').select('*').eq('is_published', true).eq('status', 'open').order('created_at', { ascending: false }).limit(6),
     sb.from('articles').select('id, slug, title, excerpt, category, cover_url, published_at').eq('is_published', true).order('published_at', { ascending: false }).limit(3),

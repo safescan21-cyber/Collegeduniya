@@ -145,6 +145,18 @@ schemas.colleges = schemas.colleges.extend({
   application_note: optStr,
   students_count: optInt,
   country_code: optStr,
+  district: optStr,
+  management: optStr,
+  affiliated_to: optStr,
+  admin_note: optStr,
+  hidden_fields: z.array(z.enum(['fees', 'contact', 'website', 'address', 'map', 'ranking', 'accreditation', 'established', 'students', 'logo', 'photos', 'description'])).optional(),
+  hidden_sections: z.array(z.enum(['courses', 'placements', 'cutoffs', 'reviews', 'qa', 'hostels', 'jobs', 'nearby', 'gallery', 'apply', 'enquiry'])).optional(),
+});
+
+export const collegeBulk = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(1000),
+  action: z.enum(['publish', 'hide', 'feature', 'unfeature', 'hide_fields', 'show_fields', 'hide_sections', 'show_sections', 'delete']),
+  values: z.array(z.string()).optional(),
 });
 schemas.hostels = schemas.hostels.extend({
   approval_status: z.enum(['approved', 'pending', 'rejected']).optional(),

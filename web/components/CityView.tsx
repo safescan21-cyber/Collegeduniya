@@ -23,7 +23,7 @@ export default async function CityView({ city }: { city: CityInfo }) {
     const sb = supabasePublic();
     const name = city.name.replace(/[",()%]/g, '');
     const [inCity, near, hIn, hNear, j, nc] = await Promise.all([
-      sb.from('colleges').select('*').eq('is_published', true).ilike('city', name).order('ranking', { ascending: true, nullsFirst: false }).limit(24),
+      sb.from('colleges_public').select('*').eq('is_published', true).ilike('city', name).order('ranking', { ascending: true, nullsFirst: false }).limit(24),
       sb.rpc('nearby_colleges', { lat: city.latitude, lng: city.longitude, radius_km: 40 }),
       sb.from('hostels').select('*, colleges(name, slug), hostel_rooms(beds_available)').eq('is_published', true).ilike('city', name).limit(12),
       sb.rpc('nearby_hostels', { lat: city.latitude, lng: city.longitude, radius_km: 25 }),

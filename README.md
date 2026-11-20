@@ -11,6 +11,13 @@
 - 🛡️ **Multi-admin panel**: colleges (+ courses + nearby companies/hospitals), hostels, jobs, applications, reviews, users
 - 📈 **Visitor analytics**: visitors today, unique visitors (30 days), page views, signups, daily chart, top pages
 
+**Added in v4 (all colleges + admin visibility)**
+
+- **Show / hide per college** — Admin → Colleges → open a college → *Show / hide*: switch off any field (fees, phone & email, website, address, map, ranking, accreditation, year, students, about, logo, photos) or any page section (courses, placements, cutoffs, reviews, Q&A, PGs, jobs, nearby, gallery, apply, enquiry). Hidden data is removed at database level (`colleges_public` view + row-level security), so it never reaches visitors, search, compare or the AI chat.
+- **Hide / show the whole college**, feature it, or delete it — one click in the editor, or in bulk by ticking many colleges in the list.
+- **Full college editor** with tabs: Details · Show/hide · Courses & fees · Placements · Cutoffs · Nearby places. Every field has an eye icon to hide it right where you edit it.
+- **All colleges**: spreadsheet importer (AISHE / any CSV or XLSX, auto column matching), U.S. College Scorecard importer with tuition, plus the worldwide Hipolabs + Wikidata importer. Re-imports refresh data without overwriting your team's edits.
+
 **Added in v3 (worldwide)**
 
 | Area | Feature | Data source |
@@ -64,6 +71,14 @@ Browser ──► Next.js (web) ──► Supabase  (public reads, OTP login, re
    npm run import:universities -- IN GB US  # colleges from Hipolabs + Wikidata (or --all for every country)
    ```
    Or use **Admin → Import & APIs** to preview/import one country at a time.
+7. Run **`supabase/migrations/004_visibility_import.sql`** (per-college show/hide + import fields).
+8. Load full college lists:
+   ```bash
+   npm run import:sheet -- ./All_Colleges.xlsx IN aishe   # India: official AISHE "All Colleges" list (~48k colleges)
+   npm run import:us                                      # USA: College Scorecard, real tuition (COLLEGE_SCORECARD_API_KEY)
+   npm run import:universities -- --all                   # rest of the world: Hipolabs + Wikidata
+   ```
+   The AISHE sheet can also be uploaded in **Admin → Import & APIs → Import a college list** (column matching is shown before import).
 4. **Authentication → Providers → Email**: enable Email, keep "Confirm email" ON.
 5. **Authentication → Email Templates → Magic Link** — replace the body so it sends a **code** instead of a link:
 

@@ -44,6 +44,14 @@ export type College = {
   is_published: boolean;
   accepts_applications?: boolean;
   application_note?: string | null;
+  hidden_sections?: string[] | null;
+  hidden_fields?: string[] | null;
+  district?: string | null;
+  management?: string | null;
+  affiliated_to?: string | null;
+  students_count?: number | null;
+  admission_rate?: number | null;
+  source?: string | null;
   created_at: string;
 };
 

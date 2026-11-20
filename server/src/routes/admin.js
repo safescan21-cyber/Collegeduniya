@@ -4,10 +4,12 @@ import crypto from 'node:crypto';
 import { supabase } from '../supabase.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/auth.js';
 import { importCountry } from '../services/universities.js';
+import { parseSheet, guessMapping, stashUpload, importSheet, TARGETS } from '../services/sheetImport.js';
+import { importScorecard, scorecardEnabled } from '../services/scorecard.js';
 import { providersStatus } from '../services/jobs.js';
 import { providerName } from '../services/translate.js';
 import {
-  schemas, slugify, reviewUpdateV2, applicationUpdate, userUpdate, moderation,
+  schemas, slugify, reviewUpdateV2, collegeBulk, applicationUpdate, userUpdate, moderation,
 } from '../schemas.js';
 
 const router = Router();
@@ -113,6 +115,7 @@ router.get('/integrations', (_req, res) => res.json({
   jobs: providersStatus(),
   translate: providerName(),
   ai_chat: Boolean(process.env.ANTHROPIC_API_KEY),
+  scorecard: scorecardEnabled(),
   overpass: true, nominatim: true, hipolabs: true, wikidata: true,
 }));
 
@@ -139,6 +142,64 @@ router.post('/import/universities', wrap(async (req, res) => {
   res.status(202).json({ ok: true, message: `Import for ${country} started` });
 }));
 
+// Spreadsheet import (AISHE list or any CSV/XLSX): 1) upload → preview + guessed mapping, 2) commit
+const sheetUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 40 * 1024 * 1024, files: 1 } });
+router.post('/import/sheet/preview', sheetUpload.single('file'), wrap(async (req, res) => {
+  if (!req.file) return fail(res, new Error('Choose a .xlsx or .csv file'));
+  const { headers, rows } = await parseSheet(req.file.buffer, req.file.originalname);
+  if (!rows.length) return fail(res, new Error('No rows found in the file'));
+  const token = stashUpload({ filename: req.file.originalname, headers, rows });
+  res.json({ token, filename: req.file.originalname, headers, rowCount: rows.length, sample: rows.slice(0, 8), mapping: guessMapping(headers), targets: TARGETS });
+}));
+
+router.post('/import/sheet/commit', wrap(async (req, res) => {
+  const { token, mapping, country, source, publish, titleCaseNames } = req.body || {};
+  if (!token || !mapping?.name || !country) return fail(res, new Error('token, mapping.name and country are required'));
+  importSheet({ token, mapping, country, source, publish: publish !== false, titleCaseNames: titleCaseNames !== false, startedBy: req.user.id,
+    log: (m) => console.log(`[sheet] ${m}`) }).catch((e) => console.error('[sheet]', e.message));
+  res.status(202).json({ ok: true, message: 'Import started — progress shows under “Recent imports”.' });
+}));
+
+router.post('/import/scorecard', wrap(async (req, res) => {
+  if (!scorecardEnabled()) return fail(res, new Error('Set COLLEGE_SCORECARD_API_KEY in server/.env (free at api.data.gov/signup)'));
+  importScorecard({ startedBy: req.user.id, log: (m) => console.log(`[scorecard] ${m}`) }).catch((e) => console.error('[scorecard]', e.message));
+  res.status(202).json({ ok: true, message: 'US import started (≈6,000 colleges, a few minutes).' });
+}));
+
+// Bulk actions on many colleges at once (publish / hide / feature / hide fields or sections / delete)
+router.post('/colleges/bulk', wrap(async (req, res) => {
+  const parsed = collegeBulk.safeParse(req.body);
+  if (!parsed.success) return res.status(422).json({ error: 'Validation failed', issues: parsed.error.flatten() });
+  const { ids, action, values = [] } = parsed.data;
+  const simple = { publish: { is_published: true }, hide: { is_published: false }, feature: { is_featured: true }, unfeature: { is_featured: false } };
+  if (simple[action]) {
+    const { error } = await supabase.from('colleges').update(simple[action]).in('id', ids);
+    if (error) return fail(res, error);
+    return res.json({ ok: true, count: ids.length });
+  }
+  if (action === 'delete') {
+    if (req.profile.role !== 'super_admin') return fail(res, new Error('Only a super admin can bulk-delete'), 403);
+    const { error } = await supabase.from('colleges').delete().in('id', ids);
+    if (error) return fail(res, error);
+    return res.json({ ok: true, count: ids.length });
+  }
+  const col = action.endsWith('fields') ? 'hidden_fields' : 'hidden_sections';
+  const allowed = schemas.colleges.shape[col].unwrap().element.options;
+  const vals = values.filter((v) => allowed.includes(v));
+  if (!vals.length) return fail(res, new Error('Choose at least one field or section'));
+  const { data, error } = await supabase.from('colleges').select(`id, ${col}`).in('id', ids);
+  if (error) return fail(res, error);
+  const add = action.startsWith('hide');
+  for (let i = 0; i < data.length; i += 25) {
+    await Promise.all(data.slice(i, i + 25).map((r) => {
+      const cur = new Set(r[col] || []);
+      vals.forEach((v) => (add ? cur.add(v) : cur.delete(v)));
+      return supabase.from('colleges').update({ [col]: Array.from(cur) }).eq('id', r.id);
+    }));
+  }
+  res.json({ ok: true, count: data.length });
+}));
+
 // ---------------------------------------------------------------- uploads
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -162,7 +223,7 @@ router.post('/upload', upload.array('files', 10), wrap(async (req, res) => {
 
 // ---------------------------------------------------------------- generic CRUD (content tables)
 const crudConfig = {
-  colleges:           { search: ['name', 'city', 'country'], filters: ['is_published', 'accepts_applications', 'country', 'source', 'country_code'], order: 'created_at' },
+  colleges:           { search: ['name', 'city', 'country', 'state', 'district'], filters: ['is_published', 'accepts_applications', 'country', 'source', 'country_code', 'state', 'is_featured'], order: 'created_at' },
   courses:            { search: ['name'], filters: ['college_id', 'level'], order: 'created_at' },
   places:             { search: ['name'], filters: ['college_id', 'kind'], order: 'created_at' },
   hostels:            { search: ['name', 'city', 'country'], filters: ['approval_status', 'is_published', 'college_id'], order: 'created_at' },

@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, XCircle, Loader2, Download, RefreshCw, Search } from 'lucide-react';
 import { api } from '@/lib/api';
+import SheetImport from '@/components/admin/SheetImport';
 import { timeAgo } from '@/lib/format';
 
 type Run = { id: string; kind: string; params: any; status: string; inserted: number; updated: number; skipped: number; message: string | null; created_at: string; finished_at: string | null };
@@ -78,9 +79,29 @@ export default function AdminImport() {
               <Status ok={integ.jobs?.adzuna} label="Local jobs — Adzuna" hint="Set ADZUNA_APP_ID and ADZUNA_APP_KEY in server/.env (free key at developer.adzuna.com)" />
               <Status ok={integ.jobs?.jooble} label="Local jobs — Jooble" hint="Set JOOBLE_API_KEY in server/.env (request a free key at jooble.org/api/about)" />
               <Status ok={!!integ.translate} label={`Translation — ${integ.translate || 'not configured'}`} hint="Set GOOGLE_TRANSLATE_API_KEY (or LIBRETRANSLATE_URL) in server/.env for 30+ languages" />
+              <Status ok={integ.scorecard} label="U.S. colleges with tuition — College Scorecard" hint="Set COLLEGE_SCORECARD_API_KEY in server/.env (free at api.data.gov/signup)" />
               <Status ok={integ.ai_chat} label="AI assistant — Anthropic" hint="Set ANTHROPIC_API_KEY in server/.env" />
             </ul>
           )}
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <SheetImport onStarted={loadRuns} />
+        <div className="card p-5">
+          <h2 className="font-bold text-slate-900">🇺🇸 Every U.S. college with real tuition</h2>
+          <p className="mt-1 text-sm text-slate-500">Imports about 6,000 colleges from the U.S. Department of Education College Scorecard: tuition (in-state / out-of-state), size, admission rate, location and website.</p>
+          {integ && !integ.scorecard && <p className="mt-3 rounded-lg bg-amber-50 p-2 text-xs text-amber-800">Add COLLEGE_SCORECARD_API_KEY to server/.env (free at api.data.gov/signup) and restart the API.</p>}
+          <button disabled={!integ?.scorecard || !!busy} className="btn-primary mt-4" onClick={async () => {
+            if (!confirm('Import all U.S. colleges now? It takes a few minutes.')) return;
+            try { const r = await api('/api/admin/import/scorecard', { method: 'POST' }); setMsg(r.message); loadRuns(); } catch (e: any) { setMsg(e.message); }
+          }}><Download size={16} />Import U.S. colleges</button>
+          <h3 className="mt-6 font-semibold text-slate-900">Coverage plan</h3>
+          <ul className="mt-2 list-disc space-y-1 ps-5 text-sm text-slate-600">
+            <li>India: AISHE list (upload) + your own detailed profiles</li>
+            <li>United States: College Scorecard (button above)</li>
+            <li>Rest of the world: Hipolabs + Wikidata (country import above, or <code>--all</code>)</li>
+          </ul>
         </div>
       </div>
 
@@ -90,7 +111,7 @@ export default function AdminImport() {
           <thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="px-4 py-2">When</th><th className="px-4 py-2">Country</th><th className="px-4 py-2">Status</th><th className="px-4 py-2">New</th><th className="px-4 py-2">Refreshed</th><th className="px-4 py-2">Kept</th><th className="px-4 py-2">Notes</th></tr></thead>
           <tbody className="divide-y divide-slate-100">
             {runs.map((r) => (
-              <tr key={r.id}><td className="px-4 py-2 text-xs">{timeAgo(r.created_at)}</td><td className="px-4 py-2">{r.params?.country}</td>
+              <tr key={r.id}><td className="px-4 py-2 text-xs">{timeAgo(r.created_at)}</td><td className="px-4 py-2">{r.kind === 'sheet' ? `${r.params?.file} (${r.params?.country})` : r.params?.country}</td>
                 <td className="px-4 py-2"><span className={r.status === 'done' ? 'chip-green' : r.status === 'failed' ? 'chip-red' : 'chip-amber'}>{r.status}</span></td>
                 <td className="px-4 py-2">{r.inserted}</td><td className="px-4 py-2">{r.updated}</td><td className="px-4 py-2">{r.skipped}</td><td className="px-4 py-2 text-xs text-slate-500">{r.message}</td></tr>
             ))}

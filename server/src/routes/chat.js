@@ -33,14 +33,14 @@ async function retrieve(question) {
 
   const ctx = { colleges: [], hostels: [], jobs: [], exams: [] };
   if (!words.length) {
-    const { data } = await supabase.from('colleges').select('slug,name,city,country,fees_min,fees_max,currency,ranking,streams')
+    const { data } = await supabase.from('colleges_public').select('slug,name,city,country,fees_min,fees_max,currency,ranking,streams')
       .eq('is_published', true).order('ranking', { ascending: true, nullsFirst: false }).limit(5);
     ctx.colleges = data || [];
     return ctx;
   }
 
   const tasks = [
-    supabase.from('colleges').select('id,slug,name,city,country,type,fees_min,fees_max,currency,ranking,streams,accepts_applications')
+    supabase.from('colleges_public').select('id,slug,name,city,country,type,fees_min,fees_max,currency,ranking,streams,accepts_applications')
       .eq('is_published', true).or(or(['name', 'short_name', 'city', 'country', 'state'])).limit(6)
       .then(({ data }) => { ctx.colleges = data || []; }),
   ];

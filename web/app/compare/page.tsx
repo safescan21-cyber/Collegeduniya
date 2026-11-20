@@ -24,7 +24,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
 
   if (hasSupabase && slugs.length) {
     const sb = supabasePublic();
-    const { data } = await sb.from('colleges').select('*').in('slug', slugs).eq('is_published', true);
+    const { data } = await sb.from('colleges_public').select('*').in('slug', slugs).eq('is_published', true);
     colleges = slugs.map((s) => (data || []).find((c: College) => c.slug === s)).filter(Boolean) as College[];
     const ids = colleges.map((c) => c.id);
     if (ids.length) {
