@@ -72,7 +72,45 @@ Return JSON {"answers":[int,...]} in the same order.\n\n${JSON.stringify(qs.map(
   }
 }
 
-export async function generateQuestions({ slug, section, topic = null, difficulty = 'mixed', count = 10 }) {
+// Third pass for a disagreement between the writer's key and the checker's answer
+export async function judge(exam, q, other) {
+  try {
+    const { data } = await completeJson({
+      check: true, temperature: 0, maxTokens: 900,
+      system: `You are a meticulous ${exam.short_name} examiner. Work the problem out fully before deciding. A question must have exactly one correct option.`,
+      prompt: `Question: ${q.stem}\nOptions: ${JSON.stringify(q.options)}\nAnswer key says option ${q.answer}; another solver chose option ${other}.
+Return JSON {"correct": index of the single correct option or -1 if none/several, "ambiguous": true|false, "explanation": "1-4 sentence working", "reason": "one sentence"}`,
+    });
+    const c = parseInt(data.correct, 10);
+    if (data.ambiguous || !(c >= 0 && c < q.options.length)) return { action: 'reject', reason: String(data.reason || 'ambiguous or no correct option').slice(0, 200) };
+    if (c === q.answer) return { action: 'keep', reason: String(data.reason || '').slice(0, 200) };
+    if (c === other) return { action: 'fix', answer: c, explanation: String(data.explanation || '').slice(0, 3000), reason: String(data.reason || '').slice(0, 200) };
+    return { action: 'reject', reason: 'three passes gave three different answers' };
+  } catch (e) { return { action: 'reject', reason: `re-check failed: ${e.message}`.slice(0, 200) }; }
+}
+
+// Student reports: the AI decides whether the report is right and fixes / rejects / keeps the question
+export async function reviewReported(question, reasons, exam) {
+  const { data } = await completeJson({
+    check: true, temperature: 0, maxTokens: 1500,
+    system: `You are a meticulous ${exam.short_name} examiner reviewing a practice question that students reported. Solve it yourself first.`,
+    prompt: `Question: ${question.stem}\nOptions: ${JSON.stringify(question.options)}\nAnswer key: option ${question.answer}\nExplanation: ${question.explanation || '-'}
+Student reports:\n${reasons.map((r) => '- ' + r).join('\n')}
+Return JSON {"action":"keep"|"fix"|"reject","reason":"one sentence",
+ "fixed": null or {"stem":"...","options":["..."],"answer":int,"explanation":"..."}}
+keep = the question and key are correct as they are; fix = small correction makes it right (give the full corrected question); reject = unclear or unfixable.`,
+  });
+  const action = ['keep', 'fix', 'reject'].includes(data.action) ? data.action : 'reject';
+  const fixed = action === 'fix' && data.fixed ? validQuestion({ ...data.fixed, difficulty: question.difficulty, topic: question.topic }) : null;
+  if (action === 'fix' && !fixed) return { action: 'reject', reason: 'fix was not a valid question' };
+  if (fixed) {
+    const [chk] = await crossCheck(exam, [fixed]);   // the corrected version must pass an independent check too
+    if (chk !== fixed.answer) return { action: 'reject', reason: 'corrected version failed the independent check' };
+  }
+  return { action, fixed, reason: String(data.reason || '').slice(0, 300) };
+}
+
+export async function generateQuestions({ slug, section, topic = null, difficulty = 'mixed', count = 10, autopilot = false }) {
   if (!llmReady()) throw new Error('AI is not configured');
   const { exam, bp } = await examInfo(slug);
   const sec = (bp?.sections || []).find((s) => s.name === section);
@@ -92,18 +130,29 @@ Return JSON {"questions":[{"stem":"...","options":["...","...","...","..."],"ans
   });
   const qs = (data.questions || []).map((q) => validQuestion(q)).filter(Boolean).slice(0, n);
   const checks = await crossCheck(exam, qs);
-  const auto = Boolean(bp?.auto_publish_verified);
-  const rows = qs.map((q, i) => {
+  const auto = autopilot || Boolean(bp?.auto_publish_verified);
+  const rows = [];
+  for (const [i, q] of qs.entries()) {
     const agree = checks[i] === q.answer ? 'agree' : Number.isInteger(checks[i]) ? 'disagree' : 'unchecked';
-    return { exam_slug: slug, section, topic: q.topic || topic, difficulty: q.difficulty, stem: q.stem, options: q.options, answer: q.answer,
-      explanation: q.explanation, ai_check: agree, status: auto && agree === 'agree' ? 'approved' : 'draft', source: 'ai', model };
-  });
+    const row = { exam_slug: slug, section, topic: topic || q.topic, difficulty: q.difficulty, stem: q.stem, options: q.options, answer: q.answer,
+      explanation: q.explanation, ai_check: agree, status: auto && agree === 'agree' ? 'approved' : 'draft', auto_approved: auto && agree === 'agree',
+      source: 'ai', model, ai_review: agree === 'agree' ? 'Second AI pass agreed with the key' : null };
+    if (autopilot && agree === 'disagree') {
+      // a third, careful pass decides: keep the key, switch to the other answer, or throw the question away
+      const v = await judge(exam, q, checks[i]);
+      if (v.action === 'keep') Object.assign(row, { status: 'approved', auto_approved: true, ai_review: `Re-checked: key kept. ${v.reason}` });
+      else if (v.action === 'fix') Object.assign(row, { status: 'approved', auto_approved: true, answer: v.answer, explanation: v.explanation || row.explanation, ai_check: 'agree', ai_review: `Re-checked: key corrected. ${v.reason}` });
+      else Object.assign(row, { status: 'rejected', ai_review: `Rejected on re-check: ${v.reason}` });
+    }
+    rows.push(row);
+  }
   if (rows.length) {
     const { error } = await supabase.from('mock_questions').insert(rows);
     if (error) throw error;
   }
   return { created: rows.length, agree: rows.filter((r) => r.ai_check === 'agree').length, disagree: rows.filter((r) => r.ai_check === 'disagree').length,
-    approved: rows.filter((r) => r.status === 'approved').length, model };
+    approved: rows.filter((r) => r.status === 'approved').length, rejected: rows.filter((r) => r.status === 'rejected').length,
+    repaired: rows.filter((r) => /key corrected/.test(r.ai_review || '')).length, model };
 }
 
 // Fill a whole exam: every section × topic, `perTopic` questions each (runs in the background)

@@ -244,7 +244,7 @@ const jsonish = (schema) => z.preprocess((v) => { if (typeof v !== 'string') ret
 schemas.mock_blueprints = z.object({
   exam_slug: str.min(2), title: str.min(3).max(120), duration_min: z.coerce.number().int().min(5).max(360),
   sections: jsonish(z.array(mockSection).min(1).max(12)), instructions: optStr, pattern_source: optStr,
-  is_published: bool, auto_publish_verified: bool,
+  is_published: bool, auto_publish_verified: bool, autopilot: bool, pattern_checked: bool, ai_drafted: bool,
 });
 schemas.mock_questions = z.object({
   exam_slug: str.min(2), section: str.min(1).max(60), topic: optStr, difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
@@ -346,6 +346,13 @@ export const moderation = {
   mock_question_reports: z.object({ status: z.enum(['open', 'fixed', 'dismissed']).optional() }),
   reward_points: z.object({ status: z.enum(['pending', 'approved', 'reversed']).optional(), note: optStr }),
 };
+
+export const mockSettings = z.object({
+  autopilot: bool, auto_publish: bool,
+  target_per_topic: z.coerce.number().int().min(1).max(200).optional(),
+  daily_budget: z.coerce.number().int().min(0).max(20000).optional(),
+  min_ready_ratio: z.coerce.number().min(0.2).max(5).optional(),
+});
 
 export const pointsGrant = z.object({
   user_id: z.string().uuid(), points: z.coerce.number().int().min(-100000).max(100000).refine((n) => n !== 0), note: str.min(3).max(200),

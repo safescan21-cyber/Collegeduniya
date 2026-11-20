@@ -2,12 +2,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Bot, Sparkles, Loader2, Plus, Trash2, Save, CheckCircle2, XCircle, Wand2, ShieldAlert, Pencil } from 'lucide-react';
 import ModerationList from '@/components/admin/ModerationList';
+import MockAutopilot from '@/components/admin/MockAutopilot';
 import { api } from '@/lib/api';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { timeAgo } from '@/lib/format';
 
 type Section = { name: string; topics: string[]; questions: number; correct: number; wrong: number };
-type BP = { exam_slug: string; title: string; duration_min: number; sections: Section[]; instructions: string; pattern_source: string; is_published: boolean; auto_publish_verified: boolean; note?: string };
+type BP = { exam_slug: string; title: string; duration_min: number; sections: Section[]; instructions: string; pattern_source: string; is_published: boolean; auto_publish_verified: boolean; autopilot?: boolean; pattern_checked?: boolean; ai_drafted?: boolean; note?: string };
 type Exam = { slug: string; short_name: string; country: string | null };
 const LETTERS = 'ABCDEF';
 
@@ -53,7 +54,7 @@ function PatternEditor({ exams, slug, setSlug, onSaved }: { exams: Exam[]; slug:
   const save = async () => {
     if (!bp) return;
     setBusy('save'); setMsg('');
-    const body = { ...bp, note: undefined };
+    const body = { ...bp, note: undefined, ai_drafted: exists ? bp.ai_drafted : !!bp.note };
     try {
       const r = exists ? await api<{ data: BP }>(`/api/admin/mock_blueprints/${slug}`, { method: 'PATCH', body: JSON.stringify(body) })
         : await api<{ data: BP }>('/api/admin/mock_blueprints', { method: 'POST', body: JSON.stringify(body) });
@@ -75,6 +76,7 @@ function PatternEditor({ exams, slug, setSlug, onSaved }: { exams: Exam[]; slug:
       {bp && (
         <>
           {bp.note && <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800"><b>Check before publishing:</b> {bp.note}</p>}
+          {exists && bp.ai_drafted && !bp.pattern_checked && <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">The AI drafted this pattern. Compare sections, question counts, marking and duration with the official notice, then tick <b>Pattern confirmed</b> below.</p>}
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="sm:col-span-2"><label className="label">Test title</label><input className="input" value={bp.title} onChange={(e) => setBp({ ...bp, title: e.target.value })} /></div>
             <div><label className="label">Duration (minutes)</label><input type="number" className="input" value={bp.duration_min} onChange={(e) => setBp({ ...bp, duration_min: Number(e.target.value) })} /></div>
@@ -98,6 +100,8 @@ function PatternEditor({ exams, slug, setSlug, onSaved }: { exams: Exam[]; slug:
           <div className="flex flex-wrap gap-5 text-sm">
             <label className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4 accent-brand-600" checked={bp.is_published} onChange={(e) => setBp({ ...bp, is_published: e.target.checked })} />Published (students can take it)</label>
             <label className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4 accent-brand-600" checked={bp.auto_publish_verified} onChange={(e) => setBp({ ...bp, auto_publish_verified: e.target.checked })} />Auto-approve AI questions that pass the AI double-check</label>
+            <label className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4 accent-emerald-600" checked={bp.autopilot !== false} onChange={(e) => setBp({ ...bp, autopilot: e.target.checked })} />Managed by autopilot</label>
+            <label className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4 accent-emerald-600" checked={!!bp.pattern_checked} onChange={(e) => setBp({ ...bp, pattern_checked: e.target.checked })} />Pattern confirmed against the official notice</label>
           </div>
           <div className="flex items-center gap-3"><button onClick={save} disabled={!!busy} className="btn-primary">{busy === 'save' ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}Save pattern</button>{msg && <span className="text-sm text-slate-600">{msg}</span>}</div>
         </>
@@ -253,18 +257,19 @@ export default function AdminMockTests() {
   const exams = useExams();
   const [slug, setSlug] = useState('');
   const [bp, setBp] = useState<BP | null>(null);
-  const [tab, setTab] = useState<'build' | 'review' | 'reports'>('build');
+  const [tab, setTab] = useState<'autopilot' | 'build' | 'review' | 'reports'>('autopilot');
   const [refresh, setRefresh] = useState(0);
   const bump = useCallback(() => setRefresh((n) => n + 1), []);
   return (
     <div className="space-y-5">
       <div className="card space-y-2 p-5">
         <h1 className="text-xl font-extrabold text-slate-900">Mock tests</h1>
-        <p className="text-sm text-slate-600">1) Pick an exam and save its pattern (draft it with AI, then check it against the official notice). 2) Generate questions. 3) Review and approve them. 4) Tick “Published”. Students only ever see approved questions.</p>
+        <p className="text-sm text-slate-600"><b>Autopilot</b> lets the AI do everything below on its own — you only spot-check. Manual steps: 1) Pick an exam and save its pattern (draft it with AI, then check it against the official notice). 2) Generate questions. 3) Review and approve them. 4) Tick “Published”. Students only ever see approved questions.</p>
         <AiStatus />
       </div>
-      <div className="flex gap-2">{([['build', 'Pattern & generate'], ['review', 'Review questions'], ['reports', 'Student reports']] as const).map(([k, l]) => (
+      <div className="flex gap-2">{([['autopilot', 'Autopilot'], ['build', 'Pattern & generate'], ['review', 'Review questions'], ['reports', 'Student reports']] as const).map(([k, l]) => (
         <button key={k} onClick={() => setTab(k)} className={`${tab === k ? 'btn-primary' : 'btn-ghost'} py-1.5`}>{l}</button>))}</div>
+      {tab === 'autopilot' && <MockAutopilot onPickExam={(x) => { setSlug(x); setTab('build'); }} />}
       {tab === 'build' && <><PatternEditor exams={exams} slug={slug} setSlug={setSlug} onSaved={setBp} /><Generator slug={slug} bp={bp} onDone={bump} /></>}
       {tab === 'review' && (
         <>

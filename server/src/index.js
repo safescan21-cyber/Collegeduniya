@@ -15,6 +15,7 @@ import communityRoutes from './routes/community.js';
 import { startJobAlertScheduler } from './services/jobAlerts.js';
 import { startNotifier } from './services/notifier.js';
 import { startMockSweeper } from './services/mockResults.js';
+import { startAutopilot } from './services/mockAutopilot.js';
 import mockRoutes from './routes/mock.js';
 import { llmReady, llmProvider, llmModel } from './services/llm.js';
 import hookRoutes from './routes/hooks.js';
@@ -59,5 +60,6 @@ app.listen(PORT, () => {
   startJobAlertScheduler();
   startNotifier();
   startMockSweeper();
+  startAutopilot();
   console.log(`[ai] ${llmReady() ? `${llmProvider()} · ${llmModel()}` : 'not configured — mock-test generation and AI feedback are off (rule-based feedback still works)'}`);
 });

@@ -81,6 +81,7 @@ Browser ──► Next.js (web) ──► Supabase  (public reads, OTP login, re
 14. Run **`supabase/migrations/011_growth2.sql`** (top-college pages, job alerts, resumes, exam library, percentile → rank, rewards, referrals & ambassadors, salary trends).
 15. Run **`supabase/migrations/012_whatsapp_notifications.sql`** (WhatsApp login + notifications outbox).
 16. Run **`supabase/migrations/013_mock_tests.sql`** (mock tests: patterns, AI question bank, attempts, scoring).
+17. Run **`supabase/migrations/014_mock_autopilot.sql`** (mock-test autopilot).
 8. Load full college lists:
    ```bash
    npm run import:sheet -- ./All_Colleges.xlsx IN aishe   # India: official AISHE "All Colleges" list (~48k colleges)
@@ -398,6 +399,28 @@ Everything is already built. It stays switched off until you connect a WhatsApp 
 **Notes**
 - **Model size:** a 14B model needs about 10 GB RAM (better with a GPU). Small local models make more mistakes, so keep manual review on and use the double-check.
 - **Without AI:** feedback still works (rule-based weak topics and plan), and you can add questions by hand.
+
+### Mock-test autopilot (migration 014) — the AI does the work, you spot-check
+
+Go to **Admin → Mock tests → Autopilot → Turn on autopilot.** From then on the API does this every hour (`MOCK_AUTOPILOT_MINUTES`, default 60):
+
+1. **Patterns:** it drafts a test pattern for every exam that has none. Each one is shown as *confirm pattern* until you tick *Pattern confirmed against the official notice*.
+2. **Question banks:** it fills every topic up to *Questions per topic*, and at least enough for a full paper.
+3. **Checking:** each question is written, then answered again by a separate AI pass without seeing the key.
+   - Agree → approved automatically.
+   - Disagree → a third, careful pass keeps the key, corrects it, or rejects the question.
+4. **Student reports:** two reports hide a question straight away. The AI then reviews the reports and keeps the question, corrects it (the fix must pass a fresh independent check), or removes it.
+5. **Publishing:** a test goes live once every section has enough approved questions (*Bank size before going live*).
+6. **Daily budget:** caps how many new questions the AI writes per day, to control cost. Report handling and publishing keep running when the budget is used up.
+
+**Your job (a few minutes a day):**
+- *Spot-check*: look through a handful of AI-approved questions and mark them *Correct* or *Wrong — remove*.
+- Confirm AI-drafted patterns.
+- Glance at *What the AI did*.
+
+**Other controls:**
+- Untick *Managed by autopilot* on an exam's pattern to run it by hand.
+- Set `MOCK_AUTOPILOT=off` in `server/.env` to stop the scheduler completely.
 
 ## 6. Deploy on your own VPS (Ubuntu + Nginx + PM2)
 

@@ -14,7 +14,7 @@ import { mailEnabled } from '../services/mailer.js';
 import { providersStatus } from '../services/jobs.js';
 import { providerName } from '../services/translate.js';
 import {
-  schemas, slugify, pointsGrant, reviewUpdateV2, collegeBulk, applicationUpdate, userUpdate, moderation,
+  schemas, slugify, pointsGrant, mockSettings, reviewUpdateV2, collegeBulk, applicationUpdate, userUpdate, moderation,
 } from '../schemas.js';
 
 const router = Router();
@@ -326,6 +326,45 @@ router.get('/mock/jobs/:id', wrap(async (req, res) => {
   if (!j) return fail(res, new Error('Job not found (finished jobs are kept for 6 hours)'), 404);
   res.json(j);
 }));
+// ---- autopilot (AI does the work; admins spot-check)
+router.get('/mock/settings', wrap(async (_req, res) => {
+  const { data, error } = await supabase.from('mock_settings').select('*').eq('id', 1).maybeSingle();
+  if (error) return fail(res, error);
+  res.json({ data });
+}));
+router.patch('/mock/settings', wrap(async (req, res) => {
+  const parsed = mockSettings.safeParse(req.body);
+  if (!parsed.success) return res.status(422).json({ error: 'Validation failed', issues: parsed.error.flatten() });
+  const { data, error } = await supabase.from('mock_settings').update({ ...parsed.data, updated_at: new Date().toISOString() }).eq('id', 1).select().single();
+  if (error) return fail(res, error);
+  await supabase.from('mock_autopilot_log').insert({ action: 'settings', detail: `${req.profile.full_name || req.user.email}: ${JSON.stringify(parsed.data)}` });
+  res.json({ data });
+}));
+router.post('/mock/autopilot/run', wrap(async (req, res) => {
+  const { runAutopilot, autopilotRunning } = await import('../services/mockAutopilot.js');
+  if (autopilotRunning()) return res.status(202).json({ running: true });
+  runAutopilot({ force: true, only: req.body?.exam_slug || null }).catch((e) => console.error('[autopilot]', e.message));
+  res.status(202).json({ running: true });
+}));
+router.get('/mock/autopilot/status', wrap(async (_req, res) => {
+  const { autopilotRunning } = await import('../services/mockAutopilot.js');
+  const [{ data: banks, error }, { data: logRows }] = await Promise.all([
+    supabase.rpc('mock_bank_status'),
+    supabase.from('mock_autopilot_log').select('*').order('created_at', { ascending: false }).limit(60),
+  ]);
+  if (error) return fail(res, error);
+  res.json({ running: autopilotRunning(), banks, log: logRows || [] });
+}));
+// spot-check: admin confirms or rejects auto-approved questions
+router.post('/mock/spot-check', wrap(async (req, res) => {
+  const ids = (req.body?.ids || []).filter((x) => /^[0-9a-f-]{36}$/.test(x)).slice(0, 200);
+  const ok = req.body?.verdict === 'ok';
+  if (!ids.length) return fail(res, new Error('ids required'), 422);
+  const { error } = await supabase.from('mock_questions').update(ok ? { checked_by_admin: true } : { checked_by_admin: true, status: 'rejected', ai_review: 'Rejected by admin spot-check' }).in('id', ids);
+  if (error) return fail(res, error);
+  res.json({ ok: true, count: ids.length });
+}));
+
 router.post('/mock/bulk-questions', wrap(async (req, res) => {
   const ids = (req.body?.ids || []).filter((x) => /^[0-9a-f-]{36}$/.test(x)).slice(0, 500);
   const status = req.body?.status;
@@ -360,7 +399,7 @@ const crudConfig = {
   exam_resources:     { search: ['title', 'exam_slug', 'session'], filters: ['exam_slug', 'kind', 'year', 'is_published'], order: 'created_at' },
   exam_stats:         { search: ['exam_slug', 'source'], filters: ['exam_slug', 'year'], order: 'year' },
   mock_blueprints:    { search: ['title', 'exam_slug'], filters: ['is_published'], order: 'updated_at', key: 'exam_slug' },
-  mock_questions:     { search: ['stem', 'topic', 'section'], filters: ['exam_slug', 'section', 'status', 'ai_check', 'difficulty', 'source'], order: 'created_at' },
+  mock_questions:     { search: ['stem', 'topic', 'section'], filters: ['exam_slug', 'section', 'status', 'ai_check', 'difficulty', 'source', 'auto_approved', 'checked_by_admin'], order: 'created_at' },
   reward_catalog:     { search: ['code', 'title'], filters: ['is_active'], order: 'created_at', key: 'code' },
   quota_seats:        { search: ['course', 'academic_year'], filters: ['college_id', 'status', 'quota_type', 'level', 'is_published', 'open_to'], order: 'created_at',
                         select: '*, colleges(name, slug, city, country)' },
