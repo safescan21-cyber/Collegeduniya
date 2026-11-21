@@ -60,13 +60,52 @@ export function Admission({ name, process, dates, eligibility, exams, examNames 
   );
 }
 
-export function Rankings({ name, rows }: { name: string; rows: { source: string; year: number; category: string | null; rank: number | null; rank_band: string | null; source_url: string | null }[] }) {
+type RankRow = { source: string; year: number; category: string | null; rank: number | null; rank_band: string | null; source_url: string | null };
+
+// Plain-language highlights worked out from the official ranks (no copied text): best ranks, streaks, moves, top-10s
+export function rankingHighlights(rows: RankRow[], review?: { avg: number; count: number } | null) {
+  const out: { tone: 'gold' | 'up' | 'down' | 'info'; text: string }[] = [];
+  const nirf = rows.filter((r) => r.source === 'NIRF' && r.rank);
+  if (nirf.length) {
+    const latest = Math.max(...nirf.map((r) => r.year));
+    const now = nirf.filter((r) => r.year === latest).sort((a, b) => (a.category === 'Overall' ? -1 : 0) - (b.category === 'Overall' ? -1 : 0) || a.rank! - b.rank!);
+    const cats = Array.from(new Set(nirf.map((r) => r.category || 'Overall')));
+    for (const r of now.slice(0, 3)) out.push({ tone: r.rank! <= 10 ? 'gold' : 'info', text: `#${r.rank} in ${r.category === 'Overall' ? 'India (Overall)' : r.category} — NIRF ${latest}` });
+    const top10 = now.filter((r) => r.rank! <= 10).map((r) => r.category).filter((c) => c !== 'Overall');
+    if (top10.length > 1) out.push({ tone: 'gold', text: `Top 10 in India for ${top10.slice(0, 3).join(', ')}` });
+    for (const c of cats) {
+      const hist = nirf.filter((r) => (r.category || 'Overall') === c).sort((a, b) => b.year - a.year);
+      if (hist[0]?.year !== latest || hist.length < 2) continue;
+      let streak = 1; while (streak < hist.length && hist[streak].rank === hist[0].rank && hist[streak].year === latest - streak) streak++;
+      if (streak >= 2 && hist[0].rank! <= 20) { out.push({ tone: 'gold', text: `Held #${hist[0].rank} in ${c} for ${streak} years running (${latest - streak + 1}–${latest})` }); continue; }
+      const first = hist[hist.length - 1]; const move = first.rank! - hist[0].rank!;
+      if (Math.abs(move) >= 3) out.push({ tone: move > 0 ? 'up' : 'down', text: `${move > 0 ? 'Up' : 'Down'} ${Math.abs(move)} places in ${c} since ${first.year} (#${first.rank} → #${hist[0].rank})` });
+    }
+    const fresh = now.filter((r) => !nirf.some((x) => x.year < latest && x.category === r.category));
+    if (fresh.length && nirf.some((x) => x.year < latest)) out.push({ tone: 'info', text: `Newly ranked in ${fresh.map((r) => r.category).slice(0, 2).join(' and ')} in ${latest}` });
+    const years = Array.from(new Set(nirf.map((r) => r.year))).sort();
+    if (years.length >= 3) out.push({ tone: 'info', text: `Ranked by NIRF every year ${years[0]}–${years[years.length - 1]}` });
+  }
+  if (review && review.count > 0) out.push({ tone: 'info', text: `Students rate it ${review.avg.toFixed(1)}/5 from ${review.count} review${review.count === 1 ? '' : 's'}` });
+  const seen = new Set<string>(); return out.filter((h) => (seen.has(h.text) ? false : (seen.add(h.text), true))).slice(0, 7);
+}
+
+export function Rankings({ name, rows, review }: { name: string; rows: RankRow[]; review?: { avg: number; count: number } | null }) {
   if (!rows.length) return null;
+  const hl = rankingHighlights(rows, review);
   const years = Array.from(new Set(rows.map((r) => r.year))).sort((a, b) => b - a).slice(0, 5);
   const keys = Array.from(new Set(rows.map((r) => `${r.source}|${r.category || 'Overall'}`)));
   return (
     <section id="ranking" className="card scroll-mt-32 overflow-hidden">
       <h2 className="flex items-center gap-2 px-6 pt-5 text-xl font-bold text-slate-900"><Trophy size={20} className="text-amber-500" />{name} ranking</h2>
+      {hl.length > 0 && (
+        <ul className="mx-6 mt-3 grid gap-2 sm:grid-cols-2">
+          {hl.map((h) => (
+            <li key={h.text} className={`flex items-start gap-2 rounded-xl px-3 py-2 text-sm ${h.tone === 'gold' ? 'bg-amber-50 text-amber-900' : h.tone === 'up' ? 'bg-emerald-50 text-emerald-800' : h.tone === 'down' ? 'bg-rose-50 text-rose-800' : 'bg-slate-50 text-slate-700'}`}>
+              <span aria-hidden>{h.tone === 'gold' ? '🏆' : h.tone === 'up' ? '▲' : h.tone === 'down' ? '▼' : '•'}</span>{h.text}
+            </li>))}
+        </ul>
+      )}
       <div className="mt-3 overflow-x-auto"><table className="w-full text-sm">
         <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th className="px-6 py-2">Ranking</th>{years.map((y) => <th key={y} className="px-4 py-2">{y}</th>)}</tr></thead>
         <tbody className="divide-y divide-slate-100">{keys.map((k) => { const [src, cat] = k.split('|'); return (
@@ -75,7 +114,7 @@ export function Rankings({ name, rows }: { name: string; rows: { source: string;
               return <td key={y} className="px-4 py-2 font-semibold">{r ? (r.rank ? `#${r.rank}` : r.rank_band || '—') : <span className="font-normal text-slate-300">—</span>}</td>; })}
           </tr>); })}</tbody>
       </table></div>
-      {rows.find((r) => r.source_url) && <p className="px-6 py-2 text-xs text-slate-400">Source: <a href={rows.find((r) => r.source_url)!.source_url!} target="_blank" rel="noopener noreferrer" className="underline">official ranking</a></p>}
+      {rows.find((r) => r.source_url) && <p className="px-6 py-2 text-xs text-slate-400">Source: <a href={rows.find((r) => r.source_url)!.source_url!} target="_blank" rel="noopener noreferrer" className="underline">official ranking</a>{rows.some((r) => r.source === 'NIRF') ? ' — NIRF India Rankings, Ministry of Education, Govt. of India. ' : ' '}<Link href="/rankings" className="underline">See full ranking lists</Link></p>}
     </section>
   );
 }

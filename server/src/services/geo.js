@@ -165,15 +165,21 @@ const PHOTON_Q = {
   library: [['library', ['amenity:library']]],
   visit: [['museum', ['tourism:museum', 'tourism:gallery']], ['park', ['leisure:park', 'leisure:garden']], ['monument', ['historic:monument', 'historic:memorial', 'historic:fort', 'historic:palace']], ['attraction', ['tourism:attraction', 'tourism:viewpoint', 'tourism:zoo']]],
 };
-export async function photonArea(lat, lng, { report = null } = {}) {
+let photonDownUntil = 0;
+export async function photonArea(lat, lng, { report = null, force = false } = {}) {
   const rows = []; const seen = new Set(); const errors = [];
-  for (const [kind, queries] of Object.entries(PHOTON_Q)) {
+  if (!force && Date.now() < photonDownUntil) throw new Error('Photon unreachable from this server (skipping for a while)');
+  outer: for (const [kind, queries] of Object.entries(PHOTON_Q)) {
     for (const [q, tags] of queries) {
       const params = new URLSearchParams({ q, lat: String(lat), lon: String(lng), limit: '25', location_bias_scale: '0.1', zoom: '14', lang: 'en' });
       for (const t of tags) params.append('osm_tag', t);
       await throttle('photon', 250);
       let data;
-      try { data = await fetchJson(`${PHOTON}/api/?${params}`, { timeoutMs: 15000 }); } catch (e) { errors.push(`${kind}/${q}: ${e.message}`); continue; }
+      try { data = await fetchJson(`${PHOTON}/api/?${params}`, { timeoutMs: 15000 }); } catch (e) {
+        errors.push(`${kind}/${q}: ${e.message}`);
+        if (/ECONNREFUSED|ENOTFOUND|EAI_AGAIN|ECONNRESET|ENETUNREACH|EHOSTUNREACH|403/.test(e.message)) { photonDownUntil = Date.now() + 6 * 3600e3; break outer; }
+        continue;
+      }
       for (const f of data?.features || []) {
         const pr = f.properties || {}; const [lo, la] = f.geometry?.coordinates || [];
         const id = `${{ N: 'node', W: 'way', R: 'relation' }[pr.osm_type] || 'node'}/${pr.osm_id}`;

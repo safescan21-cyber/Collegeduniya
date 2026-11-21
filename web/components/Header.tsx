@@ -24,6 +24,7 @@ const MAIN: { href: string; key: DictKey }[] = [
 const MORE: { href: string; key: DictKey; icon: any }[] = [
   { href: '/mock-tests', key: 'nav.mock', icon: ClipboardCheck },
   { href: '/top', key: 'nav.top', icon: Trophy },
+  { href: '/rankings', key: 'nav.nirf', icon: Trophy },
   { href: '/cities', key: 'nav.cities', icon: Globe2 },
   { href: '/rank-predictor', key: 'nav.rankPredictor', icon: Calculator },
   { href: '/predictor', key: 'nav.predictor', icon: Target },

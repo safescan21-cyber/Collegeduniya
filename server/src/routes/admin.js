@@ -194,6 +194,10 @@ router.post('/import/aishe-list', wrap(async (req, res) => {
   importAisheList({ startedBy: req.user.id, log: (m) => console.log(`[aishe] ${m}`) }).then(() => kickAutofill()).catch((e) => console.error('[aishe]', e.message));
   res.status(202).json({ ok: true, message: 'India import started (≈70,000 institutions, 5–10 minutes). Progress shows under “Recent imports”.' });
 }));
+router.post('/import/nirf-bundled', wrap(async (req, res) => {
+  const { importNirf } = await import('../services/nirf.js');
+  res.json({ data: await importNirf({ startedBy: req.user.id, log: (m) => console.log(`[nirf] ${m}`) }) });
+}));
 router.post('/import/eter', wrap(async (req, res) => {
   const countries = Array.isArray(req.body?.countries) ? req.body.countries.filter((c) => /^[A-Za-z]{2}$/.test(c)) : null;
   importEter({ countries, startedBy: req.user.id, log: (m) => console.log(`[eter] ${m}`) })
@@ -355,7 +359,7 @@ router.get('/nearby/test', wrap(async (req, res) => {
   const lat = Number(req.query.lat) || 28.5672; const lng = Number(req.query.lng) || 77.21;
   const report = {}; const t0 = Date.now();
   try {
-    const rows = await (req.query.src === 'nominatim' ? geo.nominatimArea : geo.photonArea)(lat, lng, { report });
+    const rows = await (req.query.src === 'nominatim' ? geo.nominatimArea : geo.photonArea)(lat, lng, { report, force: true });
     const byKind = {}; for (const r of rows) byKind[r.kind] = (byKind[r.kind] || 0) + 1;
     res.json({ ok: true, ms: Date.now() - t0, total: rows.length, byKind, errors: report.errors });
   } catch (e) { res.json({ ok: false, ms: Date.now() - t0, error: e.message, errors: report.errors }); }
