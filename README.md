@@ -626,3 +626,22 @@ Alternative: front-end on Vercel, API on the VPS or Render — just set the two 
 - **Admin → System health** (`/admin/health`): live status of the website, API, database, login service, file storage, live chat, email, AI, disk, memory, SSL certificates (www + db) and background jobs. Refreshes every 30 s; **Check now** and **Send test alert** buttons.
 - The API checks everything every `HEALTH_EVERY_MIN` (5) minutes. A check failing twice in a row alerts every admin (bell notification + email to `ALERT_EMAILS`, or to all admins' emails), and again when it recovers. Email needs `deploy/set-smtp.sh` (it now also sets `SMTP_URL` for the API). `HEALTH_MONITOR=off` disables it.
 - If the whole server is down nothing on it can send alerts — add a free external monitor (e.g. UptimeRobot) for `https://www.collegeolo.com/api/health`.
+
+### 5s. UK & Europe official data
+
+Admin → Import → **UK & Europe — official data**, or on the server:
+
+```bash
+cd /var/www/collegeolo/server
+npm run import:uk            # UK Discover Uni (HESA): providers, courses + course links, graduate salary, % in work/study, NSS
+npm run import:uk -- file.zip   # if the automatic download link changes, download the zip from hesa.ac.uk and pass it
+npm run import:eter          # Europe: ~3,000 institutions in 36 countries (ETER)
+npm run import:eter -- DE FR # some countries only
+```
+
+- Existing colleges are matched by website, then name; only empty fields are filled. Admin-created data is never overwritten.
+- Re-running replaces imported courses/outcomes instead of duplicating them (migration 024 adds `courses.source/external_id/url/study_mode`).
+- Credits shown automatically on each college page: "Contains HESA data … CC BY 4.0" and "Data source: ETER project. Download date …".
+- ETER's terms don't clearly allow commercial use; confirm with info@eter-project.com before relying on it publicly.
+- `DISCOVER_UNI_URL` / `ETER_API_URL` in server/.env override the download addresses.
+- Auto-deploy now applies new files in `supabase/migrations/` before restarting the API.

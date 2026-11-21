@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
+import { importDiscoverUni, importEter } from '../services/europe.js';
 import crypto from 'node:crypto';
 import { supabase } from '../supabase.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/auth.js';
@@ -179,6 +180,20 @@ router.post('/import/scorecard', wrap(async (req, res) => {
   if (!scorecardEnabled()) return fail(res, new Error('Set COLLEGE_SCORECARD_API_KEY in server/.env (free at api.data.gov/signup)'));
   importScorecard({ startedBy: req.user.id, log: (m) => console.log(`[scorecard] ${m}`) }).then(() => kickAutofill()).catch((e) => console.error('[scorecard]', e.message));
   res.status(202).json({ ok: true, message: 'US import started (≈6,000 colleges, a few minutes).' });
+}));
+
+// Official European data: UK Discover Uni (HESA, CC BY 4.0) and ETER (European Tertiary Education Register)
+const ukZip = multer({ storage: multer.memoryStorage(), limits: { fileSize: 300 * 1024 * 1024, files: 1 } });
+router.post('/import/uk', ukZip.single('file'), wrap(async (req, res) => {
+  importDiscoverUni({ zipBuffer: req.file?.buffer || null, startedBy: req.user.id, log: (m) => console.log(`[discover-uni] ${m}`) })
+    .then(() => kickAutofill()).catch((e) => console.error('[discover-uni]', e.message));
+  res.status(202).json({ ok: true, message: 'UK import started (≈400 providers, ≈30,000 courses; 5–15 minutes). Progress shows under “Recent imports”.' });
+}));
+router.post('/import/eter', wrap(async (req, res) => {
+  const countries = Array.isArray(req.body?.countries) ? req.body.countries.filter((c) => /^[A-Za-z]{2}$/.test(c)) : null;
+  importEter({ countries, startedBy: req.user.id, log: (m) => console.log(`[eter] ${m}`) })
+    .then(() => kickAutofill()).catch((e) => console.error('[eter]', e.message));
+  res.status(202).json({ ok: true, message: 'Europe import started (≈3,000 institutions, a few minutes).' });
 }));
 
 // Free details & photos from Wikidata / Wikipedia / Wikimedia Commons

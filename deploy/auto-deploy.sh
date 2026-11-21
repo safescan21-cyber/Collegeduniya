@@ -27,6 +27,14 @@ echo "== $(date '+%F %T') deploying ${OLD:0:7} -> ${NEW:0:7}"
 CHANGED=$(git diff --name-only "$OLD" "$NEW")
 git merge -q --ff-only "origin/$BRANCH" || { echo "cannot fast-forward — local changes on the server?"; exit 1; }
 
+# new/changed database migrations first (they are written to be safe to re-run), so code never runs ahead of the schema
+MIGS=$(echo "$CHANGED" | grep -E '^supabase/migrations/[^/]+\.sql$' | sort || true)
+if [ -n "$MIGS" ]; then
+  EXIST=""; for m in $MIGS; do [ -f "$m" ] && EXIST="$EXIST $m"; done
+  if [ -n "$EXIST" ]; then
+    if bash deploy/db-migrate.sh $EXIST; then echo "migrations applied:$EXIST"; else echo "MIGRATION FAILED:$EXIST — fix and run deploy/db-migrate.sh by hand"; fi
+  fi
+fi
 if echo "$CHANGED" | grep -q '^server/'; then
   echo "$CHANGED" | grep -q '^server/package' && (cd server && npm ci --omit=dev --no-audit --no-fund)
   pm2 restart collegeolo-api --update-env > /dev/null && echo "api restarted"
@@ -39,5 +47,4 @@ if echo "$CHANGED" | grep -q '^web/'; then
     echo "WEB BUILD FAILED — site keeps running the previous version. See /root/collegeolo-build.log"
   fi
 fi
-echo "$CHANGED" | grep -q '^supabase/migrations/' && echo "NOTE: new database migration in this update — apply it with deploy/db-migrate.sh"
 echo "== done"

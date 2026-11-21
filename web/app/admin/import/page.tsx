@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import AutofillCard from '@/components/admin/AutofillCard';
 import SheetImport from '@/components/admin/SheetImport';
 import OfficialDataImport from '@/components/admin/OfficialDataImport';
+import EuropeImport from '@/components/admin/EuropeImport';
 import { timeAgo } from '@/lib/format';
 
 type Run = { id: string; kind: string; params: any; status: string; inserted: number; updated: number; skipped: number; message: string | null; created_at: string; finished_at: string | null };
@@ -94,6 +95,7 @@ export default function AdminImport() {
       <div className="grid gap-6 lg:grid-cols-2">
         <SheetImport onStarted={loadRuns} />
         <OfficialDataImport />
+        <EuropeImport onStarted={loadRuns} />
         <div className="card p-5">
           <h2 className="font-bold text-slate-900">🇺🇸 Every U.S. college with real tuition</h2>
           <p className="mt-1 text-sm text-slate-500">Imports about 6,000 colleges from the U.S. Department of Education College Scorecard: tuition (in-state / out-of-state), size, admission rate, location and website.</p>
@@ -106,6 +108,7 @@ export default function AdminImport() {
           <ul className="mt-2 list-disc space-y-1 ps-5 text-sm text-slate-600">
             <li>India: AISHE list (upload) + your own detailed profiles</li>
             <li>United States: College Scorecard (button above)</li>
+            <li>UK: Discover Uni (HESA) · Europe: ETER (card above)</li>
             <li>Rest of the world: Hipolabs + Wikidata (country import above, or <code>--all</code>)</li>
           </ul>
         </div>

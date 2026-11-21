@@ -11,6 +11,8 @@
     "import:cities": "node scripts/import-cities.js",
     "import:universities": "node scripts/import-universities.js",
     "import:us": "node scripts/import-us.js",
+    "import:uk": "node scripts/import-uk.js",
+    "import:eter": "node scripts/import-eter.js",
     "import:sheet": "node scripts/import-sheet.js",
     "enrich": "node scripts/enrich.js",
     "import:india": "node scripts/import-india.js",
