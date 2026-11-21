@@ -70,7 +70,7 @@ say "Starting Collegeolo Supabase"
 SERVICES=$(docker compose config --services | grep -vE '^(functions|analytics|vector)$' | tr '\n' ' ')
 docker compose up -d $SERVICES
 for i in $(seq 1 60); do
-  code=$(curl -s -o /dev/null -w '%{http_code}' -H "apikey: $ANON_KEY" "http://127.0.0.1:8110/rest/v1/" || true)
+  code=$(curl -s -o /dev/null -w '%{http_code}' -H "apikey: $SERVICE_ROLE_KEY" -H "Authorization: Bearer $SERVICE_ROLE_KEY" "http://127.0.0.1:8110/rest/v1/" || true)
   st=$(curl -s -o /dev/null -w '%{http_code}' -H "apikey: $SERVICE_ROLE_KEY" -H "Authorization: Bearer $SERVICE_ROLE_KEY" "http://127.0.0.1:8110/storage/v1/bucket" || true)
   [ "$code" = 200 ] && [ "$st" = 200 ] && break
   sleep 5
