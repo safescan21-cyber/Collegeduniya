@@ -612,3 +612,8 @@ Alternative: front-end on Vercel, API on the VPS or Render — just set the two 
 - Followers get at most one email a day (from 7:00 India time), with one-click unsubscribe per exam. Needs `SMTP_URL`. Admin → Exam news shows headlines, lets you hide wrong ones and run collection or emails now.
 - Hindi headlines: add the Hindi name (e.g. जेईई मेन) under "Other names used in news".
 - Migration `021_exam_news.sql`.
+
+### 5p. Rank predictor pages
+- `/rank-predictor` and `/rank-predictor/<exam>`: percentile → rank (from `exam_stats`, official candidate counts) and marks → rank (from `rank_bands`, official/published bands), each with year and source, and a link to the college predictor at that rank.
+- Students share their real result (marks/percentile + rank on the scorecard). Automatic checks flag numbers that don't fit official figures; admins approve in **Admin → Rank results (students)**. Approved results show as a table and give a "students with similar marks got…" estimate. Migration `022_rank_reports.sql`.
+- Pages without any data are `noindex` until data exists. Fill official numbers in Admin → Rank bands and Exam stats (e.g. total candidates from the NTA result press note).

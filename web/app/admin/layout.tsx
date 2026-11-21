@@ -34,6 +34,7 @@ const NAV = [
   { href: '/admin/reports', label: 'Reports (old)', icon: Flag },
   { href: '/admin/rankings', label: 'Rankings (NIRF)', icon: Trophy },
   { href: '/admin/rank-bands', label: 'Marks → rank', icon: ChartColumn },
+  { href: '/admin/rank-reports', label: 'Rank results (students)', icon: Users },
   { href: '/admin/scholarships', label: 'Scholarships', icon: Award },
   { href: '/admin/visa-guides', label: 'Visa guides', icon: Plane },
   { href: '/admin/partners', label: 'Lead partners', icon: Handshake },

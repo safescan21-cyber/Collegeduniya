@@ -31,7 +31,7 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
     return rows.map((r) => ({ url: `${SITE_URL}/city/${r.slug}`, priority: 0.6 }));
   }
 
-  const base: MetadataRoute.Sitemap = ['', '/colleges', '/hostels', '/jobs', '/exams', '/news', '/questions', '/predictor', '/compare', '/apply', '/management-quota', '/recommend', '/career-quiz', '/roommates', '/scholarships', '/study-abroad/visa', '/counselling', '/study-abroad/calculator', '/near-me', '/cities', '/partners', '/top', '/mock-tests', '/community', '/about', '/editorial-policy', '/contact', '/privacy', '/terms', '/community-guidelines', '/papers', '/trends', '/rewards', '/ambassador'].map((p) => ({
+  const base: MetadataRoute.Sitemap = ['', '/colleges', '/hostels', '/jobs', '/exams', '/news', '/questions', '/predictor', '/rank-predictor', '/compare', '/apply', '/management-quota', '/recommend', '/career-quiz', '/roommates', '/scholarships', '/study-abroad/visa', '/counselling', '/study-abroad/calculator', '/near-me', '/cities', '/partners', '/top', '/mock-tests', '/community', '/about', '/editorial-policy', '/contact', '/privacy', '/terms', '/community-guidelines', '/papers', '/trends', '/rewards', '/ambassador'].map((p) => ({
     url: `${SITE_URL}${p}`, changeFrequency: 'daily', priority: p ? 0.8 : 1,
   }));
   const [h, j, e, a, q, qs, qc, cc] = await Promise.all([
@@ -56,6 +56,7 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
     sb.from('scholarships').select('slug, updated_at').eq('is_published', true).limit(5000),
     sb.from('visa_guides').select('country_code, updated_at').eq('is_published', true),
   ]);
+  const { data: rankEx } = await sb.rpc('rank_predictor_exams');
   return [
     ...base,
     ...((mocks || []) as any[]).filter((m) => Number(m.ready_questions) > 0).map((m) => ({ url: `${SITE_URL}/mock-tests/${m.exam_slug}`, changeFrequency: 'weekly' as const, priority: 0.8 })),
@@ -69,6 +70,7 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
     ...((qs.data || []) as any[]).map((r) => ({ url: `${SITE_URL}/management-quota/${r.id}`, lastModified: r.created_at, priority: 0.7 })),
     ...((qc.data || []) as any[]).map((r) => ({ url: `${SITE_URL}/management-quota?country=${r.country_code}`, priority: 0.7 })),
     ...((ex.data || []) as any[]).map((r) => ({ url: `${SITE_URL}/predictor/${r.slug}`, priority: 0.9 })),
+    ...((rankEx || []) as any[]).filter((r) => r.bands > 0 || r.stats > 0 || r.reports >= 3).map((r) => ({ url: `${SITE_URL}/rank-predictor/${r.slug}`, changeFrequency: 'weekly' as const, priority: 0.9 })),
     ...((sch.data || []) as any[]).map((r) => ({ url: `${SITE_URL}/scholarships/${r.slug}`, lastModified: r.updated_at, priority: 0.6 })),
     ...Array.from(new Map([...((blogs || []) as any[]), ...((posts || []) as any[])]
       .filter((r) => r.kind === 'blog' || (r.body || '').length >= 280 || r.comments >= 3).map((r) => [r.id, r])).values())

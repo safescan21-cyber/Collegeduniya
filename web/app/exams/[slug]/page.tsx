@@ -95,6 +95,7 @@ export default async function ExamPage({ params }: { params: Promise<{ slug: str
       </div>
       <aside className="space-y-5">
         {mockBp && <Link href={`/mock-tests/${e.slug}`} className="btn-primary w-full">Take a free {e.short_name} mock test</Link>}
+        {e.level !== 'Abroad' && <Link href={`/rank-predictor/${e.slug}`} className="btn-ghost w-full">{e.short_name} rank predictor</Link>}
         {e.website && <a href={e.website} target="_blank" rel="noopener noreferrer" className={mockBp ? 'btn-ghost w-full' : 'btn-primary w-full'}><ExternalLink size={16} />Official website</a>}
         {(e as any).news_enabled !== false && <FollowExam examId={e.id} name={e.short_name} slug={e.slug} />}
         <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">Dates and rules change every year — always confirm on the official website before applying.</p>

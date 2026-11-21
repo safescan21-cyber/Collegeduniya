@@ -1,12 +1,13 @@
 'use client';
 import { useState } from 'react';
-import { Percent } from 'lucide-react';
+import Link from 'next/link';
+import { Percent, ArrowRight } from 'lucide-react';
 
 export type ExamStat = { year: number; session: string; total_candidates: number; source: string };
 
 // Percentile → approximate rank. NTA/IIM percentiles are "% of candidates who scored at or below you", so
 // candidates ahead of you ≈ (100 − percentile) × N / 100. Category ranks aren't computable from this.
-export default function PercentileRank({ examName, stats }: { examName: string; stats: ExamStat[] }) {
+export default function PercentileRank({ examName, stats, examSlug }: { examName: string; stats: ExamStat[]; examSlug?: string }) {
   const latestYear = Math.max(...stats.map((s) => s.year));
   const opts = stats.filter((s) => s.year === latestYear);
   const [sel, setSel] = useState(opts.find((s) => s.session === 'All') ? 'All' : opts[0].session);
@@ -30,6 +31,7 @@ export default function PercentileRank({ examName, stats }: { examName: string; 
           <p className="text-sm text-slate-600">Approximate overall rank</p>
           <p className="text-2xl font-extrabold text-brand-800">≈ {rank.toLocaleString()}</p>
           <p className="text-xs text-slate-500">Based on {st.total_candidates.toLocaleString()} candidates ({st.year}{st.session !== 'All' ? `, ${st.session}` : ''}) · Source: {st.source}. Official ranks also depend on ties and normalisation; category ranks are lower.</p>
+          {examSlug && <Link href={`/predictor/${examSlug}?rank=${rank}`} className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-brand-700 hover:underline">Colleges you can get at this rank <ArrowRight size={14} /></Link>}
         </div>
       )}
     </div>
