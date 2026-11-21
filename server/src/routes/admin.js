@@ -6,6 +6,7 @@ import { requireAdmin, requireSuperAdmin } from '../middleware/auth.js';
 import { importCountry } from '../services/universities.js';
 import { runAutofill, runReviewInvites, autofillStatus, kickAutofill } from '../services/collegeAutofill.js';
 import { collectExamNews, sendExamNewsDigests, examNewsStatus } from '../services/examNews.js';
+import { runHealthChecks, healthStatus, sendTestAlert } from '../services/health.js';
 import { parseSheet, guessMapping, stashUpload, importSheet, TARGETS } from '../services/sheetImport.js';
 import { importScorecard, scorecardEnabled } from '../services/scorecard.js';
 import { lookupCollege, applyLookup, enrichMany } from '../services/wikimedia.js';
@@ -855,5 +856,13 @@ router.post('/exam-news/collect', wrap(async (req, res) => {
   res.status(202).json({ ok: true, message: 'Collecting news in the background (about 6 seconds per exam).' });
 }));
 router.post('/exam-news/digest', wrap(async (_req, res) => { res.json(await sendExamNewsDigests()); }));
+
+// ---------------------------------------------------------------- system health (services/health.js)
+router.get('/health', wrap(async (req, res) => {
+  const s = healthStatus();
+  const stale = !s.lastRun || Date.now() - Date.parse(s.lastRun) > 60e3;
+  res.json(req.query.fresh === '1' || stale ? await runHealthChecks({ notify: false }) : s);
+}));
+router.post('/health/test-alert', wrap(async (_req, res) => { res.json(await sendTestAlert()); }));
 
 export default router;

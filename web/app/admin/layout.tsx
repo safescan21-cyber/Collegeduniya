@@ -1,11 +1,12 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, GraduationCap, Home, Briefcase, Star, FileText, Users, ShieldAlert, PhoneCall, FilePlus2, MessagesSquare, Newspaper, BookOpen, Mail, MessageSquareHeart, Building2, DatabaseZap, Armchair, ClipboardList, ChartColumn, Trophy, Award, Plane, Handshake, Rocket, CreditCard, Flag, UsersRound, CalendarCheck, FileStack, Gift, Megaphone, ClipboardCheck, Radio, BadgeCheck, Rss, Inbox } from 'lucide-react';
+import { BarChart3, GraduationCap, Home, Briefcase, Star, FileText, Users, ShieldAlert, PhoneCall, FilePlus2, MessagesSquare, Newspaper, BookOpen, Mail, MessageSquareHeart, Building2, DatabaseZap, Armchair, ClipboardList, ChartColumn, Trophy, Award, Plane, Handshake, Rocket, CreditCard, Flag, UsersRound, CalendarCheck, FileStack, Gift, Megaphone, ClipboardCheck, Radio, BadgeCheck, Rss, Inbox, Activity } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 
 const NAV = [
   { href: '/admin', label: 'Dashboard', icon: BarChart3 },
+  { href: '/admin/health', label: 'System health', icon: Activity },
   { href: '/admin/online', label: 'Online now', icon: Radio },
   { href: '/admin/leads', label: 'Leads', icon: PhoneCall },
   { href: '/admin/college-applications', label: 'College apps', icon: FilePlus2 },

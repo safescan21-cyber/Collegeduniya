@@ -621,3 +621,8 @@ Alternative: front-end on Vercel, API on the VPS or Render — just set the two 
 ### 5q. Stream hubs and Streams menu
 - `/streams` and `/streams/<stream>` (engineering, management, medical, law, design, commerce, science, arts, computer-applications, pharmacy, architecture, hotel-management, education): top colleges, courses, entrance exams with predictor/rank-predictor/mock links, top cities, latest exam news. Streams are defined in `web/lib/streams.ts` and must match `colleges.streams`, `exams.stream` and `course_catalog.stream`.
 - Header "Streams" mega-menu (stream list → shortcuts). Hubs with fewer than 5 colleges and 2 exams are noindex and left out of the sitemap. Migration `023_streams.sql`.
+
+### 5r. System health and alerts
+- **Admin → System health** (`/admin/health`): live status of the website, API, database, login service, file storage, live chat, email, AI, disk, memory, SSL certificates (www + db) and background jobs. Refreshes every 30 s; **Check now** and **Send test alert** buttons.
+- The API checks everything every `HEALTH_EVERY_MIN` (5) minutes. A check failing twice in a row alerts every admin (bell notification + email to `ALERT_EMAILS`, or to all admins' emails), and again when it recovers. Email needs `deploy/set-smtp.sh` (it now also sets `SMTP_URL` for the API). `HEALTH_MONITOR=off` disables it.
+- If the whole server is down nothing on it can send alerts — add a free external monitor (e.g. UptimeRobot) for `https://www.collegeolo.com/api/health`.
