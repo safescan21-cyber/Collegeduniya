@@ -230,7 +230,7 @@ export async function sendExamNewsDigests({ dryRun = false } = {}) {
     const p = fs[0].profiles; const mail = digestEmail(p.full_name?.split(' ')[0], groups);
     let ok = false;
     try {
-      ok = await sendMail({ to: p.email, ...mail, headers: { 'List-Unsubscribe': `<${SITE}/api/unsubscribe/exam-news?t=${groups[0].token}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } });
+      ok = await sendMail({ to: p.email, ...mail, headers: { 'List-Unsubscribe': `<${SITE}/unsubscribe/exam-news/confirm?t=${groups[0].token}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } });
     } catch (x) { console.warn('[exam-news] mail', x.message); }
     if (ok) stats.sent++; else if (mailEnabled()) stats.failed++; else stats.app_only++;
     const now = new Date().toISOString();

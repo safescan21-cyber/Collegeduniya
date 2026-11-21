@@ -11,7 +11,7 @@ export default function Unsubscribe() {
   const go = async () => {
     setState('busy');
     try {
-      const r = await fetch(`/api/unsubscribe/exam-news?t=${encodeURIComponent(t)}`, { method: 'POST' });
+      const r = await fetch(`/unsubscribe/exam-news/confirm?t=${encodeURIComponent(t)}`, { method: 'POST' });
       const j = await r.json(); if (!r.ok) throw new Error(j.error);
       setExam(j.exam); setState('done');
     } catch { setState('error'); }
