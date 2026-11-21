@@ -26,7 +26,7 @@ const env = (k) => (process.env[k] || '').trim();
 export const CATALOG = [
   { id: 'anthropic', name: 'Anthropic Claude (paid)', key: 'ANTHROPIC_API_KEY', model: 'claude-sonnet-5-5', modelEnv: 'LLM_ANTHROPIC_MODEL', kind: 'anthropic', vision: true,
     base: () => env('ANTHROPIC_API_URL') || 'https://api.anthropic.com/v1/messages', signup: 'https://console.anthropic.com' },
-  { id: 'gemini', name: 'Google Gemini', key: 'GEMINI_API_KEY', model: 'gemini-3.8-flash', vision: true, base: () => 'https://generativelanguage.googleapis.com/v1beta/openai', signup: 'https://aistudio.google.com/apikey' },
+  { id: 'gemini', name: 'Google Gemini', key: 'GEMINI_API_KEY', model: 'gemini-flash-latest', vision: true, base: () => 'https://generativelanguage.googleapis.com/v1beta/openai', signup: 'https://aistudio.google.com/apikey' },
   { id: 'groq', name: 'Groq', key: 'GROQ_API_KEY', model: 'openai/gpt-oss-120b', base: () => 'https://api.groq.com/openai/v1', signup: 'https://console.groq.com/keys' },
   { id: 'sambanova', name: 'SambaNova Cloud', key: 'SAMBANOVA_API_KEY', model: 'DeepSeek-V3.2', base: () => 'https://api.sambanova.ai/v1', signup: 'https://cloud.sambanova.ai' },
   { id: 'openrouter', name: 'OpenRouter (free models)', key: 'OPENROUTER_API_KEY', model: 'nvidia/nemotron-3-super-120b-a12b:free', base: () => 'https://openrouter.ai/api/v1', signup: 'https://openrouter.ai/keys' },
