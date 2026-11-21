@@ -113,12 +113,13 @@ export async function importNirfData({ year = 2025, categories = null, limit = n
   try {
     const match = await nirfMatcher();
     const done = new Set();          // institution suffix (U-0456) already given named courses by a discipline sheet
-    let sheets = 0, matched = 0, courses = 0, placeRows = 0, ranks = 0; const unmatched = [];
+    let sheets = 0, matched = 0, courses = 0, placeRows = 0, ranks = 0; const unmatched = []; const errors = [];
     for (const [category, page] of PAGES.filter(([c]) => !categories || categories.includes(c))) {
       let html;
-      try { html = await get(`${BASE}/Rankings/${year}/${page}.html`); } catch (e) { log(`${category}: ${e.message}`); continue; }
+      try { html = await get(`${BASE}/Rankings/${year}/${page}.html`); } catch (e) { errors.push(`${category}: ${e.message}${e.cause ? ` (${e.cause.code || e.cause.message})` : ''}`); log(errors[errors.length - 1]); continue; }
       const list = parseRankingPage(html).slice(0, limit || undefined);
       log(`${category}: ${list.length} institutions`);
+      if (!list.length) errors.push(`${category}: page read but no institutions found (${html.length} bytes)`);
       for (const r of list) {
         const c = match({ name: r.name, city: r.city, state: r.state });
         // full list (rank bands included) for the /rankings page
@@ -138,7 +139,7 @@ export async function importNirfData({ year = 2025, categories = null, limit = n
         const isDiscipline = DISCIPLINE.has(category);
         if (!r.pdf || (!isDiscipline && done.has(suffix))) continue;
         let parsed;
-        try { parsed = parseSheet(pdfRows(await get(r.pdf, true))); sheets++; } catch (e) { log(`${r.id}: ${e.message}`); continue; }
+        try { parsed = parseSheet(pdfRows(await get(r.pdf, true))); sheets++; } catch (e) { if (errors.length < 20) errors.push(`${r.id}: ${e.message}`); continue; }
         const keys = new Set([...Object.keys(parsed.intake), ...parsed.placements.map((p) => p.prog)]);
         if (!keys.size) continue;
         const src = `NIRF ${year} — data submitted by the institution (${r.id})`;
@@ -156,7 +157,7 @@ export async function importNirfData({ year = 2025, categories = null, limit = n
       }
     }
     const res = { year, sheets, matched, ranks, courses, placements: placeRows, unmatched: unmatched.length, unmatched_sample: unmatched.slice(0, 30) };
-    await finish({ status: 'done', inserted: courses, updated: placeRows, skipped: unmatched.length, message: `${sheets} NIRF data sheets read · ${courses} courses · ${placeRows} placement rows · ${unmatched.length} institutions not matched` });
+    await finish({ status: 'done', inserted: courses, updated: placeRows, skipped: unmatched.length, message: `${sheets} NIRF data sheets read · ${courses} courses · ${placeRows} placement rows · ${unmatched.length} institutions not matched${errors.length ? ` · errors: ${errors.slice(0, 5).join(' | ')}` : ''}` });
     log(`Done: ${JSON.stringify(res)}`);
     return res;
   } catch (e) { await finish({ status: 'failed', message: e.message }); throw e; }
