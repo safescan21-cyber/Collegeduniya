@@ -40,11 +40,13 @@ export async function fetchHipolabs(countryName) {
   })).filter((r) => r.name);
 }
 
-export async function fetchWikidata(countryCode) {
+const WIKIDATA_TYPES = ['Q3918', 'Q38723', 'Q189004', 'Q1371037', 'Q15936437', 'Q875538', 'Q902104', 'Q23002054', 'Q2385804', 'Q1664720'];
+
+// One small query per institution type (a single big query times out for large countries), with retries.
+async function wikidataQuery(countryCode, type) {
   const query = `
 SELECT ?item ?itemLabel ?website ?coord ?inception ?logo ?image ?students ?cityLabel WHERE {
-  VALUES ?type { wd:Q3918 wd:Q38723 wd:Q189004 wd:Q1371037 wd:Q15936437 wd:Q875538 wd:Q902104 wd:Q23002054 wd:Q2385804 wd:Q1664720 }
-  ?item wdt:P31 ?type; wdt:P17 ?country. ?country wdt:P297 "${countryCode}".
+  ?item wdt:P31 wd:${type}; wdt:P17 ?country. ?country wdt:P297 "${countryCode}".
   OPTIONAL { ?item wdt:P856 ?website }
   OPTIONAL { ?item wdt:P625 ?coord }
   OPTIONAL { ?item wdt:P571 ?inception }
@@ -53,10 +55,33 @@ SELECT ?item ?itemLabel ?website ?coord ?inception ?logo ?image ?students ?cityL
   OPTIONAL { ?item wdt:P2196 ?students }
   OPTIONAL { ?item wdt:P131 ?city }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "en,[AUTO_LANGUAGE]". }
-} LIMIT 20000`;
-  const data = await fetchJson(`${WIKIDATA}?format=json&query=${encodeURIComponent(query)}`, {
-    headers: { Accept: 'application/sparql-results+json' }, timeoutMs: 90000,
-  });
+} LIMIT 10000`;
+  let last;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await fetchJson(`${WIKIDATA}?format=json&query=${encodeURIComponent(query)}`, {
+        headers: { Accept: 'application/sparql-results+json' }, timeoutMs: 90000,
+      });
+    } catch (e) {
+      last = e;
+      await new Promise((r) => setTimeout(r, 4000 * (attempt + 1)));
+    }
+  }
+  throw last;
+}
+
+export async function fetchWikidata(countryCode) {
+  const results = { results: { bindings: [] } };
+  let failed = 0;
+  for (const type of WIKIDATA_TYPES) {
+    try {
+      const d = await wikidataQuery(countryCode, type);
+      results.results.bindings.push(...(d?.results?.bindings || []));
+    } catch { failed++; }
+    await new Promise((r) => setTimeout(r, 800));
+  }
+  if (failed === WIKIDATA_TYPES.length) throw new Error('query.wikidata.org did not answer');
+  const data = results;
   const byId = new Map();
   for (const b of data?.results?.bindings || []) {
     const id = b.item.value.split('/').pop();

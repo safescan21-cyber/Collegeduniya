@@ -12,7 +12,7 @@ const args = process.argv.slice(2);
 const dry = args.includes('--dry');
 let list = args.filter((a) => !a.startsWith('--'));
 if (args.includes('--all')) {
-  const { data, error } = await supabase.from('countries').select('code').order('population', { ascending: false });
+  const { data, error } = await supabase.from('countries').select('code').order('population', { ascending: false, nullsFirst: false });
   if (error) { console.error(error.message); process.exit(1); }
   list = data.map((c) => c.code);
 }

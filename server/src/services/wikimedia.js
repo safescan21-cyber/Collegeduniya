@@ -227,6 +227,15 @@ export async function applyLookup(collegeId, found, { overwrite = false, photoFi
     chosen.forEach(addCredit);
   }
   patch.photo_credits = credits;
+  // a college imported without a town (e.g. Wikidata was down) gets one from its coordinates and goes live
+  const lat = patch.latitude ?? c.latitude; const lng = patch.longitude ?? c.longitude;
+  if ((!c.city || c.city === 'Not specified') && lat != null && lng != null) {
+    const { data: near } = await supabase.rpc('nearest_city', { lat, lng });
+    if (near?.[0]) {
+      patch.city = near[0].name; patch.state = c.state || near[0].admin1 || null; patch.city_geoname_id = near[0].geoname_id;
+      if (!c.is_published && c.source !== 'manual') patch.is_published = true;
+    }
+  }
   if (c.wikidata_id && found.wikidata_id && c.wikidata_id !== found.wikidata_id) delete patch.wikidata_id;
   const { error: e2 } = await supabase.from('colleges').update(patch).eq('id', collegeId);
   if (e2) {
