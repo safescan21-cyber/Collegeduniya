@@ -19,7 +19,8 @@ else
 fi
 cd /var/www/collegeolo
 
-# website settings (all public values)
+# website settings (all public values) — written once; later runs keep whatever is there
+if [ ! -f web/.env.local ]; then
 cat > web/.env.local <<'ENVWEB'
 NEXT_PUBLIC_SUPABASE_URL=https://bazrjvmjkfktaahfdghl.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJhenJqdm1qa2ZrdGFhaGZkZ2hsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxODI0MzksImV4cCI6MjExMDc1ODQzOX0.XNqGYIbvmaq6psXgmepyPRe-IU_kAy0EdN_WsBUaft0
@@ -28,6 +29,7 @@ API_URL_INTERNAL=http://127.0.0.1:4010
 NEXT_PUBLIC_SITE_URL=https://www.collegeolo.com
 NEXT_PUBLIC_CONTACT_EMAIL=hello@collegeolo.com
 ENVWEB
+fi
 
 # API settings (created once; the secret key is added by deploy/set-key.sh)
 if [ ! -f server/.env ]; then
