@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Flag, isForeign } from './Flag';
 import { MapPin, Star, Trophy, Download, Send, IndianRupee, Briefcase, Target } from 'lucide-react';
 import { SaveButton, CompareButton } from '@/components/ActionButtons';
 import { short, lpa } from '@/lib/format';
@@ -22,12 +23,12 @@ export default function CollegeRow({ c, f, examNames, n }: { c: College & { broc
         <div className="flex min-w-0 gap-3">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-white">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            {c.logo_url ? <img src={c.logo_url} alt="" className="h-full w-full object-contain p-1" loading="lazy" /> : <span className="text-lg font-bold text-brand-700">{c.name[0]}</span>}
+            {c.logo_url ? <img src={c.logo_url} alt="" className="h-full w-full object-contain p-1" loading="lazy" /> : isForeign((c as any).country_code) ? <Flag code={(c as any).country_code} country={(c as any).country} className="h-9 w-12" /> : <span className="text-lg font-bold text-brand-700">{c.name[0]}</span>}
           </div>
           <div className="min-w-0">
             {n ? <span className="text-xs font-semibold text-slate-400">#{n}</span> : null}
             <Link href={`/colleges/${c.slug}`} className="block font-bold leading-snug text-slate-900 hover:text-brand-700">{c.name}</Link>
-            <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500"><MapPin size={12} />{[c.city, c.state].filter(Boolean).join(', ')}{c.type ? ` · ${c.type}` : ''}{c.established ? ` · Estd ${c.established}` : ''}</p>
+            <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">{isForeign((c as any).country_code) ? <Flag code={(c as any).country_code} country={(c as any).country} className="h-3 w-4" /> : <MapPin size={12} />}{[c.city, c.state].filter(Boolean).join(', ')}{c.type ? ` · ${c.type}` : ''}{c.established ? ` · Estd ${c.established}` : ''}</p>
             {(f?.approvals?.length || c.accreditation) ? <div className="mt-1.5 flex flex-wrap gap-1">{(f?.approvals?.length ? f.approvals : [c.accreditation!]).slice(0, 4).map((a) => <span key={a} className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">{a}</span>)}</div> : null}
           </div>
         </div>

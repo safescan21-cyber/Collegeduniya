@@ -3,6 +3,7 @@ import { MapPin, Star, BadgeCheck, Clock, Building2, Wifi, Utensils, Briefcase, 
 import type { College, Hostel, Job } from '@/lib/types';
 import { FALLBACK_IMG, range, timeAgo } from '@/lib/format';
 import { SaveButton, CompareButton } from './ActionButtons';
+import { Flag, flagSrc, isForeign } from './Flag';
 
 export function Stars({ value, size = 14 }: { value: number; size?: number }) {
   return (
@@ -19,7 +20,7 @@ export function CollegeCard({ c, rating }: { c: Partial<College> & { slug: strin
     <Link href={`/colleges/${c.slug}`} className="card group flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg">
       <div className="relative aspect-[16/9] overflow-hidden bg-brand-900">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={c.cover_url || FALLBACK_IMG} alt={c.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
+        <img src={c.cover_url || (isForeign((c as any).country_code) ? flagSrc((c as any).country_code)! : FALLBACK_IMG)} alt={c.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
         {c.ranking ? <span className="absolute left-3 top-3 rounded-lg bg-white/95 px-2 py-1 text-xs font-bold text-brand-700">#{c.ranking} Rank</span> : null}
         {c.is_featured ? <span className="absolute right-3 top-3 rounded-lg bg-accent-500 px-2 py-1 text-[11px] font-bold text-slate-900" title="Chosen by Collegeolo; may include partner colleges">Featured</span> : null}
         {c.type ? <span className="absolute bottom-3 left-3 rounded-lg bg-brand-950/80 px-2 py-1 text-xs font-medium text-white">{c.type}</span> : null}
@@ -32,7 +33,7 @@ export function CollegeCard({ c, rating }: { c: Partial<College> & { slug: strin
       </div>
       <div className="flex flex-1 flex-col p-4">
         <h3 className="line-clamp-2 font-bold text-slate-900 group-hover:text-brand-700">{c.name}</h3>
-        <p className="mt-1 flex items-center gap-1 text-sm text-slate-500"><MapPin size={14} />{c.city}, {c.country}</p>
+        <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">{isForeign((c as any).country_code) ? <Flag code={(c as any).country_code} country={c.country} /> : <MapPin size={14} />}{c.city}, {c.country}</p>
         {c.streams && c.streams.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1">{c.streams.slice(0, 3).map((s) => <span key={s} className="chip">{s}</span>)}</div>
         )}

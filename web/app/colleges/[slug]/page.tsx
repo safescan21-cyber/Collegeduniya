@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Flag, flagSrc, isForeign } from '@/components/Flag';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
@@ -153,7 +154,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs([['Colleges', '/colleges'], ...(cityRow?.slug ? [[c.city, `/city/${cityRow.slug}`] as [string, string]] : []), [c.name, `/colleges/${c.slug}`]])) }} />
       <section className="relative h-72 bg-brand-950 sm:h-80">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={c.cover_url || FALLBACK_IMG} alt={c.name} className="absolute inset-0 h-full w-full object-cover opacity-50" />
+        <img src={c.cover_url || (isForeign((c as any).country_code) ? flagSrc((c as any).country_code)! : FALLBACK_IMG)} alt={c.name} className="absolute inset-0 h-full w-full object-cover opacity-50" />
         <div className="absolute inset-0 bg-gradient-to-t from-brand-950 via-brand-950/60 to-transparent" />
         {(() => { const cr = ((c as any).photo_credits || []).find((x: any) => x.url === c.cover_url); return cr ? (
           <p className="absolute bottom-1 end-2 z-10 max-w-[60%] truncate text-[10px] text-white/60">Photo: <a href={cr.page} target="_blank" rel="noopener" className="underline">{cr.author}</a> · {cr.license_url ? <a href={cr.license_url} target="_blank" rel="noopener license" className="underline">{cr.license}</a> : cr.license}</p>
@@ -161,12 +162,15 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
         <div className="container-x relative flex h-full items-end pb-8">
           <div className="flex w-full flex-wrap items-end justify-between gap-4">
             <div className="flex items-end gap-5">
-              {c.logo_url && (
+              {c.logo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={c.logo_url} alt="" className="hidden h-24 w-24 rounded-2xl border-4 border-white bg-white object-contain sm:block" />
-              )}
+              ) : isForeign((c as any).country_code) ? (
+                <span className="hidden h-24 w-24 items-center justify-center rounded-2xl border-4 border-white bg-white sm:flex"><Flag code={(c as any).country_code} country={c.country} className="h-12 w-16" /></span>
+              ) : null}
               <div className="text-white">
                 <div className="mb-2 flex flex-wrap gap-2">
+                  {isForeign((c as any).country_code) && <span className="chip bg-white/15 text-white"><Flag code={(c as any).country_code} country={c.country} />{c.country}</span>}
                   {c.type && <span className="chip bg-white/15 text-white">{c.type}</span>}
                   {c.accreditation && <span className="chip bg-white/15 text-white"><Award size={12} />{c.accreditation}</span>}
                   {c.ranking && <span className="chip bg-accent-500 text-slate-900">#{c.ranking} Rank</span>}
