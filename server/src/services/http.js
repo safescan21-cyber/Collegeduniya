@@ -22,6 +22,7 @@ export async function fetchJson(url, { method = 'GET', headers = {}, body, timeo
     return data;
   } catch (e) {
     if (e.name === 'AbortError') throw new Error(`${new URL(url).host}: timed out`);
+    if (e.cause) throw new Error(`${new URL(url).host}: ${e.message} (${e.cause.code || e.cause.message || e.cause})`);
     throw e;
   } finally {
     clearTimeout(t);

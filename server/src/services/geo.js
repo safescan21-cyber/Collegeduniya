@@ -193,6 +193,37 @@ export async function photonArea(lat, lng, { report = null } = {}) {
   return rows;
 }
 
+// Nominatim (OpenStreetMap's own search) fallback: category search inside a box around the point (max 1 request / s)
+const NOMI_Q = { hospital: ['hospital', 'clinic'], pharmacy: ['pharmacy'], pg: ['hostel', 'guest house'], bank: ['bank', 'atm'], transport: ['railway station'],
+  bus: ['bus station'], food: ['restaurant', 'cafe', 'fast food'], library: ['library'], visit: ['museum', 'park', 'monument', 'tourist attraction'] };
+export async function nominatimArea(lat, lng, { report = null } = {}) {
+  const rows = []; const seen = new Set(); const errors = [];
+  for (const [kind, words] of Object.entries(NOMI_Q)) {
+    const rKm = NEARBY_KINDS[kind].r / 1000; const dLat = rKm / 111; const dLng = rKm / (111 * Math.max(0.2, Math.cos((lat * Math.PI) / 180)));
+    for (const w of words) {
+      await throttle('nominatim', 1100);
+      const params = new URLSearchParams({ q: w, format: 'jsonv2', limit: '40', bounded: '1', viewbox: `${lng - dLng},${lat + dLat},${lng + dLng},${lat - dLat}`, 'accept-language': 'en', addressdetails: '1' });
+      let data;
+      try { data = await fetchJson(`${NOMINATIM}/search?${params}`, { timeoutMs: 20000 }); } catch (e) { errors.push(`${kind}/${w}: ${e.message}`); continue; }
+      for (const r of data || []) {
+        const id = `${r.osm_type}/${r.osm_id}`; const la = Number(r.lat); const lo = Number(r.lon);
+        if (!r.name || seen.has(id)) continue;
+        const d = Math.round(distanceKm(lat, lng, la, lo) * 10) / 10;
+        if (d > rKm) continue;
+        seen.add(id);
+        const a = r.address || {};
+        rows.push({ id, kind, name: r.name, latitude: la, longitude: lo, distance_km: d,
+          address: [a.house_number, a.road, a.suburb, a.city || a.town || a.village].filter(Boolean).join(', ') || null, phone: null, website: null,
+          emergency: false, type: r.type || null, cuisine: null, osm_url: `https://www.openstreetmap.org/${id}` });
+      }
+    }
+  }
+  if (errors.length) console.warn('[nominatim nearby]', errors.length, 'failed —', errors[0]);
+  if (report) report.errors = errors;
+  if (!rows.length && errors.length) throw new Error(errors[0]);
+  return rows;
+}
+
 // Fetch (or reuse) everything around a point: Photon first (fast); Overpass adds detail in the background
 export function fetchArea(lat, lng) {
   const key = areaKey(lat, lng);
@@ -201,6 +232,7 @@ export function fetchArea(lat, lng) {
   const job = (async () => {
     let rows = [];
     try { rows = await photonArea(lat, lng); } catch (e) { console.warn('[photon]', e.message); }
+    if (!rows.length) { try { rows = await nominatimArea(lat, lng); } catch (e) { console.warn('[nominatim nearby]', e.message); } }
     if (rows.length) await save(rows);
     if (process.env.NEARBY_OVERPASS !== 'off') {
       const enrich = overpassArea(lat, lng).then((op) => {
