@@ -617,3 +617,7 @@ Alternative: front-end on Vercel, API on the VPS or Render — just set the two 
 - `/rank-predictor` and `/rank-predictor/<exam>`: percentile → rank (from `exam_stats`, official candidate counts) and marks → rank (from `rank_bands`, official/published bands), each with year and source, and a link to the college predictor at that rank.
 - Students share their real result (marks/percentile + rank on the scorecard). Automatic checks flag numbers that don't fit official figures; admins approve in **Admin → Rank results (students)**. Approved results show as a table and give a "students with similar marks got…" estimate. Migration `022_rank_reports.sql`.
 - Pages without any data are `noindex` until data exists. Fill official numbers in Admin → Rank bands and Exam stats (e.g. total candidates from the NTA result press note).
+
+### 5q. Stream hubs and Streams menu
+- `/streams` and `/streams/<stream>` (engineering, management, medical, law, design, commerce, science, arts, computer-applications, pharmacy, architecture, hotel-management, education): top colleges, courses, entrance exams with predictor/rank-predictor/mock links, top cities, latest exam news. Streams are defined in `web/lib/streams.ts` and must match `colleges.streams`, `exams.stream` and `course_catalog.stream`.
+- Header "Streams" mega-menu (stream list → shortcuts). Hubs with fewer than 5 colleges and 2 exams are noindex and left out of the sitemap. Migration `023_streams.sql`.

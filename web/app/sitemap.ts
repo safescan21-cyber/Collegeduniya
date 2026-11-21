@@ -1,3 +1,4 @@
+import { STREAMS } from '@/lib/streams';
 import type { MetadataRoute } from 'next';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { SITE_URL } from '@/lib/format';
@@ -31,7 +32,7 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
     return rows.map((r) => ({ url: `${SITE_URL}/city/${r.slug}`, priority: 0.6 }));
   }
 
-  const base: MetadataRoute.Sitemap = ['', '/colleges', '/hostels', '/jobs', '/exams', '/news', '/questions', '/predictor', '/rank-predictor', '/compare', '/apply', '/management-quota', '/recommend', '/career-quiz', '/roommates', '/scholarships', '/study-abroad/visa', '/counselling', '/study-abroad/calculator', '/near-me', '/cities', '/partners', '/top', '/mock-tests', '/community', '/about', '/editorial-policy', '/contact', '/privacy', '/terms', '/community-guidelines', '/papers', '/trends', '/rewards', '/ambassador'].map((p) => ({
+  const base: MetadataRoute.Sitemap = ['', '/colleges', '/hostels', '/jobs', '/exams', '/news', '/questions', '/predictor', '/rank-predictor', '/streams', '/compare', '/apply', '/management-quota', '/recommend', '/career-quiz', '/roommates', '/scholarships', '/study-abroad/visa', '/counselling', '/study-abroad/calculator', '/near-me', '/cities', '/partners', '/top', '/mock-tests', '/community', '/about', '/editorial-policy', '/contact', '/privacy', '/terms', '/community-guidelines', '/papers', '/trends', '/rewards', '/ambassador'].map((p) => ({
     url: `${SITE_URL}${p}`, changeFrequency: 'daily', priority: p ? 0.8 : 1,
   }));
   const [h, j, e, a, q, qs, qc, cc] = await Promise.all([
@@ -57,6 +58,8 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
     sb.from('visa_guides').select('country_code, updated_at').eq('is_published', true),
   ]);
   const { data: rankEx } = await sb.rpc('rank_predictor_exams');
+  const { data: sov } = await sb.rpc('stream_overview');
+  const streamOk = new Set(((sov || []) as any[]).filter((r) => r.colleges >= 5 || r.exams >= 2).map((r) => r.stream));
   return [
     ...base,
     ...((mocks || []) as any[]).filter((m) => Number(m.ready_questions) > 0).map((m) => ({ url: `${SITE_URL}/mock-tests/${m.exam_slug}`, changeFrequency: 'weekly' as const, priority: 0.8 })),
@@ -75,6 +78,7 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
     ...Array.from(new Map([...((blogs || []) as any[]), ...((posts || []) as any[])]
       .filter((r) => r.kind === 'blog' || (r.body || '').length >= 280 || r.comments >= 3).map((r) => [r.id, r])).values())
       .map((r) => ({ url: `${SITE_URL}/community/post/${r.id}`, lastModified: r.edited_at || r.created_at, priority: 0.5 })),
+    ...STREAMS.filter((x) => streamOk.has(x.name)).map((x) => ({ url: `${SITE_URL}/streams/${x.slug}`, changeFrequency: 'weekly' as const, priority: 0.9 })),
     { url: `${SITE_URL}/courses`, changeFrequency: 'weekly' as const, priority: 0.8 },
     ...((courseCounts || []) as any[]).filter((r) => Number(r.colleges) >= 3).map((r) => ({ url: `${SITE_URL}/courses/${r.slug}`, changeFrequency: 'weekly' as const, priority: 0.8 })),
     ...((visa.data || []) as any[]).map((r) => ({ url: `${SITE_URL}/study-abroad/visa/${r.country_code.toLowerCase()}`, lastModified: r.updated_at, priority: 0.6 })),

@@ -11,10 +11,10 @@ import { useAuth } from './AuthProvider';
 import { NotificationBell } from './Notifications';
 import { useLang, LangSwitch } from './LangProvider';
 import type { DictKey } from '@/lib/i18n';
+import { STREAMS } from '@/lib/streams';
 
 const MAIN: { href: string; key: DictKey }[] = [
   { href: '/colleges', key: 'nav.colleges' },
-  { href: '/courses', key: 'nav.courses' },
   { href: '/hostels', key: 'nav.hostels' },
   { href: '/jobs', key: 'nav.jobs' },
   { href: '/community', key: 'nav.community' },
@@ -87,9 +87,10 @@ export default function Header() {
       <div className="container-x flex h-16 items-center justify-between gap-3">
         <Logo />
         <nav className="hidden items-center gap-0.5 lg:flex">
+          <StreamsMenu label={t('nav.streams')} />
           {MAIN.map((n) => (
             <Link key={n.href} href={n.href}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-slate-100 ${pathname.startsWith(n.href) ? 'text-brand-700' : 'text-slate-600'}`}>
+              className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-slate-100 ${pathname.startsWith(n.href) ? 'text-brand-700' : 'text-slate-600'}`}>
               {t(n.key)}
             </Link>
           ))}
@@ -134,6 +135,8 @@ export default function Header() {
       {open && (
         <div className="max-h-[80vh] overflow-y-auto border-t border-slate-200 bg-white lg:hidden">
           <div className="container-x grid grid-cols-2 gap-1 py-3">
+            <Link href="/streams" className="rounded-lg px-3 py-2 font-medium hover:bg-slate-100">{t('nav.streams')}</Link>
+            <Link href="/courses" className="rounded-lg px-3 py-2 font-medium hover:bg-slate-100">{t('nav.courses')}</Link>
             {MAIN.map((n) => <Link key={n.href} href={n.href} className="rounded-lg px-3 py-2 font-medium hover:bg-slate-100">{t(n.key)}</Link>)}
             {MORE.map((m) => <Link key={m.href} href={m.href} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-slate-100"><m.icon size={15} className="text-brand-600" />{t(m.key)}</Link>)}
           </div>
@@ -156,5 +159,63 @@ export default function Header() {
         </div>
       )}
     </header>
+  );
+}
+
+// Streams mega-menu: pick a stream on the left, its shortcuts appear on the right
+function StreamsMenu({ label }: { label: string }) {
+  const [open, setOpen] = useState(false);
+  const [cur, setCur] = useState(STREAMS[0].slug);
+  const ref = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  useEffect(() => { setOpen(false); }, [pathname]);
+  useEffect(() => {
+    const close = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
+  const st = STREAMS.find((x) => x.slug === cur)!;
+  const q = encodeURIComponent(st.name);
+  const groups: { title: string; links: [string, string][] }[] = [
+    { title: 'Colleges', links: [[`Top ${st.name.toLowerCase()} colleges`, `/streams/${st.slug}#colleges`], [`All ${st.name.toLowerCase()} colleges`, `/colleges?stream=${q}`], ['Colleges by city', `/streams/${st.slug}#cities`], ['Compare colleges', '/compare']] },
+    { title: 'Courses & exams', links: [[`${st.name} courses`, `/streams/${st.slug}#courses`], ['Entrance exams', `/exams?stream=${q}`], ['Exam news', `/streams/${st.slug}#news`], ['Mock tests', '/mock-tests']] },
+    { title: 'Tools', links: [['College predictor', '/predictor'], ['Rank predictor', '/rank-predictor'], ['Ask students', '/questions'], ['Free counselling', '/counselling']] },
+  ];
+  return (
+    <div className="relative" ref={ref} onMouseLeave={() => setOpen(false)}>
+      <button onClick={() => setOpen(!open)} onMouseEnter={() => setOpen(true)} aria-expanded={open}
+        className={`flex items-center gap-1 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 ${pathname.startsWith('/streams') || pathname.startsWith('/courses') ? 'text-brand-700' : 'text-slate-600'}`}>
+        {label}<ChevronDown size={14} className={open ? 'rotate-180 transition' : 'transition'} />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-50 pt-2">
+          <div className="flex w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+            <ul className="w-56 shrink-0 border-e border-slate-100 bg-slate-50 py-2">
+              {STREAMS.map((x) => (
+                <li key={x.slug}>
+                  <Link href={`/streams/${x.slug}`} onMouseEnter={() => setCur(x.slug)} onFocus={() => setCur(x.slug)}
+                    className={`flex items-center justify-between px-4 py-1.5 text-sm ${cur === x.slug ? 'bg-white font-semibold text-brand-700' : 'text-slate-700 hover:text-brand-700'}`}>
+                    {x.label}<ChevronDown size={12} className="-rotate-90 text-slate-300" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <div className="flex-1 p-5">
+              <Link href={`/streams/${st.slug}`} className="text-base font-bold text-slate-900 hover:text-brand-700">{st.label} →</Link>
+              <p className="mt-1 text-xs text-slate-500">{st.blurb}</p>
+              <div className="mt-4 grid grid-cols-3 gap-4">
+                {groups.map((g) => (
+                  <div key={g.title}>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{g.title}</p>
+                    <ul className="mt-1.5 space-y-1">{g.links.map(([t, h]) => <li key={t}><Link href={h} className="text-sm text-slate-700 hover:text-brand-700">{t}</Link></li>)}</ul>
+                  </div>
+                ))}
+              </div>
+              <Link href="/courses" className="mt-5 inline-block text-xs font-semibold text-brand-700 hover:underline">Browse all courses</Link>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

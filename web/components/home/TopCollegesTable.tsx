@@ -12,20 +12,20 @@ export type TopRow = { id: string; slug: string; name: string; city: string; sta
 const STREAMS = ['All', 'Engineering', 'Management', 'Medical', 'Law', 'Pharmacy', 'Architecture', 'Commerce', 'Science', 'Arts'];
 
 // Ranked colleges by stream, with the facts students compare first. Ranks come from the published ranking (NIRF for India).
-export default function TopCollegesTable({ initial, examNames }: { initial: TopRow[]; examNames: Record<string, string> }) {
-  const [stream, setStream] = useState('All');
+export default function TopCollegesTable({ initial, examNames, fixedStream }: { initial: TopRow[]; examNames: Record<string, string>; fixedStream?: string }) {
+  const [stream, setStream] = useState(fixedStream || 'All');
   const [rows, setRows] = useState<TopRow[]>(initial);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
-    if (stream === 'All') { setRows(initial); return; }
+    if (fixedStream || stream === 'All') { setRows(initial); return; }
     setBusy(true);
     supabaseBrowser().rpc('top_colleges_table', { p_stream: stream, p_country: 'India', p_lim: 10 })
       .then(({ data }: { data: TopRow[] | null }) => { setRows(data || []); setBusy(false); });
-  }, [stream, initial]);
+  }, [stream, initial, fixedStream]);
   return (
     <div className="card overflow-hidden">
-      <div className="flex gap-1 overflow-x-auto border-b border-slate-100 p-2" role="tablist">{STREAMS.map((s) => (
-        <button key={s} role="tab" aria-selected={stream === s} onClick={() => setStream(s)} className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium ${stream === s ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>{s}</button>))}</div>
+      {!fixedStream && <div className="flex gap-1 overflow-x-auto border-b border-slate-100 p-2" role="tablist">{STREAMS.map((s) => (
+        <button key={s} role="tab" aria-selected={stream === s} onClick={() => setStream(s)} className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium ${stream === s ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>{s}</button>))}</div>}
       <div className={`overflow-x-auto transition-opacity ${busy ? 'opacity-50' : ''}`}>
         {rows.length === 0 ? <p className="p-8 text-center text-sm text-slate-500">No ranked {stream.toLowerCase()} colleges yet. <Link href={`/colleges?stream=${stream}`} className="font-semibold text-brand-700">See all {stream.toLowerCase()} colleges</Link></p> : (
           <table className="w-full min-w-[720px] text-sm">

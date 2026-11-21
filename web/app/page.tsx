@@ -10,21 +10,21 @@ import EnquiryForm from '@/components/EnquiryForm';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { counters, ratingsFor } from '@/lib/data';
 import { getT } from '@/lib/i18n-server';
+import { STREAMS } from '@/lib/streams';
 import { FALLBACK_IMG, timeAgo } from '@/lib/format';
 import type { Article, College, Hostel, Job } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-const STREAMS = ['Engineering', 'Management', 'Medical', 'Commerce', 'Arts', 'Science', 'Law', 'Design'];
 const COUNTRIES = [
   { name: 'India', flag: '🇮🇳' }, { name: 'Canada', flag: '🇨🇦' }, { name: 'United Kingdom', flag: '🇬🇧' },
   { name: 'Australia', flag: '🇦🇺' }, { name: 'Germany', flag: '🇩🇪' }, { name: 'United States', flag: '🇺🇸' },
 ];
 
 async function load() {
-  if (!hasSupabase) return { colleges: [], hostels: [], jobs: [], articles: [], top: [], exams: [], courses: [], cities: [] };
+  if (!hasSupabase) return { colleges: [], hostels: [], jobs: [], articles: [], top: [], exams: [], courses: [], cities: [], streams: {} as Record<string, any> };
   const sb = supabasePublic();
-  const [c, h, j, a, top, ex, cat, cnt, cities] = await Promise.all([
+  const [c, h, j, a, top, ex, cat, cnt, cities, sov] = await Promise.all([
     sb.from('colleges_public').select('*').eq('is_published', true).order('is_featured', { ascending: false }).order('ranking', { ascending: true, nullsFirst: false }).limit(8),
     sb.from('hostels').select('*, colleges(name, slug)').eq('is_published', true).order('created_at', { ascending: false }).limit(4),
     sb.from('jobs').select('*').eq('is_published', true).eq('status', 'open').order('created_at', { ascending: false }).limit(6),
@@ -34,6 +34,7 @@ async function load() {
     sb.from('course_catalog').select('slug, name, level, stream').order('sort'),
     sb.rpc('course_catalog_counts'),
     sb.rpc('top_study_cities', { p_country: 'India', p_lim: 12 }),
+    sb.rpc('stream_overview'),
   ]);
   const counts = Object.fromEntries(((cnt.data || []) as any[]).map((r) => [r.slug, Number(r.colleges)]));
   return {
@@ -42,11 +43,12 @@ async function load() {
     top: (top.data || []) as TopRow[], exams: (ex.data || []) as any[],
     courses: ((cat.data || []) as any[]).map((k) => ({ ...k, colleges: counts[k.slug] || 0 })),
     cities: (cities.data || []) as { city: string; state: string | null; colleges: number }[],
+    streams: Object.fromEntries(((sov.data || []) as any[]).map((r) => [r.stream, r])) as Record<string, { colleges: number; exams: number; courses: number }>,
   };
 }
 
 export default async function HomePage() {
-  const [{ colleges, hostels, jobs, articles, top, exams, courses, cities }, stats, { t }] = await Promise.all([load(), counters(), getT()]);
+  const [{ colleges, hostels, jobs, articles, top, exams, courses, cities, streams }, stats, { t }] = await Promise.all([load(), counters(), getT()]);
   const examNames: Record<string, string> = Object.fromEntries(exams.map((e: any) => [e.slug, e.short_name]));
   const POPULAR_EXAMS = ['jee-main', 'neet-ug', 'cuet-ug', 'cat', 'gate', 'jee-advanced', 'clat', 'mht-cet', 'xat', 'upsc-cse-prelims', 'ssc-cgl', 'ibps-po'];
   const popularExams = POPULAR_EXAMS.map((s) => exams.find((e: any) => e.slug === s)).filter(Boolean) as any[];
@@ -64,7 +66,7 @@ export default async function HomePage() {
     { href: '/predictor', icon: Target, title: t('home.tool.predictor'), text: t('home.tool.predictor.d') },
     { href: '/compare', icon: Scale, title: t('home.tool.compare'), text: t('home.tool.compare.d') },
     { href: '/apply', icon: FilePlus2, title: t('home.tool.apply'), text: t('home.tool.apply.d') },
-    { href: '/study-abroad/calculator', icon: Calculator, title: t('home.tool.calc'), text: t('home.tool.calc.d') },
+    { href: '/rank-predictor', icon: Calculator, title: t('home.tool.rank'), text: t('home.tool.rank.d') },
   ];
 
   return (
@@ -86,8 +88,8 @@ export default async function HomePage() {
             <Link href="/cities" className="shrink-0 text-brand-100 underline">All countries</Link>
           </div>
           <div className="mt-6 flex flex-wrap justify-center gap-2 text-sm">
-            {STREAMS.slice(0, 6).map((s) => (
-              <Link key={s} href={`/colleges?stream=${s}`} className="rounded-full border border-white/20 px-3 py-1 text-brand-100 hover:bg-white/10">{s}</Link>
+            {STREAMS.slice(0, 8).map((s) => (
+              <Link key={s.slug} href={`/streams/${s.slug}`} className="rounded-full border border-white/20 px-3 py-1 text-brand-100 hover:bg-white/10">{s.label}</Link>
             ))}
           </div>
         </div>
@@ -185,11 +187,13 @@ export default async function HomePage() {
       {/* STREAMS + COUNSELLING */}
       <section className="container-x mt-16 grid gap-8 lg:grid-cols-[1fr_380px]">
         <div>
-          <h2 className="section-title">{t('home.streams')}</h2>
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            {STREAMS.map((s) => (
-              <Link key={s} href={`/colleges?stream=${s}`} className="card flex items-center justify-between p-4 font-semibold text-slate-800 hover:border-brand-300 hover:text-brand-700">
-                {s}<ArrowRight size={16} />
+          <div className="flex items-end justify-between"><h2 className="section-title">{t('home.streams')}</h2><Link href="/streams" className="text-sm font-semibold text-brand-700 hover:underline">All streams</Link></div>
+          <p className="mt-1 text-slate-500">Colleges, courses, entrance exams and predictors for each field.</p>
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {STREAMS.slice(0, 9).map((s) => (
+              <Link key={s.slug} href={`/streams/${s.slug}`} className="card group p-4 transition hover:-translate-y-0.5 hover:border-brand-300">
+                <p className="flex items-center justify-between font-semibold text-slate-800 group-hover:text-brand-700">{s.label}<ArrowRight size={15} className="text-slate-300 group-hover:text-brand-600" /></p>
+                <p className="mt-1 text-xs text-slate-500">{(streams[s.name]?.colleges || 0).toLocaleString('en-IN')} colleges · {streams[s.name]?.exams || 0} exams</p>
               </Link>
             ))}
           </div>
