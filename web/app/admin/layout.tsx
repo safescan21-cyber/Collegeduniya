@@ -1,16 +1,49 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, GraduationCap, Home, Briefcase, Star, FileText, Users, ShieldAlert } from 'lucide-react';
+import { BarChart3, GraduationCap, Home, Briefcase, Star, FileText, Users, ShieldAlert, PhoneCall, FilePlus2, MessagesSquare, Newspaper, BookOpen, Mail, MessageSquareHeart, Building2, DatabaseZap, Armchair, ClipboardList, ChartColumn, Trophy, Award, Plane, Handshake, Rocket, CreditCard, Flag, UsersRound, CalendarCheck, FileStack, Gift, Megaphone, ClipboardCheck, Radio, BadgeCheck, Rss, Inbox, Activity } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 
 const NAV = [
   { href: '/admin', label: 'Dashboard', icon: BarChart3 },
+  { href: '/admin/health', label: 'System health', icon: Activity },
+  { href: '/admin/online', label: 'Online now', icon: Radio },
+  { href: '/admin/leads', label: 'Leads', icon: PhoneCall },
+  { href: '/admin/college-applications', label: 'College apps', icon: FilePlus2 },
+  { href: '/admin/quota-applications', label: 'Quota applications', icon: ClipboardList },
   { href: '/admin/colleges', label: 'Colleges', icon: GraduationCap },
+  { href: '/admin/management-quota', label: 'Management quota', icon: Armchair },
   { href: '/admin/hostels', label: 'PG & Hostels', icon: Home },
   { href: '/admin/jobs', label: 'Jobs', icon: Briefcase },
-  { href: '/admin/applications', label: 'Applications', icon: FileText },
-  { href: '/admin/reviews', label: 'Reviews', icon: Star },
+  { href: '/admin/applications', label: 'Job applications', icon: FileText },
+  { href: '/admin/reviews', label: 'College reviews', icon: Star },
+  { href: '/admin/hostel-reviews', label: 'PG reviews', icon: MessageSquareHeart },
+  { href: '/admin/qa', label: 'Q&A', icon: MessagesSquare },
+  { href: '/admin/articles', label: 'News & guides', icon: Newspaper },
+  { href: '/admin/exams', label: 'Exams', icon: BookOpen },
+  { href: '/admin/exam-news', label: 'Exam news', icon: Rss },
+  { href: '/admin/course-catalog', label: 'Course pages', icon: GraduationCap },
+  { href: '/admin/exam-library', label: 'Exam library', icon: FileStack },
+  { href: '/admin/mock-tests', label: 'Mock tests', icon: ClipboardCheck, Radio },
+  { href: '/admin/newsletter', label: 'Newsletter', icon: Mail },
+  { href: '/admin/companies', label: 'Companies', icon: Building2 },
+  { href: '/admin/pg-visits', label: 'PG visits', icon: CalendarCheck },
+  { href: '/admin/community', label: 'Community', icon: UsersRound },
+  { href: '/admin/messages', label: 'Contact & grievances', icon: Inbox },
+  { href: '/admin/feed', label: 'Posts & reports', icon: Rss },
+  { href: '/admin/verifications', label: 'Verifications', icon: BadgeCheck },
+  { href: '/admin/reports', label: 'Reports (old)', icon: Flag },
+  { href: '/admin/rankings', label: 'Rankings (NIRF)', icon: Trophy },
+  { href: '/admin/rank-bands', label: 'Marks → rank', icon: ChartColumn },
+  { href: '/admin/rank-reports', label: 'Rank results (students)', icon: Users },
+  { href: '/admin/scholarships', label: 'Scholarships', icon: Award },
+  { href: '/admin/visa-guides', label: 'Visa guides', icon: Plane },
+  { href: '/admin/partners', label: 'Lead partners', icon: Handshake },
+  { href: '/admin/promotions', label: 'Sponsored', icon: Rocket },
+  { href: '/admin/payments', label: 'Payments', icon: CreditCard },
+  { href: '/admin/rewards', label: 'Rewards', icon: Gift },
+  { href: '/admin/ambassadors', label: 'Ambassadors', icon: Megaphone },
+  { href: '/admin/import', label: 'Import & APIs', icon: DatabaseZap },
   { href: '/admin/users', label: 'Users & Admins', icon: Users },
 ];
 

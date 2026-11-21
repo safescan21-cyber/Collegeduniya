@@ -34,3 +34,28 @@ body { @apply bg-slate-50 text-slate-800 antialiased; }
 @utility chip-amber { @apply chip bg-amber-50 text-amber-700; }
 @utility chip-red { @apply chip bg-rose-50 text-rose-700; }
 @utility section-title { @apply text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl; }
+
+/* Article body (Markdown) */
+.prose-ses { color: var(--color-slate-700); line-height: 1.75; }
+.prose-ses h2 { margin: 1.75rem 0 0.75rem; font-size: 1.5rem; font-weight: 800; color: var(--color-slate-900); }
+.prose-ses h3 { margin: 1.5rem 0 0.5rem; font-size: 1.2rem; font-weight: 700; color: var(--color-slate-900); }
+.prose-ses p { margin: 0.75rem 0; }
+.prose-ses ul { margin: 0.75rem 0; padding-left: 1.4rem; list-style: disc; }
+.prose-ses ol { margin: 0.75rem 0; padding-left: 1.4rem; list-style: decimal; }
+.prose-ses li { margin: 0.25rem 0; }
+.prose-ses a { color: var(--color-brand-700); text-decoration: underline; }
+.prose-ses blockquote { margin: 1rem 0; border-left: 4px solid var(--color-brand-200); padding-left: 1rem; color: var(--color-slate-600); }
+.prose-ses table { width: 100%; margin: 1rem 0; border-collapse: collapse; font-size: 0.9rem; }
+.prose-ses th, .prose-ses td { border: 1px solid var(--color-slate-200); padding: 0.5rem 0.75rem; text-align: left; }
+.prose-ses th { background: var(--color-slate-50); }
+.prose-ses img { border-radius: 0.75rem; margin: 1rem 0; }
+.prose-ses code { background: var(--color-slate-100); padding: 0.1rem 0.35rem; border-radius: 0.35rem; font-size: 0.9em; }
+
+/* Print: only the page content (used by the resume builder's "Download PDF") */
+@media print {
+  header, footer, .no-print, .fixed { display: none !important; }
+  main { padding: 0 !important; }
+  @page { margin: 14mm; }
+}
+
+@keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }

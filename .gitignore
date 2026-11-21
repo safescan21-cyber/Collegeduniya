@@ -4,3 +4,12 @@ node_modules
 .next
 *.log
 .DS_Store
+
+# Android signing & builds
+android/*.keystore
+android/*.jks
+android/*.aab
+android/*.apk
+android/app/
+android/build/
+android/.gradle/

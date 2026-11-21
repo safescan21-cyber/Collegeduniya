@@ -3,6 +3,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { MapPin, Clock, Briefcase, CalendarDays, Building2, GraduationCap } from 'lucide-react';
 import ApplyForm from '@/components/ApplyForm';
+import { SaveButton, ShareButtons } from '@/components/ActionButtons';
+import TranslateText from '@/components/TranslateText';
+import { BadgeCheck, Globe } from 'lucide-react';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { range, SITE_URL, timeAgo } from '@/lib/format';
 import type { Job } from '@/lib/types';
@@ -11,8 +14,8 @@ export const dynamic = 'force-dynamic';
 
 async function getJob(id: string) {
   if (!hasSupabase || !/^[0-9a-f-]{36}$/i.test(id)) return null;
-  const { data } = await supabasePublic().from('jobs').select('*, colleges(name, slug)').eq('id', id).eq('is_published', true).maybeSingle();
-  return data as Job | null;
+  const { data } = await supabasePublic().from('jobs').select('*, colleges(name, slug), companies(name, slug, logo_url, website, is_verified, industry, city)').eq('id', id).eq('is_published', true).maybeSingle();
+  return data as (Job & { companies?: any }) | null;
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -63,16 +66,32 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
             </div>
             <p className="mt-5 text-2xl font-bold text-emerald-700">{range(j.pay_min, j.pay_max, j.currency)} <span className="text-base font-normal text-slate-500">/ {j.pay_unit}</span></p>
             <p className="mt-1 text-xs text-slate-400">Posted {timeAgo(j.created_at)}</p>
+            <div className="mt-4 flex flex-wrap gap-2"><SaveButton type="job" id={j.id} variant="button" /><ShareButtons title={`${j.title} at ${j.company}`} path={`/jobs/${j.id}`} /></div>
           </div>
           <div className="card p-6">
             <h2 className="font-bold text-slate-900">Job description</h2>
-            <p className="mt-2 whitespace-pre-line leading-relaxed text-slate-600">{j.description || '—'}</p>
+            <TranslateText text={j.description || '—'} className="mt-2 whitespace-pre-line leading-relaxed text-slate-600" />
             {j.requirements && <><h2 className="mt-6 font-bold text-slate-900">Requirements</h2><p className="mt-2 whitespace-pre-line text-slate-600">{j.requirements}</p></>}
             {j.skills?.length ? <div className="mt-6 flex flex-wrap gap-2">{j.skills.map((s) => <span key={s} className="chip">{s}</span>)}</div> : null}
             {j.colleges && <Link href={`/colleges/${j.colleges.slug}`} className="mt-6 inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline"><GraduationCap size={16} />Near {j.colleges.name}</Link>}
           </div>
         </div>
-        <aside><div className="sticky top-24"><ApplyForm jobId={j.id} jobTitle={j.title} closed={j.status === 'closed'} /></div></aside>
+        <aside className="space-y-5">
+          {j.companies && (
+            <Link href={`/companies/${j.companies.slug}`} className="card flex items-center gap-3 p-4 hover:border-brand-300">
+              <span className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand-50 text-brand-700">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {j.companies.logo_url ? <img src={j.companies.logo_url} alt="" className="h-full w-full object-cover" /> : <Building2 />}
+              </span>
+              <span className="min-w-0">
+                <span className="flex items-center gap-1 font-semibold text-slate-900">{j.companies.name}{j.companies.is_verified && <BadgeCheck size={16} className="text-emerald-600" />}</span>
+                <span className="block truncate text-xs text-slate-500">{[j.companies.industry, j.companies.city].filter(Boolean).join(' · ') || 'View company'}</span>
+              </span>
+              {j.companies.website && <Globe size={16} className="ms-auto text-slate-400" />}
+            </Link>
+          )}
+          <div className="sticky top-24"><ApplyForm jobId={j.id} jobTitle={j.title} closed={j.status === 'closed'} /></div>
+        </aside>
       </div>
     </div>
   );

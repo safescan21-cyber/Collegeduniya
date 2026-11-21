@@ -1,12 +1,12 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, Search, X, Upload, Loader2 } from 'lucide-react';
-import { api, uploadImages } from '@/lib/api';
+import { api, uploadImages, uploadDocs } from '@/lib/api';
 
 export type FieldDef = {
   name: string;
   label: string;
-  type: 'text' | 'number' | 'textarea' | 'select' | 'tags' | 'bool' | 'image' | 'images' | 'college' | 'date';
+  type: 'text' | 'number' | 'textarea' | 'select' | 'tags' | 'bool' | 'image' | 'images' | 'college' | 'date' | 'file';
   options?: string[];
   required?: boolean;
   full?: boolean;
@@ -23,8 +23,12 @@ type Props = {
   columns: ColumnDef[];
   defaults?: Record<string, any>;
   fixed?: Record<string, any>; // always sent & used as list filter (e.g. college_id)
-  rowActions?: (row: any) => React.ReactNode;
+  rowActions?: (row: any, reload: () => void) => React.ReactNode;
   searchable?: boolean;
+  quickFilters?: { label: string; params: Record<string, string> }[];
+  bulkActions?: { label: string; danger?: boolean; run: (ids: string[]) => Promise<void> }[];
+  onEditRow?: (row: any) => void;
+  idKey?: string;              // primary key column when it isn't "id" (visa_guides → country_code)
 };
 
 function CollegePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -59,7 +63,7 @@ function CollegePicker({ value, onChange }: { value: string; onChange: (v: strin
   );
 }
 
-function FieldInput({ f, value, onChange, folder }: { f: FieldDef; value: any; onChange: (v: any) => void; folder: string }) {
+export function FieldInput({ f, value, onChange, folder }: { f: FieldDef; value: any; onChange: (v: any) => void; folder: string }) {
   const [uploading, setUploading] = useState(false);
   const doUpload = async (files: FileList | null, multi: boolean) => {
     if (!files?.length) return;
@@ -95,6 +99,20 @@ function FieldInput({ f, value, onChange, folder }: { f: FieldDef; value: any; o
       return <input className="input" value={Array.isArray(value) ? value.join(', ') : value ?? ''} onChange={(e) => onChange(e.target.value)} placeholder={f.placeholder || 'Comma separated'} />;
     case 'college':
       return <CollegePicker value={value || ''} onChange={onChange} />;
+    case 'file':
+      return (
+        <div className="flex items-center gap-3">
+          <input className="input flex-1" value={value ?? ''} onChange={(e) => onChange(e.target.value)} placeholder="https://… or upload a PDF" />
+          {value && <a href={value} target="_blank" rel="noopener" className="text-xs text-brand-700 underline">open</a>}
+          <label className="btn-ghost cursor-pointer">{uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}PDF
+            <input type="file" accept="application/pdf" className="hidden" onChange={async (e) => {
+              const fl = e.target.files; if (!fl?.length) return;
+              setUploading(true);
+              try { onChange((await uploadDocs(fl, folder))[0]); } catch (er: any) { alert(er.message); }
+              setUploading(false);
+            }} /></label>
+        </div>
+      );
     case 'image':
       return (
         <div className="flex items-center gap-3">
@@ -129,7 +147,9 @@ function FieldInput({ f, value, onChange, folder }: { f: FieldDef; value: any; o
   }
 }
 
-export default function ResourceManager({ resource, title, fields, columns, defaults = {}, fixed = {}, rowActions, searchable = true }: Props) {
+export default function ResourceManager({ resource, title, fields, columns, defaults = {}, fixed = {}, rowActions, searchable = true, quickFilters, bulkActions, onEditRow, idKey = 'id' }: Props) {
+  const [qf, setQf] = useState(0);
+  const [sel, setSel] = useState<Set<string>>(new Set());
   const [rows, setRows] = useState<any[]>([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -144,14 +164,15 @@ export default function ResourceManager({ resource, title, fields, columns, defa
 
   const load = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams({ page: String(page), limit: String(LIMIT), ...JSON.parse(fixedKey) });
+    const params = new URLSearchParams({ page: String(page), limit: String(LIMIT), ...JSON.parse(fixedKey), ...(quickFilters?.[qf]?.params || {}) });
     if (search) params.set('q', search);
     try {
       const r = await api(`/api/admin/${resource}?${params}`);
       setRows(r.data); setCount(r.count);
     } catch (e: any) { setErr(e.message); }
     setLoading(false);
-  }, [resource, page, search, fixedKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resource, page, search, fixedKey, qf]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -161,7 +182,7 @@ export default function ResourceManager({ resource, title, fields, columns, defa
     const body: Record<string, any> = { ...fixed };
     for (const f of fields) if (editing[f.name] !== undefined) body[f.name] = editing[f.name];
     try {
-      if (editing.id) await api(`/api/admin/${resource}/${editing.id}`, { method: 'PATCH', body: JSON.stringify(body) });
+      if (editing.__key) await api(`/api/admin/${resource}/${encodeURIComponent(editing.__key)}`, { method: 'PATCH', body: JSON.stringify(body) });
       else await api(`/api/admin/${resource}`, { method: 'POST', body: JSON.stringify(body) });
       setEditing(null);
       load();
@@ -171,7 +192,7 @@ export default function ResourceManager({ resource, title, fields, columns, defa
 
   const remove = async (row: any) => {
     if (!confirm(`Delete "${row.name || row.title}"? This cannot be undone.`)) return;
-    try { await api(`/api/admin/${resource}/${row.id}`, { method: 'DELETE' }); load(); } catch (e: any) { alert(e.message); }
+    try { await api(`/api/admin/${resource}/${encodeURIComponent(row[idKey])}`, { method: 'DELETE' }); load(); } catch (e: any) { alert(e.message); }
   };
 
   const pages = Math.max(1, Math.ceil(count / LIMIT));
@@ -191,25 +212,50 @@ export default function ResourceManager({ resource, title, fields, columns, defa
         </div>
       </div>
 
+      {quickFilters && (
+        <div className="mb-4 flex flex-wrap gap-1">
+          {quickFilters.map((f, i) => (
+            <button key={f.label} onClick={() => { setQf(i); setPage(1); }} className={`${qf === i ? 'btn-primary' : 'btn-ghost'} py-1.5`}>{f.label}</button>
+          ))}
+        </div>
+      )}
+
+      {bulkActions && sel.size > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl bg-brand-50 p-3 text-sm">
+          <span className="font-semibold text-brand-800">{sel.size} selected</span>
+          {bulkActions.map((a) => (
+            <button key={a.label} className={`${a.danger ? 'btn-danger' : 'btn-ghost'} py-1.5`}
+              onClick={async () => { if (a.danger && !confirm(`${a.label} ${sel.size} item(s)?`)) return; try { await a.run(Array.from(sel)); setSel(new Set()); load(); } catch (e: any) { alert(e.message); } }}>{a.label}</button>
+          ))}
+          <button onClick={() => setSel(new Set())} className="text-xs text-slate-500 hover:underline">Clear</button>
+        </div>
+      )}
+
       {err && !editing && <p className="mb-3 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{err}</p>}
 
       <div className="card overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-            <tr>{columns.map((c) => <th key={c.key} className="px-4 py-3">{c.label}</th>)}<th className="px-4 py-3 text-right">Actions</th></tr>
+            <tr>
+              {bulkActions && <th className="w-8 px-3 py-3"><input type="checkbox" className="accent-brand-600" checked={rows.length > 0 && rows.every((r) => sel.has(r.id))}
+                onChange={(e) => setSel(e.target.checked ? new Set(rows.map((r) => r.id)) : new Set())} aria-label="Select all" /></th>}
+              {columns.map((c) => <th key={c.key} className="px-4 py-3">{c.label}</th>)}<th className="px-4 py-3 text-right">Actions</th>
+            </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan={columns.length + 1} className="px-4 py-10 text-center text-slate-400"><Loader2 className="mx-auto animate-spin" /></td></tr>
+              <tr><td colSpan={columns.length + 2} className="px-4 py-10 text-center text-slate-400"><Loader2 className="mx-auto animate-spin" /></td></tr>
             ) : rows.length === 0 ? (
-              <tr><td colSpan={columns.length + 1} className="px-4 py-10 text-center text-slate-400">Nothing here yet.</td></tr>
+              <tr><td colSpan={columns.length + 2} className="px-4 py-10 text-center text-slate-400">Nothing here yet.</td></tr>
             ) : rows.map((r) => (
-              <tr key={r.id} className="hover:bg-slate-50">
+              <tr key={r[idKey]} className={`hover:bg-slate-50 ${sel.has(r.id) ? 'bg-brand-50/50' : ''}`}>
+                {bulkActions && <td className="px-3 py-3"><input type="checkbox" className="accent-brand-600" checked={sel.has(r.id)}
+                  onChange={(e) => setSel((p) => { const n = new Set(p); if (e.target.checked) n.add(r.id); else n.delete(r.id); return n; })} aria-label="Select" /></td>}
                 {columns.map((c) => <td key={c.key} className="px-4 py-3">{c.render ? c.render(r) : String(r[c.key] ?? '—')}</td>)}
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-1">
-                    {rowActions?.(r)}
-                    <button onClick={() => { setErr(''); setEditing({ ...r }); }} className="btn-ghost px-2 py-1.5" aria-label="Edit"><Pencil size={14} /></button>
+                    {rowActions?.(r, load)}
+                    <button onClick={() => { if (onEditRow) return onEditRow(r); setErr(''); setEditing({ ...r, __key: r[idKey] }); }} className="btn-ghost px-2 py-1.5" aria-label="Edit"><Pencil size={14} /></button>
                     <button onClick={() => remove(r)} className="btn-ghost px-2 py-1.5 text-rose-600" aria-label="Delete"><Trash2 size={14} /></button>
                   </div>
                 </td>
@@ -231,12 +277,12 @@ export default function ResourceManager({ resource, title, fields, columns, defa
         <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/50" onClick={() => setEditing(null)}>
           <form onSubmit={save} onClick={(e) => e.stopPropagation()} className="flex h-full w-full max-w-2xl flex-col bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-              <h3 className="text-lg font-bold">{editing.id ? 'Edit' : 'Add'} {title.replace(/s$/, '').toLowerCase()}</h3>
+              <h3 className="text-lg font-bold">{editing.__key ? 'Edit' : 'Add'} {title.replace(/s$/, '').toLowerCase()}</h3>
               <button type="button" onClick={() => setEditing(null)}><X /></button>
             </div>
             <div className="grid flex-1 gap-4 overflow-y-auto p-6 sm:grid-cols-2">
               {fields.map((f) => (
-                <div key={f.name} className={f.full || ['textarea', 'images', 'image', 'college'].includes(f.type) ? 'sm:col-span-2' : ''}>
+                <div key={f.name} className={f.full || ['textarea', 'images', 'image', 'college', 'file'].includes(f.type) ? 'sm:col-span-2' : ''}>
                   <label className="label">{f.label}{f.required && ' *'}</label>
                   <FieldInput f={f} value={editing[f.name]} folder={resource} onChange={(v) => setEditing((p: any) => ({ ...p, [f.name]: v }))} />
                   {f.help && <p className="mt-1 text-xs text-slate-400">{f.help}</p>}

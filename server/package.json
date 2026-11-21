@@ -1,24 +1,45 @@
 {
-  "name": "studyearnstay-api",
+  "name": "collegeolo-api",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "StudyEarnstay.com Node.js API — admin, uploads, visitor analytics",
+  "description": "Collegeolo.com Node.js API — admin, uploads, visitor analytics",
   "main": "src/index.js",
   "scripts": {
     "dev": "node --watch src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "import:cities": "node scripts/import-cities.js",
+    "import:universities": "node scripts/import-universities.js",
+    "import:us": "node scripts/import-us.js",
+    "import:uk": "node scripts/import-uk.js",
+    "import:aishe": "node scripts/import-aishe.js",
+    "import:eter": "node scripts/import-eter.js",
+    "import:sheet": "node scripts/import-sheet.js",
+    "enrich": "node scripts/enrich.js",
+    "import:india": "node scripts/import-india.js",
+    "import:cities:india": "node scripts/import-cities.js IN --names",
+    "import:cutoffs": "node scripts/import-cutoffs.js",
+    "import:rankings": "node scripts/import-rankings.js",
+    "mock:setup": "node scripts/mock-setup.js"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
+    "adm-zip": "^0.6.1",
+    "aishe-institutions-list": "^1.0.7",
     "cors": "^2.8.5",
+    "csv-parse": "^7.0.3",
     "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
     "express": "^4.21.0",
     "express-rate-limit": "^7.4.0",
     "helmet": "^8.0.0",
     "morgan": "^1.10.0",
     "multer": "^2.0.0",
+    "nodemailer": "^6.10.1",
+    "yauzl": "^3.4.0",
     "zod": "^3.23.8"
   }
 }
