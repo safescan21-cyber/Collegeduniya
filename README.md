@@ -1,4 +1,4 @@
-# StudyEarnstay.com 🎓💼🏠
+# Collegeolo.com 🎓💼🏠
 
 **Study · Earn · Stay** — a college discovery platform (like Collegedunia) where students can:
 
@@ -95,13 +95,13 @@ Browser ──► Next.js (web) ──► Supabase  (public reads, OTP login, re
 5. **Authentication → Email Templates → Magic Link** — replace the body so it sends a **code** instead of a link:
 
    ```html
-   <h2>Your StudyEarnstay login code</h2>
+   <h2>Your Collegeolo login code</h2>
    <p>Enter this code to continue:</p>
    <p style="font-size:28px;font-weight:bold;letter-spacing:6px">{{ .Token }}</p>
    <p>This code expires in 1 hour. If you didn't request it, ignore this email.</p>
    ```
    Do the same for the **Confirm signup** template (new users get that one first).
-6. **Authentication → URL Configuration**: Site URL = `https://studyearnstay.com`.
+6. **Authentication → URL Configuration**: Site URL = `https://www.collegeolo.com`.
 7. For production email, set up **custom SMTP** (Authentication → SMTP Settings — e.g. Resend, Brevo, Zoho, Amazon SES). Supabase's built-in mailer is limited to a few emails per hour.
 8. **Project Settings → API**: copy the Project URL, `anon` key and `service_role` key.
 
@@ -136,7 +136,7 @@ Optional settings:
 
 | File | Variable | What it does |
 |---|---|---|
-| `server/.env` | `ANTHROPIC_API_KEY` | Turns on AI answers in the "Ask StudyEarnstay" chat. Without it the chat replies with matching links. |
+| `server/.env` | `ANTHROPIC_API_KEY` | Turns on AI answers in the "Ask Collegeolo" chat. Without it the chat replies with matching links. |
 | `server/.env` | `ANTHROPIC_MODEL` | Model for the chat (default `claude-haiku-5-5`). |
 | `server/.env` | `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` | Live local jobs (free key: developer.adzuna.com). |
 | `server/.env` | `JOOBLE_API_KEY` | More countries for live jobs (free key: jooble.org/api/about; limited calls — results are cached 12 h per city). |
@@ -324,7 +324,7 @@ npm run import:india -- ./aishe/         # ~65,000 institutions
 |---|---|---|
 | **Top colleges pages** | `/top`, `/top/engineering`, `/top/engineering/pune`, `/top/engineering/maharashtra`, `/top/engineering/in` | Nothing. Pages are generated for every stream × city/state/country with at least 3 published colleges, ranked by official ranking. They include ItemList, FAQ and breadcrumb JSON-LD and are added to `sitemap/0.xml`. |
 | **Job alerts** | “Email me new jobs like these” on `/jobs`; Dashboard → Job alerts | The API checks hourly and sends daily or weekly. Needs `SMTP_URL`. WhatsApp is optional: `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID`, `WHATSAPP_TEMPLATE` (an approved Meta template with one body variable); without these it falls back to email. Test with `POST /api/admin/job-alerts/run?dry=1`. Turn off with `JOB_ALERTS=off`. |
-| **Resume builder** | `/resume` (Download PDF = print → Save as PDF). The apply form ticks “Attach my StudyEarnstay resume”. Employers and admins open it at `/resume/view?app=…` | — |
+| **Resume builder** | `/resume` (Download PDF = print → Save as PDF). The apply form ticks “Attach my Collegeolo resume”. Employers and admins open it at `/resume/view?app=…` | — |
 | **Student filters** | `/jobs` → Work mode (work from home) and “Hours per week ≤ 20 (student-visa friendly)” | — |
 | **Exam library** | `/papers`, plus a section on each exam page; Admin → Exam library (PDF upload up to 20 MB) | Only documents the exam body or board has published publicly, each with the official source URL. CBSE 10/12 and ICSE/ISC are added as exams. |
 | **Percentile → rank** | `/predictor/<exam>` (e.g. JEE Main, CAT) | Admin → Exam library → *Candidate counts*: the official number of candidates and its source. The tool stays hidden until this is filled in. |
@@ -353,7 +353,7 @@ Everything is already built. It stays switched off until you connect a WhatsApp 
 1. **Meta:** in Meta Business → WhatsApp → API setup, add your number. Note the **Phone number ID** and create a permanent **System User token** (permission `whatsapp_business_messaging`).
 2. **Templates:** create and get approved:
    - `login_code`: category **Authentication**, with a *Copy code* button.
-   - `ses_update`: category **Utility**. Body, e.g.: `Hi! {{1}}. {{2}}`. Sample: `Application update: Tutor` / `Your application is now shortlisted. https://studyearnstay.com/dashboard`.
+   - `ses_update`: category **Utility**. Body, e.g.: `Hi! {{1}}. {{2}}`. Sample: `Application update: Tutor` / `Your application is now shortlisted. https://www.collegeolo.com/dashboard`.
    - (optional) `job_alert`: category **Utility**, one variable `{{1}}`.
 3. **`server/.env`:** `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID`, `WHATSAPP_OTP_TEMPLATE=login_code`, `WHATSAPP_NOTIFY_TEMPLATE=ses_update`, `WHATSAPP_TEMPLATE_LANG=en` (or `en_US`, whatever language you approved the templates in). Restart the API. `GET /api/whatsapp/status` should show `{"login":true,"notifications":true}`.
 4. **Supabase → Authentication → Sign In / Providers → Phone:** enable it.
@@ -373,7 +373,7 @@ Everything is already built. It stays switched off until you connect a WhatsApp 
 - **Catalogue:** `/mock-tests`, with Indian and international exams.
 - **Taking a test:** each test has an exam-style timer and a question palette. Students can mark questions for review, answers save automatically, and they can resume after closing the page. When time runs out the test submits itself.
 - **Results:**
-  - score, percentile among StudyEarnstay test-takers, accuracy, and section- and topic-wise analysis
+  - score, percentile among Collegeolo test-takers, accuracy, and section- and topic-wise analysis
   - **“Where to improve”**: weak topics and a 2-week study plan
   - every answer with an explanation, plus a “Report a problem” button
 - **Email:** the result goes out by email (needs `SMTP_URL`) and also appears in the 🔔 bell, or on WhatsApp if the student opted in.
@@ -543,7 +543,7 @@ Google does not punish a site for using AI. It punishes **mass-produced, thin pa
 
 ## 5m. Collegedunia-style college discovery (migration 019)
 
-Same kind of information-dense layout students know from big college portals — built in StudyEarnstay's own design, from your own data.
+Same kind of information-dense layout students know from big college portals — built in Collegeolo's own design, from your own data.
 
 - **Home page:** a **Top colleges table** with stream tabs (Engineering, Management, Medical, Law…) showing rank, fees, average placement, rating and cutoff; **Explore courses**; **Popular entrance exams**; **Study in these cities**. Courses also sit in the main menu.
 - **College listing (`/colleges`):** every college is a row of facts — fees per year (from its courses), average and highest package, rating, rank (only labelled NIRF when it really is), latest closing rank, approvals and exams accepted — with Compare, Save, Brochure and Apply / Get details. New filters: **course, state, exam accepted, approval (UGC, AICTE, NAAC…)**. Filtered/sorted combinations are `noindex`.
@@ -558,22 +558,22 @@ Take every figure from the college's official website, prospectus, NIRF data or 
 
 ```bash
 # on the server
-git clone https://github.com/safescan21-cyber/Collegeduniya.git /var/www/studyearnstay
-cd /var/www/studyearnstay
+git clone https://github.com/safescan21-cyber/Collegeduniya.git /var/www/collegeolo
+cd /var/www/collegeolo
 
 cd server && npm ci --omit=dev && cp .env.example .env && nano .env
 pm2 start src/index.js --name ses-api
 
-cd ../web && npm ci && cp .env.example .env.local && nano .env.local   # NEXT_PUBLIC_API_URL=https://studyearnstay.com
+cd ../web && npm ci && cp .env.example .env.local && nano .env.local   # NEXT_PUBLIC_API_URL=https://www.collegeolo.com
 npm run build
 pm2 start npm --name ses-web -- start
 pm2 save && pm2 startup
 ```
 
-`/etc/nginx/sites-available/studyearnstay`:
+`/etc/nginx/sites-available/collegeolo`:
 ```nginx
 server {
-  server_name studyearnstay.com www.studyearnstay.com;
+  server_name collegeolo.com www.collegeolo.com;
   client_max_body_size 20M;
 
   location /api/ {
@@ -591,11 +591,11 @@ server {
 }
 ```
 ```bash
-sudo ln -s /etc/nginx/sites-available/studyearnstay /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/collegeolo /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d studyearnstay.com -d www.studyearnstay.com
+sudo certbot --nginx -d collegeolo.com -d www.collegeolo.com
 ```
-With Nginx serving both on one domain, set `NEXT_PUBLIC_API_URL=https://studyearnstay.com` and `CORS_ORIGIN=https://studyearnstay.com,https://www.studyearnstay.com`.
+With Nginx serving both on one domain, set `NEXT_PUBLIC_API_URL=https://www.collegeolo.com` and `CORS_ORIGIN=https://www.collegeolo.com,https://www.collegeolo.com`.
 
 Point the domain's DNS **A records** (`@` and `www`) to the VPS IP.
 

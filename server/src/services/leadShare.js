@@ -10,7 +10,7 @@ export async function shareLead(leadId, collegeId, { force = false } = {}) {
   if (!partner?.is_active) throw Object.assign(new Error('This college is not an active lead partner'), { status: 409 });
   await supabase.from('leads').update({ shared_with: collegeId, shared_at: new Date().toISOString() }).eq('id', leadId);
   const lines = [
-    `New student enquiry from StudyEarnstay for ${partner.colleges?.name || 'your institution'}`,
+    `New student enquiry from Collegeolo for ${partner.colleges?.name || 'your institution'}`,
     '',
     `Name: ${lead.full_name}`, `Phone: ${lead.phone}`, lead.email ? `Email: ${lead.email}` : null,
     lead.city ? `City: ${lead.city}` : null, lead.course_interest ? `Course interest: ${lead.course_interest}` : null,

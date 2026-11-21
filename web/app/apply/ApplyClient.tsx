@@ -87,7 +87,7 @@ export default function ApplyClient() {
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <div className="min-w-0">
         <h1 className="flex items-center gap-2 text-3xl font-extrabold text-slate-900"><FilePlus2 className="text-brand-600" />One application, many colleges</h1>
-        <p className="mt-1 text-slate-500">Fill this form once and send it to every partner college you choose. No extra charge from StudyEarnstay.</p>
+        <p className="mt-1 text-slate-500">Fill this form once and send it to every partner college you choose. No extra charge from Collegeolo.</p>
 
         <div className="card mt-6 p-5">
           <p className="font-semibold text-slate-900">Your colleges ({validCart.length})</p>
@@ -138,7 +138,7 @@ export default function ApplyClient() {
             <div className="sm:col-span-2"><label className="label">Why this course? (optional)</label><textarea rows={3} maxLength={2000} className="input" value={f.statement} onChange={set('statement')} /></div>
             <label className="flex items-start gap-2 text-sm text-slate-600 sm:col-span-2">
               <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-1 h-4 w-4 accent-brand-600" />
-              I confirm these details are correct and allow StudyEarnstay to share my application with the selected colleges and contact me about it.
+              I confirm these details are correct and allow Collegeolo to share my application with the selected colleges and contact me about it.
             </label>
             {err && <p className="text-sm text-rose-600 sm:col-span-2">{err}</p>}
             <button disabled={busy || !validCart.length} className="btn-primary sm:col-span-2">{busy ? <Loader2 className="animate-spin" size={16} /> : null}Submit to {validCart.length || 0} college{validCart.length === 1 ? '' : 's'}</button>

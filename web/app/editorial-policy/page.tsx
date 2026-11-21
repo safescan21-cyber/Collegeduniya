@@ -5,14 +5,14 @@ import { ORG } from '@/lib/org';
 
 export const metadata: Metadata = {
   title: 'How we work — sources, reviews and AI',
-  description: 'Where StudyEarnstay gets college data, how reviews and listings are checked, where we use AI and where we never do, and how to report a mistake.',
+  description: 'Where Collegeolo gets college data, how reviews and listings are checked, where we use AI and where we never do, and how to report a mistake.',
   alternates: { canonical: '/editorial-policy' },
 };
 
 export default function EditorialPolicy() {
   return (
     <LegalPage title="How we work" updated={ORG.policyDate}>
-      <p>This page explains where the information on StudyEarnstay comes from, who checks it, and what to do when something is wrong. If anything here doesn’t match what you see on the site, please <Link href="/contact?topic=correction">tell us</Link>.</p>
+      <p>This page explains where the information on Collegeolo comes from, who checks it, and what to do when something is wrong. If anything here doesn’t match what you see on the site, please <Link href="/contact?topic=correction">tell us</Link>.</p>
 
       <h2>College information</h2>
       <ul>
@@ -41,7 +41,7 @@ export default function EditorialPolicy() {
       <ul>
         <li><strong>Practice questions in mock tests.</strong> An AI writes questions in the style of each exam. Every question is then solved again separately (by a different AI model when one is available); if the two answers disagree, the question is fixed or thrown away. Our team spot-checks questions, and any question reported by two students is taken down until it is reviewed. These are practice questions, not previous-year papers.</li>
         <li><strong>Explanations, hints and the study plan</strong> after a mock test. These are marked as AI and you can report a wrong one.</li>
-        <li><strong>The “Ask StudyEarnstay” chat helper.</strong> It answers using information from this site and links to the pages it used.</li>
+        <li><strong>The “Ask Collegeolo” chat helper.</strong> It answers using information from this site and links to the pages it used.</li>
         <li><strong>Selfie verification</strong> for the verified tick. Unsure cases go to a person.</li>
         <li><strong>Translating menus and college descriptions</strong> into other Indian languages. The original English is always available.</li>
       </ul>

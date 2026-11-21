@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 006: Management quota admissions
+-- Collegeolo.com — migration 006: Management quota admissions
 -- Admins post management / NRI / institutional quota seats for a college + course;
 -- logged-in students apply (with documents); admins track every application.
 -- Run AFTER 005. Safe to re-run.

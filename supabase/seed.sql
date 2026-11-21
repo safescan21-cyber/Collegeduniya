@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — DEMO seed data (run after schema.sql)
+-- Collegeolo.com — DEMO seed data (run after schema.sql)
 -- All fees, rents, jobs, hostels and contacts below are SAMPLE values
 -- to make the site look alive while you build. Replace or delete them
 -- from the Admin panel before going live.

@@ -64,7 +64,7 @@ export default async function Footer() {
           <Link href="/contact" className="hover:text-white">Contact</Link>
           <Link href="/contact#grievance" className="hover:text-white">Grievance officer</Link>
         </nav>
-        © {new Date().getFullYear()} {ORG.legalName || 'StudyEarnstay.com'} — Study • Earn • Stay · <a href={`mailto:${ORG.email}`} className="hover:text-white">{ORG.email}</a>
+        © {new Date().getFullYear()} {ORG.legalName || 'Collegeolo.com'} — Study • Earn • Stay · <a href={`mailto:${ORG.email}`} className="hover:text-white">{ORG.email}</a>
         <p className="mt-2">Cities: <a href="https://www.geonames.org" className="underline" target="_blank" rel="noopener noreferrer">GeoNames</a> · Maps & places: <a href="https://www.openstreetmap.org/copyright" className="underline" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a> · University data: Hipolabs, Wikidata</p>
       </div>
     </footer>

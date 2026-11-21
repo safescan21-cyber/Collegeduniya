@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 008: every city, town & village + city names in every language
+-- Collegeolo.com — migration 008: every city, town & village + city names in every language
 -- Run AFTER 007. Safe to re-run.
 -- =====================================================================
 

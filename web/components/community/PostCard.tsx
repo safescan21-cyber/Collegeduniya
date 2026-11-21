@@ -29,7 +29,7 @@ export default function PostCard({ post, full = false, onDeleted }: { post: Feed
   };
   const share = async () => {
     const url = `${location.origin}/community/post/${p.id}`;
-    const text = p.title || (p.body || '').slice(0, 100) || 'Post on StudyEarnstay';
+    const text = p.title || (p.body || '').slice(0, 100) || 'Post on Collegeolo';
     try { if (navigator.share) await navigator.share({ title: text, url }); else { await navigator.clipboard.writeText(url); setShared(true); setTimeout(() => setShared(false), 1500); } }
     catch { return; }
     const { data } = await sb.rpc('share_post', { p_post: p.id }); if (typeof data === 'number') setP({ ...p, shares: data });

@@ -22,7 +22,7 @@ router.post('/boost/verify', requireUser, wrap(async (req, res) => {
   res.json(await activatePayment(b.data.razorpay_order_id, b.data.razorpay_payment_id));
 }));
 
-// Razorpay → Settings → Webhooks: URL https://api.studyearnstay.com/api/payments/razorpay/webhook, events: order.paid
+// Razorpay → Settings → Webhooks: URL https://api.collegeolo.com/api/payments/razorpay/webhook, events: order.paid
 export const webhook = [express.raw({ type: 'application/json', limit: '1mb' }), wrap(async (req, res) => {
   if (!verifyWebhookSignature(req.body, req.get('x-razorpay-signature'))) return res.status(400).json({ error: 'bad signature' });
   const evt = JSON.parse(req.body.toString('utf8'));

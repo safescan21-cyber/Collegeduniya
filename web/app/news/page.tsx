@@ -46,7 +46,7 @@ export default async function NewsPage({ searchParams }: { searchParams: Promise
                 <span className="chip-brand capitalize">{a.category}</span>
                 <h2 className="mt-2 font-bold text-slate-900 group-hover:text-brand-700">{a.title}</h2>
                 {a.excerpt && <p className="mt-1 line-clamp-2 text-sm text-slate-500">{a.excerpt}</p>}
-                <p className="mt-2 text-xs text-slate-400">{a.author_name || 'StudyEarnstay'} · {timeAgo(a.published_at)}</p>
+                <p className="mt-2 text-xs text-slate-400">{a.author_name || 'Collegeolo'} · {timeAgo(a.published_at)}</p>
               </div>
             </Link>
           ))}

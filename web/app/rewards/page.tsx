@@ -5,7 +5,7 @@ import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Rewards — earn points for reviews, applications and referrals',
-  description: 'Write a verified college review, apply to colleges or invite friends to StudyEarnstay and redeem points for vouchers.',
+  description: 'Write a verified college review, apply to colleges or invite friends to Collegeolo and redeem points for vouchers.',
   alternates: { canonical: '/rewards' },
 };
 

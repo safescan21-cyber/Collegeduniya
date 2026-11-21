@@ -33,7 +33,7 @@ export default function BoostButton({ itemType, itemId, title, live, boostedUnti
       await loadCheckout();
       const o = await api('/api/payments/boost/order', { method: 'POST', body: JSON.stringify({ item_type: itemType, item_id: itemId, days: Number(days) }) });
       const rz = new window.Razorpay({
-        key: o.key_id, order_id: o.order_id, amount: o.amount, currency: o.currency, name: 'StudyEarnstay', description: `Boost "${title}" for ${days} days`,
+        key: o.key_id, order_id: o.order_id, amount: o.amount, currency: o.currency, name: 'Collegeolo', description: `Boost "${title}" for ${days} days`,
         theme: { color: '#4f46e5' },
         handler: async (r: any) => {
           try { await api('/api/payments/boost/verify', { method: 'POST', body: JSON.stringify(r) }); setMsg(`Boosted for ${days} days ✓`); setOpen(false); }

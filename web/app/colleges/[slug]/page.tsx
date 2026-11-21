@@ -395,7 +395,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             </div>
             {(jobs.data || []).length ? (
               <div className="grid gap-5 sm:grid-cols-2">{(jobs.data as Job[]).map((j) => <JobCard key={j.id} j={j} />)}</div>
-            ) : <EmptyState title="No StudyEarnstay jobs near this college yet" text="See live listings from job sites below." />}
+            ) : <EmptyState title="No Collegeolo jobs near this college yet" text="See live listings from job sites below." />}
             <div className="mt-5"><LiveJobs city={c.city === 'Not specified' ? c.country : c.city} country={countryCode} /></div>
           </section>}
 
@@ -430,7 +430,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             )}
             {c.accepts_applications && (
               <div id="apply" className="mt-4 scroll-mt-32 rounded-xl bg-emerald-50 p-3">
-                <p className="mb-2 text-sm font-semibold text-emerald-800">Apply through StudyEarnstay{c.application_note ? ` · ${c.application_note}` : ''}</p>
+                <p className="mb-2 text-sm font-semibold text-emerald-800">Apply through Collegeolo{c.application_note ? ` · ${c.application_note}` : ''}</p>
                 <ApplyCartButton item={listItem} />
               </div>
             )}

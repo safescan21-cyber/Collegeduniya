@@ -1,6 +1,6 @@
-// Digital Asset Links — lets the Android app (Trusted Web Activity) open studyearnstay.com full-screen
+// Digital Asset Links — lets the Android app (Trusted Web Activity) open collegeolo.com full-screen
 // without the browser bar. Set in web/.env:
-//   ANDROID_PACKAGE_NAME=com.studyearnstay.app
+//   ANDROID_PACKAGE_NAME=com.collegeolo.app
 //   ANDROID_SHA256_CERT_FINGERPRINTS=AA:BB:…   (Play Console → App integrity → App signing key; comma-separate several)
 export const dynamic = 'force-dynamic';   // reads env at runtime
 

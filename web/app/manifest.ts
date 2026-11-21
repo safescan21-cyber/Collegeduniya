@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'StudyEarnstay — Colleges, PG & Part-time Jobs',
-    short_name: 'StudyEarnstay',
-    description: 'Find colleges worldwide, PG & hostels near campus and part-time jobs for students.',
+    name: 'Collegeolo — Study, Earn & Stay',
+    short_name: 'Collegeolo',
+    description: 'Study, earn and stay: find colleges worldwide, part-time jobs and PG & hostels near campus.',
     start_url: '/',
     scope: '/',
     display: 'standalone',

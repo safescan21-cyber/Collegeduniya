@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 015: public student profiles, education, login history,
+-- Collegeolo.com — migration 015: public student profiles, education, login history,
 -- "who's online" for admins and silent online alerts on the site. Run AFTER 014.
 -- =====================================================================
 

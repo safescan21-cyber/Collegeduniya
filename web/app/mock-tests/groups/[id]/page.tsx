@@ -53,8 +53,8 @@ export default function Group({ params }: { params: Promise<{ id: string }> }) {
       </div>
       <div className="card mt-4 flex flex-wrap items-center gap-3 p-4 text-sm">
         <span>Invite code <b className="font-mono text-lg tracking-widest">{g.code}</b></span>
-        <button onClick={() => { navigator.clipboard?.writeText(`Join my study group "${g.name}" on StudyEarnstay: ${location.origin}/mock-tests/groups — code ${g.code}`); setCopied(true); setTimeout(() => setCopied(false), 1500); }} className="btn-ghost py-1 text-xs">{copied ? <Check size={13} /> : <Copy size={13} />}Copy invite</button>
-        <a className="btn-ghost py-1 text-xs" target="_blank" rel="noopener" href={`https://wa.me/?text=${encodeURIComponent(`Join my study group "${g.name}" on StudyEarnstay — open ${typeof location !== 'undefined' ? location.origin : ''}/mock-tests/groups and enter code ${g.code}`)}`}>Share on WhatsApp</a>
+        <button onClick={() => { navigator.clipboard?.writeText(`Join my study group "${g.name}" on Collegeolo: ${location.origin}/mock-tests/groups — code ${g.code}`); setCopied(true); setTimeout(() => setCopied(false), 1500); }} className="btn-ghost py-1 text-xs">{copied ? <Check size={13} /> : <Copy size={13} />}Copy invite</button>
+        <a className="btn-ghost py-1 text-xs" target="_blank" rel="noopener" href={`https://wa.me/?text=${encodeURIComponent(`Join my study group "${g.name}" on Collegeolo — open ${typeof location !== 'undefined' ? location.origin : ''}/mock-tests/groups and enter code ${g.code}`)}`}>Share on WhatsApp</a>
         <span className="ms-auto text-slate-500">{members.length} member{members.length === 1 ? '' : 's'}</span>
       </div>
       {err && <p className="mt-3 text-sm text-rose-600">{err}</p>}

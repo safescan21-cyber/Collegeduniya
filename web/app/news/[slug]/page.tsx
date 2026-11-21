@@ -29,8 +29,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   const jsonLd = {
     '@context': 'https://schema.org', '@type': 'NewsArticle', headline: a.title, description: a.excerpt,
     datePublished: a.published_at, dateModified: a.updated_at, image: a.cover_url ? [a.cover_url] : undefined,
-    author: a.author_name && !/team$/i.test(a.author_name) ? { '@type': 'Person', name: a.author_name } : { '@type': 'Organization', name: 'StudyEarnstay', url: SITE_URL },
-    publisher: { '@type': 'Organization', name: 'StudyEarnstay', url: SITE_URL, logo: { '@type': 'ImageObject', url: `${SITE_URL}/icon.png` } },
+    author: a.author_name && !/team$/i.test(a.author_name) ? { '@type': 'Person', name: a.author_name } : { '@type': 'Organization', name: 'Collegeolo', url: SITE_URL },
+    publisher: { '@type': 'Organization', name: 'Collegeolo', url: SITE_URL, logo: { '@type': 'ImageObject', url: `${SITE_URL}/icon.png` } },
     mainEntityOfPage: `${SITE_URL}/news/${a.slug}`,
   };
   return (
@@ -39,7 +39,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <Link href={`/news?category=${a.category}`} className="chip-brand capitalize">{a.category}</Link>
         <h1 className="mt-3 text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl">{a.title}</h1>
-        <p className="mt-2 text-sm text-slate-500">By <span className="font-medium text-slate-700">{a.author_name || 'StudyEarnstay Team'}</span> · {new Date(a.published_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+        <p className="mt-2 text-sm text-slate-500">By <span className="font-medium text-slate-700">{a.author_name || 'Collegeolo Team'}</span> · {new Date(a.published_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
           {a.updated_at && new Date(a.updated_at).getTime() - new Date(a.published_at).getTime() > 86400e3 ? <> · Updated {new Date(a.updated_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</> : null}
           {' · '}<Link href="/editorial-policy" className="underline">How we write</Link></p>
         {a.cover_url && (

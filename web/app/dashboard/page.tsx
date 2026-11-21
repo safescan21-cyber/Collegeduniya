@@ -220,7 +220,7 @@ function Dashboard() {
           </div>
             )}
           </div>
-        ) : <Empty text="You haven't applied to any college through StudyEarnstay yet." href="/management-quota" cta="See management quota seats" />)}
+        ) : <Empty text="You haven't applied to any college through Collegeolo yet." href="/management-quota" cta="See management quota seats" />)}
 
         {tab === 'exams' && <MyExams />}
         {tab === 'mocks' && <MockHistory />}

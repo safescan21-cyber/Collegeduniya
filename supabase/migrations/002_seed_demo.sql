@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — DEMO data for migration 002 (optional)
+-- Collegeolo.com — DEMO data for migration 002 (optional)
 -- Exams below describe each test in general terms only. Dates, cutoffs,
 -- placement figures and the article are SAMPLE values for testing —
 -- replace them with figures from official sources before launch.
@@ -57,5 +57,5 @@ insert into public.articles (slug, title, excerpt, body, category, author_name, 
 values ('how-to-choose-a-pg-near-college','How to choose a safe PG near your college',
  'A simple checklist for students moving to a new city.',
  E'## Before you visit\n\n- Check the distance and travel time to campus.\n- Ask what the rent includes: food, Wi-Fi, electricity, laundry.\n\n## On the visit\n\n- Look at the room, washroom and kitchen.\n- Ask about rules, curfew and security.\n- Talk to a student who already lives there.\n\n## Before you pay\n\n- Get the rent and deposit in writing.\n- Never pay the full deposit before seeing the room.',
- 'hostel','StudyEarnstay Team','{PG,hostel,checklist}')
+ 'hostel','Collegeolo Team','{PG,hostel,checklist}')
 on conflict (slug) do nothing;

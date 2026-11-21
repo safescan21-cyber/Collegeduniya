@@ -5,14 +5,14 @@ import { ORG } from '@/lib/org';
 
 export const metadata: Metadata = {
   title: 'Terms of use',
-  description: 'The rules for using StudyEarnstay — accounts, what you post, listings, mock tests, payments and our responsibility.',
+  description: 'The rules for using Collegeolo — accounts, what you post, listings, mock tests, payments and our responsibility.',
   alternates: { canonical: '/terms' },
 };
 
 export default function Terms() {
   return (
     <LegalPage title="Terms of use" updated={ORG.policyDate}>
-      <p>By using StudyEarnstay you agree to these terms, our <Link href="/privacy">privacy policy</Link> and our <Link href="/community-guidelines">community guidelines</Link>. The site is run by {ORG.legalName || 'StudyEarnstay'}{ORG.address ? `, ${ORG.address}` : ''}.</p>
+      <p>By using Collegeolo you agree to these terms, our <Link href="/privacy">privacy policy</Link> and our <Link href="/community-guidelines">community guidelines</Link>. The site is run by {ORG.legalName || 'Collegeolo'}{ORG.address ? `, ${ORG.address}` : ''}.</p>
 
       <h2>1. Your account</h2>
       <ul>
@@ -23,7 +23,7 @@ export default function Terms() {
 
       <h2>2. What you post</h2>
       <ul>
-        <li>You keep ownership of your reviews, posts, photos and answers. You give us permission to show them on StudyEarnstay and in our search results and social media previews, for as long as they are on the site.</li>
+        <li>You keep ownership of your reviews, posts, photos and answers. You give us permission to show them on Collegeolo and in our search results and social media previews, for as long as they are on the site.</li>
         <li>Post only what is true to your experience and what you have the right to share. Don’t post other people’s photos or personal details without their permission.</li>
         <li>We may remove anything that breaks these terms or the <Link href="/community-guidelines">community guidelines</Link>, and suspend or block accounts that do so.</li>
       </ul>
@@ -36,7 +36,7 @@ export default function Terms() {
       </ul>
 
       <h2>4. Mock tests</h2>
-      <p>Mock tests are for practice. The questions are original practice questions, not official papers, and your score, rank and percentile on StudyEarnstay do not predict your result in the real exam.</p>
+      <p>Mock tests are for practice. The questions are original practice questions, not official papers, and your score, rank and percentile on Collegeolo do not predict your result in the real exam.</p>
 
       <h2>5. Messages and calls</h2>
       <p>Chat and calls are for students of the same college. Requests to message a girl must be accepted before a chat starts. Harassment, threats, asking for money or sharing someone’s messages or photos without permission will get your account blocked. Messages are deleted after 6 months.</p>

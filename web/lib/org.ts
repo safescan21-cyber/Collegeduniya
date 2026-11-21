@@ -1,8 +1,9 @@
 // Who runs the site. Filled from web/.env.local so nothing here is invented — empty values are simply not shown.
 const e = (v: string | undefined) => (v || '').trim();
 export const ORG = {
-  brand: 'StudyEarnstay',
-  url: (process.env.NEXT_PUBLIC_SITE_URL || 'https://studyearnstay.com').replace(/\/$/, ''),
+  brand: 'Collegeolo',
+  tagline: 'Study, Earn & Stay',
+  url: (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.collegeolo.com').replace(/\/$/, ''),
   legalName: e(process.env.NEXT_PUBLIC_ORG_LEGAL_NAME),          // registered business name, e.g. "XYZ Ventures (Proprietorship)"
   founder: e(process.env.NEXT_PUBLIC_ORG_FOUNDER),                // your name, as you want it shown
   founderRole: e(process.env.NEXT_PUBLIC_ORG_FOUNDER_ROLE) || 'Founder',
@@ -10,10 +11,10 @@ export const ORG = {
   started: e(process.env.NEXT_PUBLIC_ORG_STARTED),                // e.g. 2026
   address: e(process.env.NEXT_PUBLIC_ORG_ADDRESS),
   city: e(process.env.NEXT_PUBLIC_ORG_CITY),
-  email: e(process.env.NEXT_PUBLIC_CONTACT_EMAIL) || 'hello@studyearnstay.com',
+  email: e(process.env.NEXT_PUBLIC_CONTACT_EMAIL) || 'hello@collegeolo.com',
   phone: e(process.env.NEXT_PUBLIC_CONTACT_PHONE),
   grievanceOfficer: e(process.env.NEXT_PUBLIC_GRIEVANCE_OFFICER),
-  grievanceEmail: e(process.env.NEXT_PUBLIC_GRIEVANCE_EMAIL) || e(process.env.NEXT_PUBLIC_CONTACT_EMAIL) || 'hello@studyearnstay.com',
+  grievanceEmail: e(process.env.NEXT_PUBLIC_GRIEVANCE_EMAIL) || e(process.env.NEXT_PUBLIC_CONTACT_EMAIL) || 'hello@collegeolo.com',
   social: e(process.env.NEXT_PUBLIC_ORG_SOCIAL).split(',').map((s) => s.trim()).filter(Boolean),   // profile URLs, comma separated
   policyDate: e(process.env.NEXT_PUBLIC_POLICY_DATE) || '21 November 2026',
 };
@@ -21,7 +22,7 @@ export const ORG = {
 export const orgJsonLd = () => ({
   '@context': 'https://schema.org',
   '@graph': [
-    { '@type': 'Organization', '@id': `${ORG.url}/#org`, name: ORG.brand, ...(ORG.legalName ? { legalName: ORG.legalName } : {}), url: ORG.url,
+    { '@type': 'Organization', '@id': `${ORG.url}/#org`, name: ORG.brand, slogan: ORG.tagline, ...(ORG.legalName ? { legalName: ORG.legalName } : {}), url: ORG.url,
       logo: `${ORG.url}/icon.png`, email: ORG.email, ...(ORG.social.length ? { sameAs: ORG.social } : {}),
       ...(ORG.founder ? { founder: { '@type': 'Person', name: ORG.founder } } : {}),
       ...(ORG.address ? { address: { '@type': 'PostalAddress', streetAddress: ORG.address, addressCountry: 'IN' } } : {}),

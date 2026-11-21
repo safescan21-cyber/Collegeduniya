@@ -496,7 +496,7 @@ for (const [table, cfg] of Object.entries(crudConfig)) {
     if (table === 'articles') {
       row.slug = slugify(row.slug || row.title);
       row.author_id = req.user.id;
-      row.author_name = row.author_name || req.profile.full_name || 'StudyEarnstay Team';
+      row.author_name = row.author_name || req.profile.full_name || 'Collegeolo Team';
     }
     if (table === 'jobs' || table === 'quota_seats') row.created_by = req.user.id;
     if (['hostels', 'jobs'].includes(table) && !row.approval_status) row.approval_status = 'approved';

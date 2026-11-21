@@ -4,7 +4,7 @@ import { BedDouble, Building2, CheckCircle2 } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'For PG owners and employers — list rooms and jobs free',
-  description: 'PG and hostel owners list rooms and keep availability up to date. Companies post part-time jobs and internships for students. Free on StudyEarnstay.',
+  description: 'PG and hostel owners list rooms and keep availability up to date. Companies post part-time jobs and internships for students. Free on Collegeolo.',
 };
 
 const OWNER = ['List your PG, hostel or flat free', 'Update available beds in one tap', 'Get enquiries and calls from students nearby', 'Verified badge after a quick check', 'Reviews from real students build trust'];

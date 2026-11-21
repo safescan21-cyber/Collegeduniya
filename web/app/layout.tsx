@@ -19,12 +19,12 @@ import HrefLang from '@/components/HrefLang';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: 'StudyEarnstay — Colleges, PG & Hostels, Part-time Jobs for Students', template: '%s | StudyEarnstay' },
+  title: { default: 'Collegeolo — Study, Earn & Stay | Colleges, PG & Hostels, Part-time Jobs', template: '%s | Collegeolo' },
   description:
-    'Search colleges worldwide with courses, fees, placements and real student reviews. Predict colleges from your rank, find PG and hostels near campus and apply for part-time jobs — StudyEarnstay.com',
+    'Search colleges worldwide with courses, fees, placements and real student reviews. Predict colleges from your rank, find PG and hostels near campus and apply for part-time jobs — Collegeolo.com',
   keywords: ['colleges', 'universities', 'college fees', 'college predictor', 'compare colleges', 'PG near college', 'student hostel', 'part-time jobs for students', 'study abroad'],
-  openGraph: { siteName: 'StudyEarnstay', type: 'website', url: SITE_URL },
-  appleWebApp: { capable: true, title: 'StudyEarnstay', statusBarStyle: 'default' },
+  openGraph: { siteName: 'Collegeolo', type: 'website', url: SITE_URL },
+  appleWebApp: { capable: true, title: 'Collegeolo', statusBarStyle: 'default' },
 };
 
 export const viewport: Viewport = { themeColor: '#4338ca' };

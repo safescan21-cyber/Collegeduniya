@@ -1,9 +1,9 @@
 {
-  "name": "studyearnstay-api",
+  "name": "collegeolo-api",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "StudyEarnstay.com Node.js API \u2014 admin, uploads, visitor analytics",
+  "description": "Collegeolo.com Node.js API \u2014 admin, uploads, visitor analytics",
   "main": "src/index.js",
   "scripts": {
     "dev": "node --watch src/index.js",

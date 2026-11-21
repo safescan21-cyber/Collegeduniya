@@ -46,7 +46,7 @@ export default function Ambassador({ board }: { board: { first_name: string; col
   return (
     <div className="container-x py-10">
       <h1 className="flex items-center gap-2 text-3xl font-extrabold tracking-tight text-slate-900"><Megaphone className="text-brand-600" />Campus ambassador programme</h1>
-      <p className="mt-1 max-w-2xl text-slate-500">Represent StudyEarnstay at your college. Every student who joins with your link and applies somewhere earns you 20 points — redeem them on the <Link href="/rewards" className="text-brand-700 underline">rewards page</Link>.</p>
+      <p className="mt-1 max-w-2xl text-slate-500">Represent Collegeolo at your college. Every student who joins with your link and applies somewhere earns you 20 points — redeem them on the <Link href="/rewards" className="text-brand-700 underline">rewards page</Link>.</p>
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">{PERKS.map((p) => (
         <div key={p.title} className="card p-5"><p.icon className="text-brand-600" /><p className="mt-2 font-bold text-slate-900">{p.title}</p><p className="mt-1 text-sm text-slate-500">{p.text}</p></div>))}</div>
@@ -73,7 +73,7 @@ export default function Ambassador({ board }: { board: { first_name: string; col
               {me ? (
                 <div className="card flex items-center gap-3 p-6">
                   <CheckCircle2 className={me.status === 'approved' ? 'text-emerald-600' : 'text-amber-500'} />
-                  <div><p className="font-bold text-slate-900">{me.status === 'approved' ? 'You are a StudyEarnstay campus ambassador 🎉' : me.status === 'applied' ? 'Application received — we review within a week' : `Status: ${me.status}`}</p>
+                  <div><p className="font-bold text-slate-900">{me.status === 'approved' ? 'You are a Collegeolo campus ambassador 🎉' : me.status === 'applied' ? 'Application received — we review within a week' : `Status: ${me.status}`}</p>
                     <p className="text-sm text-slate-500">{me.college_name}{me.admin_note ? ` · ${me.admin_note}` : ''}</p></div>
                 </div>
               ) : (

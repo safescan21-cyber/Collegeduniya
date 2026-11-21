@@ -8,7 +8,7 @@ import { alertsReady, sendJobAlert } from './whatsapp.js';
 // WhatsApp alerts use services/whatsapp.js (WHATSAPP_TOKEN, WHATSAPP_PHONE_ID and WHATSAPP_TEMPLATE or WHATSAPP_NOTIFY_TEMPLATE).
 // Without them, WhatsApp alerts fall back to email.
 
-const SITE = (process.env.SITE_URL || 'https://studyearnstay.com').replace(/\/$/, '');
+const SITE = (process.env.SITE_URL || 'https://www.collegeolo.com').replace(/\/$/, '');
 const DAY = 86_400_000;
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -54,7 +54,7 @@ function emailBody(a, jobs) {
     ${jobs.map((j) => `<p style="margin:0 0 14px"><a href="${SITE}/jobs/${j.id}" style="font-weight:bold;color:#111">${esc(j.title)}</a><br>
       <span style="color:#555">${esc(j.company)} · ${j.is_remote ? 'Remote' : esc(j.city)} · ${esc(j.job_type)}${pay(j) ? ` · ${esc(pay(j))}` : ''}</span></p>`).join('')}
     <p><a href="${esc(link)}" style="background:#4f46e5;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">See all matching jobs</a></p>
-    <p style="color:#888;font-size:12px">You get this because you created a job alert on StudyEarnstay. <a href="${SITE}/dashboard?tab=alerts">Manage or stop alerts</a>.</p></div>`;
+    <p style="color:#888;font-size:12px">You get this because you created a job alert on Collegeolo. <a href="${SITE}/dashboard?tab=alerts">Manage or stop alerts</a>.</p></div>`;
   return { text, html };
 }
 

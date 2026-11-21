@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 013: mock tests for every exam. Run AFTER 012.
+-- Collegeolo.com — migration 013: mock tests for every exam. Run AFTER 012.
 --   mock_blueprints  — the test pattern per exam (sections, topics, question count, marking, duration)
 --   mock_questions   — question bank (AI-generated → AI self-check → admin review), answers never sent to browsers
 --   mock_attempts    — a candidate's test; scored in the database, then AI feedback + email from the API

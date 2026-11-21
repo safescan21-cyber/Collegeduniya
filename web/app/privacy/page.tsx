@@ -5,7 +5,7 @@ import { ORG } from '@/lib/org';
 
 export const metadata: Metadata = {
   title: 'Privacy policy',
-  description: 'What personal data StudyEarnstay collects, why, who we share it with, how long we keep it, and how to see, correct or delete it.',
+  description: 'What personal data Collegeolo collects, why, who we share it with, how long we keep it, and how to see, correct or delete it.',
   alternates: { canonical: '/privacy' },
 };
 
@@ -13,8 +13,8 @@ export default function Privacy() {
   return (
     <LegalPage title="Privacy policy" updated={ORG.policyDate}>
       <p>
-        This policy explains what we collect when you use StudyEarnstay ({ORG.url.replace(/^https?:\/\//, '')}), why, and what you can do about it.
-        “We” means {ORG.legalName || 'StudyEarnstay'}{ORG.address ? `, ${ORG.address}` : ''}. We wrote it in plain language; if something is unclear, <Link href="/contact?topic=privacy">ask us</Link>.
+        This policy explains what we collect when you use Collegeolo ({ORG.url.replace(/^https?:\/\//, '')}), why, and what you can do about it.
+        “We” means {ORG.legalName || 'Collegeolo'}{ORG.address ? `, ${ORG.address}` : ''}. We wrote it in plain language; if something is unclear, <Link href="/contact?topic=privacy">ask us</Link>.
       </p>
 
       <h2>The short version</h2>
@@ -76,7 +76,7 @@ export default function Privacy() {
       <p>Use the <Link href="/contact?topic=privacy">privacy request form</Link> or email <a href={`mailto:${ORG.grievanceEmail}`}>{ORG.grievanceEmail}</a>. We reply as soon as we can and always within 90 days.</p>
 
       <h2>Children</h2>
-      <p>StudyEarnstay is for students. If you are under 18, please use it with your parent’s or guardian’s permission. Chat and calls are meant for college students; if we learn that an account belongs to a child using them without a parent’s consent, we will restrict it.</p>
+      <p>Collegeolo is for students. If you are under 18, please use it with your parent’s or guardian’s permission. Chat and calls are meant for college students; if we learn that an account belongs to a child using them without a parent’s consent, we will restrict it.</p>
 
       <h2>Security</h2>
       <p>Data is sent over encrypted connections, access to personal data inside our team is limited to people who need it, and every database table has rules about who can read it. If a breach affects your personal data, we will tell you and the Data Protection Board as the law requires.</p>

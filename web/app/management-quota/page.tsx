@@ -33,7 +33,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
     title: where
       ? `${isIndia ? 'Management quota' : 'Direct admission'} ${new Date().getFullYear()} in ${where} — seats, fees & deadlines`
       : `Direct admission & management quota seats worldwide — official fees & deadlines`,
-    description: `Open ${isIndia ? 'management and NRI quota' : 'direct-admission, international and management quota'} seats${where ? ` in ${where}` : ''}: official fee, seats left, eligibility and last date. Apply online free through StudyEarnstay.`,
+    description: `Open ${isIndia ? 'management and NRI quota' : 'direct-admission, international and management quota'} seats${where ? ` in ${where}` : ''}: official fee, seats left, eligibility and last date. Apply online free through Collegeolo.`,
     alternates: { canonical: `/management-quota${sp.country ? `?country=${sp.country.toUpperCase()}` : ''}` },
   };
 }

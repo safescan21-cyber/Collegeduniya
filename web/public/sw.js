@@ -1,4 +1,4 @@
-// StudyEarnstay service worker — makes the site installable and gives a basic offline page.
+// Collegeolo service worker — makes the site installable and gives a basic offline page.
 // Pages: network first (fresh data), falling back to cache, then /offline.
 // Static assets (_next/static, icons): cache first.
 const CACHE = 'ses-v1';

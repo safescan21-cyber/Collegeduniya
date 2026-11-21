@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const p = await getPost((await params).id);
   if (!p) return { title: 'Post not found', robots: { index: false } };
   const title = p.title || (p.result ? `${p.author_name} scored ${p.result.score}/${p.result.max} in ${p.result.title}` : `${p.author_name}${p.college_name ? ` · ${p.college_name}` : ''}`);
-  const description = (p.body || '').replace(/\s+/g, ' ').slice(0, 160) || 'Post on StudyEarnstay campus community';
+  const description = (p.body || '').replace(/\s+/g, ' ').slice(0, 160) || 'Post on Collegeolo campus community';
   const img = p.media.find((m) => m.type === 'image');
   // short posts are fine for the feed but too thin for search: index blogs, results with discussion, and posts with real text
   const substantial = p.kind === 'blog' || (p.body || '').length >= 280 || p.comments >= 3;

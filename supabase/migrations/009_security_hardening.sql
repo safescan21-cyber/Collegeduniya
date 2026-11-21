@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 009: security hardening (Supabase advisor)
+-- Collegeolo.com — migration 009: security hardening (Supabase advisor)
 -- Run AFTER 008. Safe to re-run.
 -- =====================================================================
 

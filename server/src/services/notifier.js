@@ -5,7 +5,7 @@ import { sendNotification, notifyReady, waNumber } from './whatsapp.js';
 // Delivers the notifications outbox (filled by database triggers — migration 012) every minute:
 // WhatsApp when the person opted in and the WhatsApp template is configured, otherwise email.
 // Anything that can't be delivered stays visible in the dashboard's Notifications tab.
-const SITE = (process.env.SITE_URL || 'https://studyearnstay.com').replace(/\/$/, '');
+const SITE = (process.env.SITE_URL || 'https://www.collegeolo.com').replace(/\/$/, '');
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 export async function deliverPending({ limit = 100 } = {}) {
@@ -29,7 +29,7 @@ export async function deliverPending({ limit = 100 } = {}) {
           to: p.email, subject: n.title,
           text: `${n.body || ''}\n\n${url}\n\nManage notifications: ${SITE}/dashboard?tab=profile`,
           html: `<div style="font-family:Arial,sans-serif;max-width:560px"><h2 style="color:#4f46e5">${esc(n.title)}</h2><p>${esc(n.body)}</p>
-            <p><a href="${esc(url)}" style="background:#4f46e5;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Open StudyEarnstay</a></p>
+            <p><a href="${esc(url)}" style="background:#4f46e5;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Open Collegeolo</a></p>
             <p style="color:#888;font-size:12px"><a href="${SITE}/dashboard?tab=profile">Manage notifications</a></p></div>`,
         });
         Object.assign(patch, { status: 'sent', channel: 'email', sent_at: new Date().toISOString(), error: null });

@@ -132,7 +132,7 @@ export default async function HostelPage({ params }: { params: Promise<{ id: str
             <div className="mt-5 space-y-3 text-sm">
               {h.contact_name && <p className="flex items-center gap-2"><User size={16} />{h.contact_name}</p>}
               {h.contact_phone && <a href={`tel:${h.contact_phone}`} className="btn-primary w-full"><Phone size={16} />Call {h.contact_phone}</a>}
-              {h.contact_phone && <a href={`https://wa.me/${h.contact_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi, I found ${h.name} on StudyEarnstay.com. Is a room available?`)}`} target="_blank" rel="noopener noreferrer" className="btn-ghost w-full">WhatsApp</a>}
+              {h.contact_phone && <a href={`https://wa.me/${h.contact_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi, I found ${h.name} on Collegeolo.com. Is a room available?`)}`} target="_blank" rel="noopener noreferrer" className="btn-ghost w-full">WhatsApp</a>}
               {h.contact_email && <a href={`mailto:${h.contact_email}`} className="flex items-center gap-2 text-brand-700"><Mail size={16} />{h.contact_email}</a>}
               {h.latitude && h.longitude ? <a className="btn-ghost w-full" target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${h.latitude},${h.longitude}`}>View on map</a> : null}
             </div>

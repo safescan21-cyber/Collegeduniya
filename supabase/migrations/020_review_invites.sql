@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 020: automatic invitations to write a REAL review
+-- Collegeolo.com — migration 020: automatic invitations to write a REAL review
 -- Reviews are never generated or bought (Consumer Protection Act 2019 / BIS IS 19000:2022 on online reviews).
 -- Instead, students who say they study at a college (profile "My college", or a student/alumnus member of the
 -- college) are invited once, a week after they set it, and reminded once 30 days later — in the app, and on

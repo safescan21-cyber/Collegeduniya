@@ -129,7 +129,7 @@ async function callOne(p, { system, prompt, maxTokens, temperature, json, images
     const send = (jsonMode) => fetch(`${p.base().replace(/\/$/, '')}/chat/completions`, {
       method: 'POST', signal: ctl.signal,
       headers: { 'content-type': 'application/json', ...(key ? { authorization: `Bearer ${key}` } : {}),
-        ...(p.id === 'openrouter' ? { 'HTTP-Referer': env('SITE_URL') || 'https://studyearnstay.com', 'X-Title': 'StudyEarnstay' } : {}) },
+        ...(p.id === 'openrouter' ? { 'HTTP-Referer': env('SITE_URL') || 'https://www.collegeolo.com', 'X-Title': 'Collegeolo' } : {}) },
       body: JSON.stringify({ model, max_tokens: maxTokens, temperature, ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
         messages: [{ role: 'system', content: system }, { role: 'user', content: imgs.length
           ? [...imgs.map((i) => ({ type: 'image_url', image_url: { url: `data:${i.mime};base64,${i.data}` } })), { type: 'text', text: prompt }]

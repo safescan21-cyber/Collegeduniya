@@ -56,7 +56,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
     { label: 'Streams', render: (c) => c.streams?.join(', ') || '—' },
     { label: 'Hostel on campus', render: (c) => (c.facilities || []).some((f) => /hostel|residence/i.test(f)) ? <CheckCircle2 size={18} className="text-emerald-600" /> : <XCircle size={18} className="text-slate-300" /> },
     { label: 'Facilities', render: (c) => c.facilities?.join(', ') || '—' },
-    { label: 'Accepts StudyEarnstay application', render: (c) => c.accepts_applications ? <CheckCircle2 size={18} className="text-emerald-600" /> : <XCircle size={18} className="text-slate-300" /> },
+    { label: 'Accepts Collegeolo application', render: (c) => c.accepts_applications ? <CheckCircle2 size={18} className="text-emerald-600" /> : <XCircle size={18} className="text-slate-300" /> },
   ];
 
   return (

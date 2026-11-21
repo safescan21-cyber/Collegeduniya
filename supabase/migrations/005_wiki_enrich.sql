@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 005: free college details & photos
+-- Collegeolo.com — migration 005: free college details & photos
 -- (Wikidata + Wikipedia + Wikimedia Commons). Run AFTER 004. Safe to re-run.
 -- =====================================================================
 

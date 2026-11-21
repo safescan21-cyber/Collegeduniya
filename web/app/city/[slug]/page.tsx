@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
   return {
     title: `${local ? `${local} (${c.name})` : c.name}: colleges, PG & part-time jobs — ${c.country}`,
-    description: `Find colleges and universities in ${c.name}, PGs and hostels nearby, hospitals, and part-time jobs for students — StudyEarnstay.`,
+    description: `Find colleges and universities in ${c.name}, PGs and hostels nearby, hospitals, and part-time jobs for students — Collegeolo.`,
     alternates: { canonical: `/city/${c.slug}` },
     // a town page goes to Google only when it lists something real (3+ colleges, or a PG / job) — migration 018
     robots: c.seo_ok ? { index: true, follow: true } : { index: false, follow: true },

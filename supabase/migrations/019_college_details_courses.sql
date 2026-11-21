@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 019: fuller college pages, data-rich listings and course pages
+-- Collegeolo.com — migration 019: fuller college pages, data-rich listings and course pages
 --   • colleges: approvals, exams accepted, brochure, admission process, important dates, scholarships, FAQs
 --     (entered by admins / colleges from official sources — empty fields are simply not shown)
 --   • course_catalog (B.Tech, MBA, MBBS …) with basic facts; each college course is linked to it automatically

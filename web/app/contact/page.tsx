@@ -7,7 +7,7 @@ import { ORG } from '@/lib/org';
 
 export const metadata: Metadata = {
   title: 'Contact us',
-  description: 'Write to StudyEarnstay — questions, corrections to college information, privacy requests and complaints (grievance officer).',
+  description: 'Write to Collegeolo — questions, corrections to college information, privacy requests and complaints (grievance officer).',
   alternates: { canonical: '/contact' },
 };
 

@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 003: worldwide data + partner portals
+-- Collegeolo.com — migration 003: worldwide data + partner portals
 -- Run AFTER 002_growth.sql in Supabase → SQL Editor. Safe to re-run.
 --
 -- Adds: world cities & countries (GeoNames), translation cache, account

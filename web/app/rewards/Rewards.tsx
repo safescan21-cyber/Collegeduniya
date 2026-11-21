@@ -8,7 +8,7 @@ import { timeAgo } from '@/lib/format';
 
 const WAYS = [
   { icon: Star, pts: 50, title: 'Verified college review', text: 'Review your college and upload your ID or fee receipt. Points arrive when our team verifies it.', href: '/colleges' },
-  { icon: FilePlus2, pts: 10, title: 'Apply to a college', text: 'Each college or management-quota application through StudyEarnstay.', href: '/apply' },
+  { icon: FilePlus2, pts: 10, title: 'Apply to a college', text: 'Each college or management-quota application through Collegeolo.', href: '/apply' },
   { icon: UserPlus, pts: 20, title: 'Invite a friend', text: 'Share your link. Points unlock once your friend applies somewhere or writes a review.', href: '/ambassador' },
 ];
 const REASON: Record<string, string> = { review_verified: 'Verified review', college_applications: 'College application', quota_applications: 'Quota application', referral: 'Friend joined', redemption: 'Redeemed', admin: 'Bonus' };
@@ -65,7 +65,7 @@ export default function Rewards({ catalog }: { catalog: { code: string; title: s
             <div className="mt-2 flex gap-2">
               <input readOnly className="input flex-1 bg-slate-50" value={link} />
               <button onClick={() => { navigator.clipboard?.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 1500); }} className="btn-ghost">{copied ? <Check size={16} /> : <Copy size={16} />}Copy</button>
-              <a className="btn-primary" target="_blank" rel="noopener" href={`https://wa.me/?text=${encodeURIComponent(`Find colleges, PGs and part-time jobs on StudyEarnstay: ${link}`)}`}>WhatsApp</a>
+              <a className="btn-primary" target="_blank" rel="noopener" href={`https://wa.me/?text=${encodeURIComponent(`Find colleges, PGs and part-time jobs on Collegeolo: ${link}`)}`}>WhatsApp</a>
             </div>
             <p className="mt-2 text-xs text-slate-500">Code <b>{code}</b> · friends must sign up within 7 days of opening your link. Want to do more? <Link href="/ambassador" className="text-brand-700 underline">Become a campus ambassador</Link>.</p>
           </div>

@@ -82,7 +82,7 @@ export function OnlineAlerts() {
       <span className="relative flex h-2.5 w-2.5 shrink-0"><span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 motion-safe:animate-ping" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" /></span>
       <div className="min-w-0">
         <p className="text-slate-800"><b>{who}</b>{toast.city ? ` from ${toast.city}` : ''} is online</p>
-        {toast.n > 1 && <p className="text-xs text-slate-500">{toast.n.toLocaleString()} students on StudyEarnstay right now</p>}
+        {toast.n > 1 && <p className="text-xs text-slate-500">{toast.n.toLocaleString()} students on Collegeolo right now</p>}
       </div>
       <button onClick={() => { setToast(null); try { localStorage.setItem('ses-online-alerts', 'off'); } catch { /* ignore */ } setOff(true); }}
         className="ms-1 shrink-0 text-slate-400 hover:text-slate-700" aria-label="Hide online alerts" title="Hide these alerts"><X size={15} /></button>

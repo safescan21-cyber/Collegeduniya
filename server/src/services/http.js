@@ -1,6 +1,6 @@
 // Small fetch helper: timeout, JSON, polite User-Agent (required by OpenStreetMap / Wikidata policies)
 export const USER_AGENT = process.env.HTTP_USER_AGENT
-  || 'StudyEarnstay/1.0 (+https://studyearnstay.com; hello@studyearnstay.com)';
+  || 'Collegeolo/1.0 (+https://www.collegeolo.com; hello@collegeolo.com)';
 
 export async function fetchJson(url, { method = 'GET', headers = {}, body, timeoutMs = 20000 } = {}) {
   const ctrl = new AbortController();

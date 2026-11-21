@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
   if (!p) return { title: 'Profile not found', robots: { index: false } };
   return {
     title: `${p.full_name || p.name || p.username}${p.headline ? ` — ${p.headline}` : ''}`,
-    description: p.bio?.slice(0, 160) || `${p.full_name || p.name || p.username}${p.college_name ? ` · ${p.college_name}` : ''} on StudyEarnstay.`,
+    description: p.bio?.slice(0, 160) || `${p.full_name || p.name || p.username}${p.college_name ? ` · ${p.college_name}` : ''} on Collegeolo.`,
     robots: { index: false, follow: true },   // student profiles stay out of search engines
   };
 }

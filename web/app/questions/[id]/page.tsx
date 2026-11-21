@@ -55,7 +55,7 @@ export default async function QuestionPage({ params }: { params: Promise<{ id: s
           <div key={a.id} className={`card p-5 ${a.is_official ? 'border-emerald-300 bg-emerald-50/40' : ''}`}>
             <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
               {a.author_name}
-              {a.is_team && <span className="chip-brand py-0.5">StudyEarnstay team</span>}
+              {a.is_team && <span className="chip-brand py-0.5">Collegeolo team</span>}
               {a.is_official && <span className="chip-green py-0.5"><BadgeCheck size={12} />Expert answer</span>}
               <span className="font-normal text-slate-400">· {timeAgo(a.created_at)}</span>
             </p>

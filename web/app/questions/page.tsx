@@ -9,7 +9,7 @@ import type { QuestionPublic } from '@/lib/types';
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Student Q&A — ask about colleges, admissions, PGs and jobs',
-  description: 'Ask questions about colleges, courses, fees, hostels and part-time jobs. Answers from students and the StudyEarnstay team.',
+  description: 'Ask questions about colleges, courses, fees, hostels and part-time jobs. Answers from students and the Collegeolo team.',
 };
 const PER_PAGE = 20;
 type SP = Record<string, string | undefined>;

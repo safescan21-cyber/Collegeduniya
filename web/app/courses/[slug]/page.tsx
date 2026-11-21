@@ -44,7 +44,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
   const rows: [string, React.ReactNode][] = ([
     ['Full name', k.full_name], ['Level', k.level], ['Duration', k.duration], ['Eligibility', k.eligibility],
     ['Entrance exams', exams.length ? <span className="flex flex-wrap gap-1.5">{exams.map((e) => <Link key={e.slug} href={`/exams/${e.slug}`} className="chip-brand hover:underline">{e.short_name}</Link>)}</span> : null],
-    ['Colleges on StudyEarnstay', n ? <Link href={`/colleges?course=${k.slug}`} className="font-semibold text-brand-700 hover:underline">{n.toLocaleString('en-IN')} in India</Link> : null],
+    ['Colleges on Collegeolo', n ? <Link href={`/colleges?course=${k.slug}`} className="font-semibold text-brand-700 hover:underline">{n.toLocaleString('en-IN')} in India</Link> : null],
     ['Fees per year', s.fee_min ? (Number(s.fee_min) === Number(s.fee_max) ? short(s.fee_min) : `${short(s.fee_min)} – ${short(s.fee_max)} (typical ${short(s.fee_median)})`) : null],
     ['Government / private', n ? `${s.public_colleges} government · ${s.private_colleges} private or deemed` : null],
     ['Median salary (recent placements)', s.placement_median ? lpa(s.placement_median) : null],
@@ -61,7 +61,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
             <h2 className="border-b border-slate-100 px-5 py-3 font-bold text-slate-900">{k.name} at a glance</h2>
             <table className="w-full text-sm"><tbody className="divide-y divide-slate-100">{rows.map(([a, b]) => (
               <tr key={a}><th scope="row" className="w-2/5 bg-slate-50/70 px-5 py-2.5 text-left font-medium text-slate-600">{a}</th><td className="px-5 py-2.5 text-slate-900">{b}</td></tr>))}</tbody></table>
-            <p className="px-5 py-2 text-xs text-slate-400">Numbers are worked out from the colleges listed on StudyEarnstay and their official fee and placement figures. Eligibility varies by college — check its admission page.</p>
+            <p className="px-5 py-2 text-xs text-slate-400">Numbers are worked out from the colleges listed on Collegeolo and their official fee and placement figures. Eligibility varies by college — check its admission page.</p>
           </section>
           {k.about && <section><h2 className="text-xl font-bold text-slate-900">About {k.name}</h2><p className="mt-2 whitespace-pre-line leading-relaxed text-slate-700">{k.about}</p></section>}
           {top.length > 0 && (

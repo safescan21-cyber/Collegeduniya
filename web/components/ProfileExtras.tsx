@@ -41,7 +41,7 @@ export function PublicProfileSettings() {
         {url && f.public_profile && (profile as any)?.username && <Link href={url} target="_blank" className="flex items-center gap-1 text-sm text-brand-700 underline">View my public profile<ExternalLink size={13} /></Link>}
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <div><label className="label">Username</label><div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 ps-3 text-sm text-slate-400">studyearnstay.com/u/<input className="input border-0 bg-white" value={f.username} onChange={(e) => setF({ ...f, username: e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, '') })} placeholder="auto" /></div></div>
+        <div><label className="label">Username</label><div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 ps-3 text-sm text-slate-400">collegeolo.com/u/<input className="input border-0 bg-white" value={f.username} onChange={(e) => setF({ ...f, username: e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, '') })} placeholder="auto" /></div></div>
         <div><label className="label">Headline</label><input className="input" maxLength={120} value={f.headline} onChange={(e) => setF({ ...f, headline: e.target.value })} placeholder="B.Tech CSE, 2nd year · NEET 2027 aspirant" /></div>
         <div className="sm:col-span-2"><label className="label">About me</label><textarea rows={3} maxLength={1000} className="input" value={f.bio} onChange={(e) => setF({ ...f, bio: e.target.value })} placeholder="What you study, what you’re preparing for, your interests…" /></div>
       </div>

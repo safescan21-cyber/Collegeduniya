@@ -4,7 +4,7 @@ import EnquiryForm from '@/components/EnquiryForm';
 
 export const metadata: Metadata = {
   title: 'Free admission counselling',
-  description: 'Talk to a StudyEarnstay counsellor for free — choose the right college and course, plan your budget, and find a PG and part-time job near campus.',
+  description: 'Talk to a Collegeolo counsellor for free — choose the right college and course, plan your budget, and find a PG and part-time job near campus.',
 };
 
 const POINTS = [

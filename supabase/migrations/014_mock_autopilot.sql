@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 014: mock-test autopilot. Run AFTER 013.
+-- Collegeolo.com — migration 014: mock-test autopilot. Run AFTER 013.
 -- The AI drafts patterns, keeps question banks full, approves questions that pass its own double-check,
 -- repairs or rejects doubtful ones, handles student reports and publishes tests. Admins only spot-check.
 -- =====================================================================

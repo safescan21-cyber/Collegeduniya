@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 002: growth features
+-- Collegeolo.com — migration 002: growth features
 -- Run AFTER schema.sql, in Supabase → SQL Editor. Safe to re-run.
 --
 -- Adds: shortlist, enquiries/leads & counselling, PG reviews, owner/employer

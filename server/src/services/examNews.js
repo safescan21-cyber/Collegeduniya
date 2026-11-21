@@ -13,7 +13,7 @@ import { llmReady, completeJson } from './llm.js';
 //  3. email: one digest per student per day at most, for the exams they follow, with one-click unsubscribe.
 // Only headline + publisher + link are stored and sent; every item opens the original article.
 
-const SITE = (process.env.SITE_URL || 'https://studyearnstay.com').replace(/\/$/, '');
+const SITE = (process.env.SITE_URL || 'https://www.collegeolo.com').replace(/\/$/, '');
 const env = (k, d) => process.env[k] ?? d;
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -195,7 +195,7 @@ function digestEmail(name, groups) {
     ${g.items.map((x) => `<p style="margin:0 0 12px"><a href="${esc(x.url)}" style="color:#0f172a;font-weight:bold;text-decoration:none">${esc(x.title)}</a>${x.official ? ' <span style="background:#dcfce7;color:#166534;font-size:11px;padding:1px 6px;border-radius:8px">Official</span>' : ''}<br><span style="color:#64748b;font-size:13px">${esc(x.source)} · ${when(x.published_at)}</span></p>`).join('')}
     <p style="font-size:13px"><a href="${SITE}/exams/${g.exam.slug}#news">All ${esc(g.exam.short_name)} news</a> · <a href="${SITE}/unsubscribe/exam-news?t=${g.token}" style="color:#64748b">Stop ${esc(g.exam.short_name)} emails</a></p>`).join('')}
   <p style="background:#fffbeb;color:#92400e;padding:10px;border-radius:8px;font-size:13px">Dates and rules change — always confirm on the official exam website.</p>
-  <p style="color:#94a3b8;font-size:12px">You get this because you follow these exams on StudyEarnstay. Headlines are found with the GDELT Project and link to the original publishers. <a href="${SITE}/dashboard?tab=exams">Manage your exams</a>.</p></div>`;
+  <p style="color:#94a3b8;font-size:12px">You get this because you follow these exams on Collegeolo. Headlines are found with the GDELT Project and link to the original publishers. <a href="${SITE}/dashboard?tab=exams">Manage your exams</a>.</p></div>`;
   return { subject, text, html };
 }
 

@@ -1,6 +1,6 @@
-# StudyEarnstay Android app (Google Play)
+# Collegeolo Android app (Google Play)
 
-The app is a **Trusted Web Activity**: it opens studyearnstay.com full-screen, so every website update reaches app users
+The app is a **Trusted Web Activity**: it opens collegeolo.com full-screen, so every website update reaches app users
 instantly. No separate app code to maintain.
 
 ## One-time setup (on your laptop)
@@ -12,9 +12,9 @@ instantly. No separate app code to maintain.
 2. In this folder, create the Android project from the manifest (Bubblewrap downloads the Android SDK the first time):
    ```bash
    cd android
-   bubblewrap init --manifest=https://studyearnstay.com/manifest.webmanifest
+   bubblewrap init --manifest=https://www.collegeolo.com/manifest.webmanifest
    ```
-   Accept the values from `twa-manifest.json` (package `com.studyearnstay.app`). It creates a signing key `android.keystore`.
+   Accept the values from `twa-manifest.json` (package `com.collegeolo.app`). It creates a signing key `android.keystore`.
    **Back up the keystore and its passwords — you can never update the app without them. Never commit it to Git.**
 3. Build:
    ```bash
@@ -28,10 +28,10 @@ instantly. No separate app code to maintain.
    (also add your upload key's fingerprint from `bubblewrap fingerprint list`).
 2. Put them in `web/.env.local` on the server and restart the site:
    ```
-   ANDROID_PACKAGE_NAME=com.studyearnstay.app
+   ANDROID_PACKAGE_NAME=com.collegeolo.app
    ANDROID_SHA256_CERT_FINGERPRINTS=AA:BB:CC:…,DD:EE:FF:…
    ```
-3. Check https://studyearnstay.com/.well-known/assetlinks.json shows them.
+3. Check https://www.collegeolo.com/.well-known/assetlinks.json shows them.
 
 ## Publish
 

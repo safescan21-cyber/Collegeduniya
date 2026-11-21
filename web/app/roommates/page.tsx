@@ -15,7 +15,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   return {
     title: `Find a roommate${sp.city ? ` in ${sp.city}` : ''} — students sharing PGs & flats`,
-    description: `Students looking for roommates and rooms${sp.city ? ` in ${sp.city}` : ''}: budget, move-in date and college. Message privately on StudyEarnstay.`,
+    description: `Students looking for roommates and rooms${sp.city ? ` in ${sp.city}` : ''}: budget, move-in date and college. Message privately on Collegeolo.`,
   };
 }
 

@@ -4,7 +4,7 @@ import { sendMail, mailEnabled } from './mailer.js';
 
 // After a mock test is submitted (scored in the database): build "where to improve" feedback,
 // save it on the attempt, email the result and drop an in-app / WhatsApp notification.
-const SITE = (process.env.SITE_URL || 'https://studyearnstay.com').replace(/\/$/, '');
+const SITE = (process.env.SITE_URL || 'https://www.collegeolo.com').replace(/\/$/, '');
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const pct = (a, b) => (b > 0 ? Math.round((100 * a) / b) : 0);
 const num = (n) => (Number.isInteger(Number(n)) ? String(Number(n)) : Number(n).toFixed(2));
@@ -63,7 +63,7 @@ function resultEmail(a, fb, name) {
     <h2 style="color:#4f46e5;margin-bottom:4px">${esc(a.title)} — your result</h2>
     <p style="margin-top:0;color:#64748b">Hi ${esc(name || 'there')}, here is how you did.</p>
     <p style="font-size:28px;font-weight:bold;margin:8px 0">${num(a.score)} <span style="font-size:16px;color:#64748b">/ ${num(a.max_score)}</span></p>
-    <p style="margin:0;color:#475569">${a.rank ? `Rank <b>${a.rank.rank}</b> of ${a.rank.total} · ` : ''}Better than or equal to <b>${a.percentile}%</b> of StudyEarnstay test-takers.</p>
+    <p style="margin:0;color:#475569">${a.rank ? `Rank <b>${a.rank.rank}</b> of ${a.rank.total} · ` : ''}Better than or equal to <b>${a.percentile}%</b> of Collegeolo test-takers.</p>
     <table style="border-collapse:collapse;margin-top:14px;width:100%;font-size:14px"><tr style="background:#f1f5f9"><th align="left" style="padding:6px 10px">Section</th><th align="left" style="padding:6px 10px">Score</th><th align="left" style="padding:6px 10px">Right · wrong · skipped</th></tr>${rows}</table>
     <p style="margin-top:16px">${esc(fb.summary)}</p>
     ${list('Where to improve', fb.weaknesses)}${list('Your study plan', fb.plan)}${list('Strengths', fb.strengths)}

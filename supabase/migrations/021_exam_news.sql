@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 021: exam news alerts by email
+-- Collegeolo.com — migration 021: exam news alerts by email
 -- Students follow an exam; the server collects headlines about it from the free GDELT news index
 -- (worldwide, open for any use with attribution — services/examNews.js), keeps only items that are really about that
 -- exam (exam name + an exam word such as result / admit card / registration / answer key in the headline),

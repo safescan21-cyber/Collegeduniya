@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 017: campus community
+-- Collegeolo.com — migration 017: campus community
 --   • student profile: gender (private), college, course, passing-out year, call / last-seen / suggestion switches
 --   • AI selfie verification (verified tick)
 --   • same-college chat: anyone → girls starts as a REQUEST unless the sender is a verified girl; accept / decline

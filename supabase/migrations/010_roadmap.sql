@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 010: roadmap features
+-- Collegeolo.com — migration 010: roadmap features
 --   1 rankings + cutoff details   2 marks→rank   3 verified PG + visits
 --   4 senior connect, roommates, private messages   5 recommender
 --   6 scholarships + visa guides   8 sponsored listings, payments, lead partners

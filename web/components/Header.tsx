@@ -53,8 +53,11 @@ export function Logo({ light = false }: { light?: boolean }) {
   return (
     <Link href="/" className="flex shrink-0 items-center gap-2">
       <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-white"><GraduationCap size={20} /></span>
-      <span className={`text-lg font-extrabold tracking-tight ${light ? 'text-white' : 'text-slate-900'}`}>
-        Study<span className="text-accent-500">Earn</span>stay
+      <span className="flex flex-col leading-none">
+        <span className={`text-lg font-extrabold tracking-tight ${light ? 'text-white' : 'text-slate-900'}`}>
+          College<span className="text-accent-500">olo</span>
+        </span>
+        <span className={`mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${light ? 'text-white/70' : 'text-slate-500'}`}>Study · Earn · Stay</span>
       </span>
     </Link>
   );

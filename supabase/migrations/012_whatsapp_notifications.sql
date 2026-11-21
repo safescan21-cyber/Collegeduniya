@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 012: WhatsApp login + notifications outbox. Run AFTER 011.
+-- Collegeolo.com — migration 012: WhatsApp login + notifications outbox. Run AFTER 011.
 --   * profiles.whatsapp / whatsapp_opt_in — where and whether to send WhatsApp updates
 --   * phone (WhatsApp OTP) sign-ups get a profile with their number
 --   * notifications — every event is queued here by triggers; the Node API delivers it
@@ -135,7 +135,7 @@ begin
   if other is not null and not exists (
     select 1 from notifications where user_id = other and kind = 'message' and ref_id = new.conversation_id and created_at > now() - interval '1 hour'
   ) then
-    perform notify(other, 'message', 'New message on StudyEarnstay', 'Someone sent you a message. Open it to reply.',
+    perform notify(other, 'message', 'New message on Collegeolo', 'Someone sent you a message. Open it to reply.',
       '/messages?c=' || new.conversation_id, new.conversation_id);
   end if;
   return new;

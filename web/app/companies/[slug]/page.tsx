@@ -16,7 +16,7 @@ async function getCompany(slug: string) {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const c = await getCompany((await params).slug);
-  return c ? { title: `${c.name} — jobs for students`, description: (c.about || `${c.name} is hiring students on StudyEarnstay.`).slice(0, 160) } : { title: 'Company not found' };
+  return c ? { title: `${c.name} — jobs for students`, description: (c.about || `${c.name} is hiring students on Collegeolo.`).slice(0, 160) } : { title: 'Company not found' };
 }
 
 export default async function CompanyPage({ params }: { params: Promise<{ slug: string }> }) {

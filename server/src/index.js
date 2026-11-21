@@ -40,7 +40,7 @@ app.use('/api/hooks', hookRoutes);                                  // Supabase 
 app.use(express.json({ limit: '2mb' }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'studyearnstay-api', time: new Date().toISOString() }));
+app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'collegeolo-api', time: new Date().toISOString() }));
 app.get('/api/whatsapp/status', (_req, res) => res.json({ login: otpReady(), notifications: notifyReady() }));
 
 app.use('/api', loadUser);
@@ -67,7 +67,7 @@ app.use((err, _req, res, _next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`StudyEarnstay API running on http://localhost:${PORT}`);
+  console.log(`Collegeolo API running on http://localhost:${PORT}`);
   startJobAlertScheduler();
   startCollegeAutofill();
   startExamNews();

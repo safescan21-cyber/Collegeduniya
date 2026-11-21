@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 004: per-college visibility + bulk imports
+-- Collegeolo.com — migration 004: per-college visibility + bulk imports
 -- Run AFTER 003_global.sql. Safe to re-run.
 --
 -- Admins can hide a whole college (is_published), single fields (fees,

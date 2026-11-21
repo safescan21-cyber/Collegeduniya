@@ -83,7 +83,7 @@ export default function VerifyFlow() {
             </ol>
             {st?.last?.status === 'rejected' && st.last.reason && <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">Last try: {st.last.reason}</p>}
             <label className="flex items-start gap-2 text-sm text-slate-600"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-brand-600" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-              I agree that my two selfies and profile photo are checked by AI (and by the StudyEarnstay team if the AI is unsure) only to verify me. The selfies are deleted as soon as the check is done.</label>
+              I agree that my two selfies and profile photo are checked by AI (and by the Collegeolo team if the AI is unsure) only to verify me. The selfies are deleted as soon as the check is done.</label>
             <button onClick={begin} disabled={!agree || !ready} className="btn-primary w-full"><Camera size={17} />Open camera</button>
           </div>
         ) : step === 'front' || step === 'action' ? (

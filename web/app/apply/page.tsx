@@ -3,7 +3,7 @@ import ApplyClient from './ApplyClient';
 
 export const metadata: Metadata = {
   title: 'Apply to many colleges with one form',
-  description: 'Fill one application and send it to multiple partner colleges on StudyEarnstay. Track every application in your dashboard.',
+  description: 'Fill one application and send it to multiple partner colleges on Collegeolo. Track every application in your dashboard.',
 };
 
 export default function ApplyPage() {

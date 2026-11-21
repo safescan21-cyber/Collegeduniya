@@ -91,7 +91,7 @@ export default function ApplyForm({ jobId, jobTitle, closed }: { jobId: string; 
       {built ? (
         <label className="flex items-center gap-2 rounded-xl bg-brand-50 px-4 py-3 text-sm text-slate-700">
           <input type="checkbox" className="h-4 w-4 accent-brand-600" checked={attachBuilt} onChange={(e) => setAttachBuilt(e.target.checked)} />
-          <FileText size={16} className="text-brand-600" />Attach my StudyEarnstay resume <Link href="/resume" className="ml-auto text-xs text-brand-700 underline">edit</Link>
+          <FileText size={16} className="text-brand-600" />Attach my Collegeolo resume <Link href="/resume" className="ml-auto text-xs text-brand-700 underline">edit</Link>
         </label>
       ) : (
         <p className="text-xs text-slate-500">No resume? <Link href="/resume" className="text-brand-700 underline">Build one free in 5 minutes</Link> — or upload a file below.</p>

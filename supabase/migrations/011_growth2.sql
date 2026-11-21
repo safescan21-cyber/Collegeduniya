@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 011: "Top colleges" pages, job alerts + resumes, exam library,
+-- Collegeolo.com — migration 011: "Top colleges" pages, job alerts + resumes, exam library,
 -- percentile→rank, rewards, referrals & campus ambassadors, salary trends. Run AFTER 010.
 -- =====================================================================
 

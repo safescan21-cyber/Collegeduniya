@@ -5,14 +5,14 @@ import { ORG } from '@/lib/org';
 
 export const metadata: Metadata = {
   title: 'Community guidelines',
-  description: 'How to post, review, comment and chat on StudyEarnstay — what is allowed, what gets removed, and how reporting works.',
+  description: 'How to post, review, comment and chat on Collegeolo — what is allowed, what gets removed, and how reporting works.',
   alternates: { canonical: '/community-guidelines' },
 };
 
 export default function Guidelines() {
   return (
     <LegalPage title="Community guidelines" updated={ORG.policyDate}>
-      <p>StudyEarnstay works because students tell each other the truth about colleges, PGs and jobs. Keep it useful and safe:</p>
+      <p>Collegeolo works because students tell each other the truth about colleges, PGs and jobs. Keep it useful and safe:</p>
       <h2>Do</h2>
       <ul>
         <li>Write from your own experience — what the hostel food is actually like, how placements really went, which professor shares notes.</li>

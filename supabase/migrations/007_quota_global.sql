@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 007: management quota / direct admission worldwide
+-- Collegeolo.com — migration 007: management quota / direct admission worldwide
 -- Any country, any currency, international-student fields. Run AFTER 006. Safe to re-run.
 -- =====================================================================
 

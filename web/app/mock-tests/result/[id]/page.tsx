@@ -114,7 +114,7 @@ export default function Result({ params }: { params: Promise<{ id: string }> }) 
           <p className="flex items-center gap-1.5 text-sm text-brand-100"><Trophy size={15} />Score</p>
           <p className="mt-1 text-4xl font-extrabold">{n(a.score)}<span className="text-lg font-semibold text-brand-200"> / {n(a.max_score)}</span></p>
           {rank ? <p className="mt-1 text-sm text-brand-100">All India rank <b className="text-white">{Number(rank.rank).toLocaleString('en-IN')}</b> of {Number(rank.total).toLocaleString('en-IN')}{rank.group_rank ? ` · group #${rank.group_rank} of ${rank.group_total}` : ''}</p>
-            : <p className="mt-1 text-sm text-brand-100">{n(a.percentile)} percentile on StudyEarnstay</p>}
+            : <p className="mt-1 text-sm text-brand-100">{n(a.percentile)} percentile on Collegeolo</p>}
         </div>
         <div className="card p-5"><p className="flex items-center gap-1.5 text-sm text-slate-500"><Target size={15} />Accuracy</p><p className="mt-1 text-3xl font-extrabold text-slate-900">{accuracy}%</p><p className="text-xs text-slate-500">{a.correct} right of {attempted} attempted</p></div>
         <div className="card p-5"><p className="text-sm text-slate-500">Answers</p>

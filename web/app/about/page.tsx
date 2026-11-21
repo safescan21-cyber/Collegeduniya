@@ -5,28 +5,28 @@ import { ORG } from '@/lib/org';
 
 export const metadata: Metadata = {
   title: 'About us',
-  description: 'Who runs StudyEarnstay, how the site makes money, and where our college, PG and job information comes from.',
+  description: 'Who runs Collegeolo, how the site makes money, and where our college, PG and job information comes from.',
   alternates: { canonical: '/about' },
 };
 
 export default function About() {
   return (
-    <LegalPage title="About StudyEarnstay">
+    <LegalPage title="About Collegeolo">
       <p>
         Choosing a college is only half the problem. You also need somewhere to live near campus, and many of us need a part-time
-        job to pay for it. StudyEarnstay puts those three things in one place: <strong>study</strong> (colleges, courses, fees,
+        job to pay for it. Collegeolo puts those three things in one place: <strong>study</strong> (colleges, courses, fees,
         cutoffs, mock tests), <strong>earn</strong> (part-time jobs and internships near your college) and <strong>stay</strong> (PGs and hostels near campus).
       </p>
 
       <h2>Who runs it</h2>
       {ORG.founder ? (
         <p>
-          StudyEarnstay is built and run by <strong>{ORG.founder}</strong>{ORG.founderRole ? ` (${ORG.founderRole})` : ''}
+          Collegeolo is built and run by <strong>{ORG.founder}</strong>{ORG.founderRole ? ` (${ORG.founderRole})` : ''}
           {ORG.legalName ? <>, operated by <strong>{ORG.legalName}</strong></> : null}
           {ORG.city ? <>, from {ORG.city}</> : null}{ORG.started ? <>, since {ORG.started}</> : null}.
         </p>
       ) : (
-        <p>StudyEarnstay is an independent website{ORG.legalName ? <> operated by <strong>{ORG.legalName}</strong></> : null}{ORG.city ? <>, run from {ORG.city}</> : null}. It is not owned by any college, coaching institute or exam body.</p>
+        <p>Collegeolo is an independent website{ORG.legalName ? <> operated by <strong>{ORG.legalName}</strong></> : null}{ORG.city ? <>, run from {ORG.city}</> : null}. It is not owned by any college, coaching institute or exam body.</p>
       )}
       {ORG.founderNote && <blockquote className="border-s-4 border-brand-200 ps-4 italic text-slate-600">{ORG.founderNote}</blockquote>}
       <p>We are not linked to any government body, university or exam conducting authority. Always confirm dates, fees and seat details on the official website before you pay or apply.</p>

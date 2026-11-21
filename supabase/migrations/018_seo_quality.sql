@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 018: only pages with real substance go to Google
+-- Collegeolo.com — migration 018: only pages with real substance go to Google
 -- Google's spam policy ("scaled content abuse") targets sites that publish many near-empty pages made from lists.
 -- Every college and city page still works for visitors; a page is only *indexed* (and listed in the sitemap)
 -- once it has enough of its own information. Admins can force a college page in or out.

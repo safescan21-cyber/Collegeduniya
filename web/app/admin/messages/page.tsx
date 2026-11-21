@@ -12,7 +12,7 @@ export default function AdminMessages() {
         statusOptions={['open', 'replied', 'resolved', 'spam']}
         tabs={[{ label: 'Open', params: { status: 'open' } }, { label: 'Grievances', params: { topic: 'grievance' } }, { label: 'Corrections', params: { topic: 'correction' } }, { label: 'Privacy', params: { topic: 'privacy' } }, { label: 'All', params: {} }]}
         columns={[
-          { key: 'from', label: 'From', render: (r) => <div><p className="font-medium">{r.full_name}</p><a href={`mailto:${r.email}?subject=Re: your message to StudyEarnstay (${String(r.id).slice(0, 8).toUpperCase()})`} className="text-xs text-brand-700">{r.email}</a>{r.phone && <p className="text-xs text-slate-500">{r.phone}</p>}</div> },
+          { key: 'from', label: 'From', render: (r) => <div><p className="font-medium">{r.full_name}</p><a href={`mailto:${r.email}?subject=Re: your message to Collegeolo (${String(r.id).slice(0, 8).toUpperCase()})`} className="text-xs text-brand-700">{r.email}</a>{r.phone && <p className="text-xs text-slate-500">{r.phone}</p>}</div> },
           { key: 'topic', label: 'Topic', render: (r) => <div><span className={TOPIC[r.topic] || 'chip'}>{r.topic}</span>{r.about && <p className="mt-1 text-xs text-slate-500">{r.about}</p>}<p className="text-[10px] text-slate-400">Ref {String(r.id).slice(0, 8).toUpperCase()}</p></div> },
           { key: 'message', label: 'Message', render: (r) => <p className="max-w-lg whitespace-pre-wrap text-sm">{r.message}</p> },
           { key: 'when', label: 'Received', render: (r) => { const h = (Date.now() - new Date(r.created_at).getTime()) / 3600e3;

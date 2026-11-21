@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — migration 016: numbered test papers (full / sectional / topic), ranks & leaderboards,
+-- Collegeolo.com — migration 016: numbered test papers (full / sectional / topic), ranks & leaderboards,
 -- time per question, AI explanations & hints, question of the day, study groups, guest tests,
 -- and government / banking / defence / teaching exams. Run AFTER 015.
 -- =====================================================================

@@ -3,7 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { supabase } from '../supabase.js';
 import { chatSchema } from '../schemas.js';
 
-// AI assistant that answers from StudyEarnstay's own database.
+// AI assistant that answers from Collegeolo's own database.
 // 1) find colleges / PGs / jobs / exams matching the question
 // 2) send them as context to Claude (if ANTHROPIC_API_KEY is set)
 // 3) without a key, reply with the matching links only
@@ -119,7 +119,7 @@ function links(ctx) {
   ].slice(0, 10);
 }
 
-const SYSTEM = `You are the StudyEarnstay.com assistant. StudyEarnstay helps students find colleges worldwide, PG/hostels near campus and part-time jobs.
+const SYSTEM = `You are the Collegeolo.com assistant. Collegeolo helps students find colleges worldwide, PG/hostels near campus and part-time jobs.
 Rules:
 - Use the JSON "site data" for facts about specific colleges, fees, PGs, jobs and exams. Never invent fees, ranks, cutoffs, dates or contact details.
 - If the site data has nothing relevant, say so briefly and suggest a search on the site, the college predictor (/predictor), or the free counselling form.
@@ -143,7 +143,7 @@ router.post('/', async (req, res) => {
 
   if (!key) {
     const reply = found.length
-      ? 'Here is what I found on StudyEarnstay:'
+      ? 'Here is what I found on Collegeolo:'
       : 'I could not find a match. Try searching colleges, PGs or jobs, or ask for free counselling.';
     return res.json({ reply, links: found, ai: false });
   }
