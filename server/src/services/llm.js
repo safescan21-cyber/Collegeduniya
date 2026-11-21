@@ -139,7 +139,8 @@ async function callOne(p, { system, prompt, maxTokens, temperature, json, images
     let d = await r.json().catch(() => ({}));
     if (json && r.status === 400 && /response_format|json/i.test(JSON.stringify(d))) { r = await send(false); d = await r.json().catch(() => ({})); }
     if (!r.ok) {
-      const m = d?.error?.message || d?.errors?.[0]?.message || d?.message || `HTTP ${r.status}`;
+      const e0 = Array.isArray(d) ? d[0] : d;      // Gemini answers errors as a list
+      const m = e0?.error?.message || e0?.errors?.[0]?.message || e0?.message || `HTTP ${r.status}`;
       throw new ProviderError(m, { status: r.status, retryAfter: Number(r.headers.get('retry-after')) || 0 });
     }
     const text = d.choices?.[0]?.message?.content;
@@ -204,8 +205,9 @@ export async function completeJson(opts) {
 }
 
 // Admin "Test" button: one tiny request to a single provider
-export async function testProvider(id) {
-  const p = pool().find((x) => x.id === id);
+export async function testProvider(id, model = null) {
+  const found = pool().find((x) => x.id === id);
+  const p = found && model ? { ...found, modelName: model } : found;
   if (!p) throw new Error('Not configured — add its key in server/.env');
   const t0 = Date.now();
   try {

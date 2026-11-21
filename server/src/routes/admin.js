@@ -422,6 +422,20 @@ router.post('/email/setup', requireSuperAdmin, wrap(async (req, res) => {
   const { email, password, host, port } = req.body || {};
   res.json(await setupEmail({ email, password, host, port, testTo: req.profile?.email || null, userId: req.user.id }));
 }));
+// Choose the model a provider uses (e.g. when the default has no free quota on this key)
+router.post('/ai/providers/:id/model', requireSuperAdmin, wrap(async (req, res) => {
+  const { CATALOG, testProvider } = await import('../services/llm.js');
+  const { saveSecret } = await import('../services/secrets.js');
+  const p = CATALOG.find((x) => x.id === req.params.id);
+  if (!p || ['ollama', 'custom'].includes(p.id)) return fail(res, new Error('Unknown provider'), 400);
+  const model = String(req.body?.model || '').replace(/^models\//, '');
+  const test = await testProvider(p.id, model);
+  if (!test.ok) return res.json({ ok: false, test });
+  await saveSecret(p.id === 'anthropic' ? 'LLM_ANTHROPIC_MODEL' : `${p.id.toUpperCase()}_MODEL`, model, req.user.id);
+  const { runAutopilot, autopilotRunning } = await import('../services/mockAutopilot.js');
+  if (!autopilotRunning()) runAutopilot({ force: true }).catch((e) => console.error('[autopilot]', e.message));
+  res.json({ ok: true, test });
+}));
 router.delete('/ai/providers/:id/key', requireSuperAdmin, wrap(async (req, res) => {
   const { CATALOG } = await import('../services/llm.js');
   const { deleteSecret } = await import('../services/secrets.js');
@@ -432,7 +446,7 @@ router.delete('/ai/providers/:id/key', requireSuperAdmin, wrap(async (req, res) 
 }));
 router.post('/ai/providers/:id/test', wrap(async (req, res) => {
   const { testProvider } = await import('../services/llm.js');
-  res.json(await testProvider(req.params.id));
+  res.json(await testProvider(req.params.id, req.body?.model ? String(req.body.model).replace(/^models\//, '') : null));
 }));
 router.get('/ai/providers/:id/models', wrap(async (req, res) => {
   const { listModels } = await import('../services/llm.js');

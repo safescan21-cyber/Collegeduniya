@@ -32,6 +32,12 @@ export default function AiProviders() {
       <button type="button" className="btn-ghost py-1.5" onClick={() => { setEdit(null); setKey(''); }}>Cancel</button>
     </form>
   );
+  const useModel = async (id: string, model: string) => {
+    setNote(`Testing ${model}…`);
+    const r = await api(`/api/admin/ai/providers/${id}/model`, { method: 'POST', body: JSON.stringify({ model }) }).catch((e) => ({ ok: false, test: { error: e.message } }));
+    setNote(r.ok ? `Now using ${model.replace(/^models\//, '')} — it works. The mock-test Autopilot has started.` : `${model.replace(/^models\//, '')} didn’t work: ${r.test?.error || 'unknown error'}. Try another.`);
+    load();
+  };
   const on = rows.filter((r) => r.configured);
   return (
     <section className="card p-5">
@@ -56,7 +62,8 @@ export default function AiProviders() {
               <tr key={p.id} className="border-t border-slate-100 align-top">
                 <td className="py-2 pe-3"><p className="font-medium">{p.name}{p.saved_in_panel ? <span className="ms-1 text-[10px] font-normal text-slate-400">(key saved in panel)</span> : null}</p><p className="text-xs text-slate-400"><code>{p.key_env}</code>{p.signup && <> · <a href={p.signup} target="_blank" rel="noopener" className="inline-flex items-center gap-0.5 text-brand-700 underline">get key<ExternalLink size={10} /></a></>}</p></td>
                 <td className="py-2 pe-3 text-xs"><code>{p.model || '—'}</code>
-                  {Array.isArray(m) && <p className="mt-1 max-h-24 overflow-y-auto text-slate-500">{m.slice(0, 60).join(', ') || 'No models listed'}</p>}
+                  {Array.isArray(m) && <div className="mt-1 flex max-h-32 flex-wrap gap-1 overflow-y-auto">{m.length ? m.slice(0, 80).map((x) => (
+                    <button key={x} title="Test this model and use it if it works" onClick={() => useModel(p.id, x)} className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600 hover:bg-brand-50 hover:text-brand-700">{x.replace(/^models\//, '')}</button>)) : <span className="text-slate-500">No models listed</span>}</div>}
                   {typeof m === 'string' && m !== 'busy' && <p className="mt-1 text-rose-600">{m}</p>}</td>
                 <td className="py-2 pe-3 text-xs">{p.ok || p.fail ? <>✓ {p.ok} · ✗ {p.fail}</> : '—'}</td>
                 <td className="py-2 pe-3 text-xs">
@@ -76,7 +83,7 @@ export default function AiProviders() {
           })}</tbody>
         </table>
       </div>
-      <p className="mt-2 text-xs text-slate-400">If a test fails with “model not found”, click the list icon and set <code>&lt;PROVIDER&gt;_MODEL</code> (e.g. <code>GROQ_MODEL</code>) to one of the names shown.</p>
+      <p className="mt-2 text-xs text-slate-400">If a test fails (“model not found”, or “429 / quota” on a free key), click the list icon and pick another model — it is tested first and only used if it answers.</p>
     </section>
   );
 }

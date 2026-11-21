@@ -5,17 +5,19 @@ import { supabase } from '../supabase.js';
 export const ALLOWED = new Set(['ANTHROPIC_API_KEY', 'GEMINI_API_KEY', 'GROQ_API_KEY', 'SAMBANOVA_API_KEY', 'OPENROUTER_API_KEY',
   'NVIDIA_API_KEY', 'MISTRAL_API_KEY', 'CEREBRAS_API_KEY', 'COHERE_API_KEY', 'CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID', 'SMTP_URL', 'MAIL_FROM']);
 
+const isModel = (n) => /^(GEMINI|GROQ|SAMBANOVA|OPENROUTER|NVIDIA|MISTRAL|CEREBRAS|COHERE|CLOUDFLARE|LLM_ANTHROPIC)_MODEL$/.test(n);
+
 export async function loadSecrets() {
   const { data, error } = await supabase.from('app_secrets').select('name, value');
   if (error) { console.warn('[secrets]', error.message); return 0; }
-  for (const s of data || []) if (ALLOWED.has(s.name) && s.value) process.env[s.name] = s.value;
+  for (const s of data || []) if ((ALLOWED.has(s.name) || isModel(s.name)) && s.value) process.env[s.name] = s.value;
   return (data || []).length;
 }
 
 export async function saveSecret(name, value, userId = null) {
-  if (!ALLOWED.has(name)) throw Object.assign(new Error('This key cannot be set here'), { status: 400 });
+  if (!ALLOWED.has(name) && !isModel(name)) throw Object.assign(new Error('This key cannot be set here'), { status: 400 });
   const v = String(value || '').replace(/\s+/g, '');
-  if (v.length < 16 || v.length > 400) throw Object.assign(new Error('That does not look like a full key'), { status: 400 });
+  if (isModel(name) ? !/^[\w.:/@-]{2,120}$/.test(v) : (v.length < 16 || v.length > 400)) throw Object.assign(new Error('That does not look like a full key'), { status: 400 });
   const { error } = await supabase.from('app_secrets').upsert({ name, value: v, updated_by: userId, updated_at: new Date().toISOString() });
   if (error) throw new Error(error.message);
   process.env[name] = v;
