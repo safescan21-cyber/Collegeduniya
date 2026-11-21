@@ -403,13 +403,14 @@ router.get('/email/status', wrap(async (_req, res) => {
 // Last lines of the login service's log about email (super admin; secrets are masked)
 router.get('/email/auth-log', requireSuperAdmin, wrap(async (_req, res) => {
   const { execFile } = await import('node:child_process');
+  const { cleanEnv } = await import('../services/emailSetup.js');
   const dir = process.env.SUPABASE_DIR || '/opt/collegeolo-supabase';
-  const out = await new Promise((resolve) => execFile('docker', ['compose', 'logs', '--no-color', '--tail', '400', 'auth'], { cwd: dir, timeout: 30000, maxBuffer: 8 << 20 },
+  const out = await new Promise((resolve) => execFile('docker', ['compose', 'logs', '--no-color', '--tail', '400', 'auth'], { cwd: dir, timeout: 30000, maxBuffer: 8 << 20, env: cleanEnv() },
     (e, so, se) => resolve(String(so || '') + String(se || '') + (e ? `\n[exit] ${e.message}` : ''))));
   const lines = out.split('\n').filter((l) => /mail|smtp|template|error|fail|tls|dial|auth.*535|x509/i.test(l)).slice(-40)
     .map((l) => l.replace(/("?(password|pass|secret|key|token)"?\s*[:=]\s*)"?[^",\s]+/gi, '$1***').slice(0, 600));
   const env = await new Promise((resolve) => execFile('docker', ['compose', 'exec', '-T', 'auth', 'sh', '-c', 'echo host=$GOTRUE_SMTP_HOST port=$GOTRUE_SMTP_PORT user=$GOTRUE_SMTP_USER sender=$GOTRUE_SMTP_SENDER_NAME pass_len=${#GOTRUE_SMTP_PASS} tmpl=$GOTRUE_MAILER_TEMPLATES_MAGIC_LINK; wget -q -O /dev/null -T 10 "$GOTRUE_MAILER_TEMPLATES_MAGIC_LINK" && echo template_fetch=ok || echo template_fetch=FAILED'],
-    { cwd: dir, timeout: 30000 }, (e, so, se) => resolve(String(so || se || (e && e.message) || '').trim())));
+    { cwd: dir, timeout: 30000, env: cleanEnv() }, (e, so, se) => resolve(String(so || se || (e && e.message) || '').trim())));
   res.json({ env, lines });
 }));
 router.post('/email/reapply', requireSuperAdmin, wrap(async (_req, res) => {

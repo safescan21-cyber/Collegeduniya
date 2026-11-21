@@ -137,7 +137,7 @@ sed -i '/^SUPABASE_URL=/d; /^SUPABASE_SERVICE_ROLE_KEY=/d' server/.env
 printf 'SUPABASE_URL=https://%s\nSUPABASE_SERVICE_ROLE_KEY=%s\n' "$DOMAIN" "$SERVICE_ROLE_KEY" >> server/.env
 chmod 600 server/.env
 (cd web && NODE_OPTIONS=--max-old-space-size=2048 npm run build > /root/collegeolo-build.log 2>&1) || { echo "Build failed — see /root/collegeolo-build.log"; exit 1; }
-pm2 restart collegeolo-web collegeolo-api --update-env > /dev/null && pm2 save > /dev/null
+env -i PATH="$PATH" HOME="$HOME" pm2 restart collegeolo-web collegeolo-api --update-env > /dev/null && pm2 save > /dev/null
 sleep 5
 echo
 echo "DONE  website: $(curl -s -o /dev/null -w '%{http_code}' https://www.collegeolo.com/)  api: $(curl -s -o /dev/null -w '%{http_code}' https://www.collegeolo.com/api/health)  database: $(curl -s -o /dev/null -w '%{http_code}' -H "apikey: $ANON_KEY" "https://$DOMAIN/rest/v1/countries?select=code&limit=1")"

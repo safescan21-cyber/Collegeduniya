@@ -14,8 +14,11 @@ const SUPABASE_DIR = process.env.SUPABASE_DIR || '/opt/collegeolo-supabase';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const OVERRIDE = path.resolve(here, '../../../deploy/supabase-collegeolo.override.yml');
 
+// docker compose gives shell variables priority over the project's .env file, and this API process may have been
+// started with the database's settings in its environment — so run compose with a clean environment
+export const cleanEnv = () => Object.fromEntries(Object.entries(process.env).filter(([k]) => ['PATH', 'HOME', 'USER', 'LANG', 'TZ', 'XDG_RUNTIME_DIR'].includes(k) || k.startsWith('DOCKER_')));
 const run = (cmd, args, opts) => new Promise((resolve, reject) =>
-  execFile(cmd, args, { timeout: 180000, ...opts }, (e, out, err) => (e ? reject(new Error(String(err || e.message).trim().slice(-300))) : resolve(out))));
+  execFile(cmd, args, { timeout: 180000, env: cleanEnv(), ...opts }, (e, out, err) => (e ? reject(new Error(String(err || e.message).trim().slice(-300))) : resolve(out))));
 
 // Replace every copy of each setting (docker compose uses the LAST one if a key appears twice), then add one line each
 function setEnvLines(file, values) {
