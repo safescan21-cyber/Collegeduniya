@@ -10,6 +10,7 @@ import { JobAlertManager } from '@/components/JobAlerts';
 import { NotificationList } from '@/components/Notifications';
 import { PublicProfileSettings, EducationEditor, LoginHistory, MockHistory } from '@/components/ProfileExtras';
 import CampusSettings from '@/components/campus/CampusSettings';
+import MyExams from '@/components/exams/MyExams';
 import DeleteAccount from '@/components/DeleteAccount';
 import { Stars } from '@/components/Cards';
 import { supabaseBrowser } from '@/lib/supabase/client';
@@ -21,7 +22,7 @@ const STATUS_CHIP: Record<string, string> = {
 };
 
 const QUOTA_CHIP: Record<string, string> = { submitted: 'chip', under_review: 'chip-amber', contacted: 'chip-amber', shortlisted: 'chip-green', offered: 'chip-green', admitted: 'chip-green', rejected: 'chip-red', withdrawn: 'chip' };
-type Tab = 'mocks' | 'notifications' | 'alerts' | 'visits' | 'applications' | 'colleges' | 'saved' | 'listings' | 'reviews' | 'profile';
+type Tab = 'exams' | 'mocks' | 'notifications' | 'alerts' | 'visits' | 'applications' | 'colleges' | 'saved' | 'listings' | 'reviews' | 'profile';
 
 function Dashboard() {
   const { user, profile, loading, refreshProfile } = useAuth();
@@ -124,6 +125,7 @@ function Dashboard() {
   const TABS: { key: Tab; label: string; icon: any; n?: number }[] = [
     { key: 'applications', label: 'Job applications', icon: Briefcase, n: apps.length },
     { key: 'colleges', label: 'College applications', icon: FilePlus2, n: capps.length + qapps.length },
+    { key: 'exams', label: 'My exams', icon: BellRing },
     { key: 'mocks', label: 'Mock tests', icon: ClipboardCheck },
     { key: 'notifications', label: 'Notifications', icon: Bell },
     { key: 'alerts', label: 'Job alerts', icon: BellRing },
@@ -220,6 +222,7 @@ function Dashboard() {
           </div>
         ) : <Empty text="You haven't applied to any college through StudyEarnstay yet." href="/management-quota" cta="See management quota seats" />)}
 
+        {tab === 'exams' && <MyExams />}
         {tab === 'mocks' && <MockHistory />}
         {tab === 'notifications' && <NotificationList />}
         {tab === 'alerts' && <JobAlertManager />}

@@ -604,3 +604,11 @@ Alternative: front-end on Vercel, API on the VPS or Render — just set the two 
 ### 5n. Automatic photos, details and review invitations
 - **Photos & details fill themselves.** Every `AUTOFILL_EVERY_HOURS` (default 6) and 30 s after any import, the server takes the next `AUTOFILL_BATCH` colleges that were never checked and fills Wikipedia "About", logo, Wikimedia Commons campus photos (with author + licence credit), website, founding year, location and student count. Failed lookups retry after 14 days; page-quality scores refresh afterwards. Admin → Import shows progress and a **Run now** button. `AUTOFILL=off` stops it.
 - **Reviews are never generated.** Fake or AI-written reviews break the Consumer Protection Act 2019 and BIS IS 19000:2022 (online consumer reviews). Instead, once a day students who set "My college" a week earlier (or are student/alumni members) get one invitation to review it — in the app and on WhatsApp/email — and one reminder after 30 days. Migration `020_review_invites.sql`. `REVIEW_INVITES=off` stops it.
+
+### 5o. Exam news by email
+- Students tap **Get <exam> news by email** on any exam page (or manage it in Dashboard → My exams).
+- Every 3 hours the server searches worldwide news with the free **GDELT DOC 2.0 API** (no key, 65+ languages, free for any use with attribution). Optional second source: NewsData.io (`NEWSDATA_API_KEY`). Google News is not used because its terms allow only personal, non-commercial use.
+- A headline is kept only when it has the exam's name (short name, full name or the "Other names used in news" set in Admin → Exams) **and** an exam word such as result, admit card, registration, answer key, cutoff. Acronyms like CAT/GATE must match in capitals. If an AI key is configured, AI double-checks the list. Same story from many sites is stored once. Items from the exam body's own website are marked **Official**.
+- Followers get at most one email a day (from 7:00 India time), with one-click unsubscribe per exam. Needs `SMTP_URL`. Admin → Exam news shows headlines, lets you hide wrong ones and run collection or emails now.
+- Hindi headlines: add the Hindi name (e.g. जेईई मेन) under "Other names used in news".
+- Migration `021_exam_news.sql`.

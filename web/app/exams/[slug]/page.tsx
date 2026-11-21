@@ -4,6 +4,8 @@ import { DocRow, type ExamDoc } from '@/components/ExamDocs';
 import { notFound } from 'next/navigation';
 import { ExternalLink, Target, CalendarDays, Building2, Monitor, Repeat } from 'lucide-react';
 import EnquiryForm from '@/components/EnquiryForm';
+import FollowExam from '@/components/exams/FollowExam';
+import ExamNewsList, { type ExamNewsItem } from '@/components/exams/ExamNewsList';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { timeAgo } from '@/lib/format';
 import type { Exam } from '@/lib/types';
@@ -32,10 +34,12 @@ export default async function ExamPage({ params }: { params: Promise<{ slug: str
   if (!e) notFound();
   const sb = supabasePublic();
   const { data: mockBp } = await sb.from('mock_blueprints').select('title').eq('exam_slug', e.slug).eq('is_published', true).maybeSingle();
-  const [{ data: cut }, { data: articles }, { data: docs }] = await Promise.all([
+  const [{ data: cut }, { data: articles }, { data: docs }, { data: news }] = await Promise.all([
     sb.from('cutoffs').select('college_id, colleges(name, slug, city)').eq('exam_slug', e.slug).limit(500),
     sb.from('articles').select('slug, title, published_at').eq('exam_id', e.id).eq('is_published', true).order('published_at', { ascending: false }).limit(6),
     sb.from('exam_resources').select('*').eq('exam_slug', e.slug).eq('is_published', true).order('year', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false }).limit(8),
+    sb.from('exam_news').select('id, title, url, source, published_at, official').eq('exam_id', e.id).eq('is_hidden', false)
+      .gte('published_at', new Date(Date.now() - 30 * 86400e3).toISOString()).order('published_at', { ascending: false }).limit(10),
   ]);
   const colleges = Array.from(new Map((cut || []).filter((x: any) => x.colleges).map((x: any) => [x.college_id, x.colleges])).values()) as { name: string; slug: string; city: string }[];
   const facts = [
@@ -83,14 +87,16 @@ export default async function ExamPage({ params }: { params: Promise<{ slug: str
             {(docs as ExamDoc[]).map((d) => <DocRow key={d.id} d={d} />)}
           </section>
         )}
+        {(e as any).news_enabled !== false && <ExamNewsList items={(news || []) as ExamNewsItem[]} name={e.short_name} />}
         {(articles || []).length > 0 && (
-          <section className="card p-6"><h2 className="text-lg font-bold text-slate-900">Latest {e.short_name} news</h2>
+          <section className="card p-6"><h2 className="text-lg font-bold text-slate-900">{e.short_name} articles from our team</h2>
             <ul className="mt-2 space-y-1">{(articles || []).map((a: any) => <li key={a.slug}><Link href={`/news/${a.slug}`} className="text-brand-700 hover:underline">{a.title}</Link></li>)}</ul></section>
         )}
       </div>
       <aside className="space-y-5">
         {mockBp && <Link href={`/mock-tests/${e.slug}`} className="btn-primary w-full">Take a free {e.short_name} mock test</Link>}
         {e.website && <a href={e.website} target="_blank" rel="noopener noreferrer" className={mockBp ? 'btn-ghost w-full' : 'btn-primary w-full'}><ExternalLink size={16} />Official website</a>}
+        {(e as any).news_enabled !== false && <FollowExam examId={e.id} name={e.short_name} slug={e.slug} />}
         <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">Dates and rules change every year — always confirm on the official website before applying.</p>
         <div className="lg:sticky lg:top-24"><EnquiryForm compact title={`Need help with ${e.short_name}?`} subtitle="Get free guidance on colleges and counselling." /></div>
       </aside>

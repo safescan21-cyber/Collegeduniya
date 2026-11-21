@@ -6,9 +6,9 @@ import nodemailer from 'nodemailer';
 let transport = null;
 export const mailEnabled = () => Boolean(process.env.SMTP_URL);
 
-export async function sendMail({ to, subject, text, html, replyTo }) {
+export async function sendMail({ to, subject, text, html, replyTo, headers }) {
   if (!mailEnabled() || !to) return false;
   transport ||= nodemailer.createTransport(process.env.SMTP_URL);
-  await transport.sendMail({ from: process.env.MAIL_FROM || 'StudyEarnstay <no-reply@studyearnstay.com>', to, subject, text, html, replyTo });
+  await transport.sendMail({ from: process.env.MAIL_FROM || 'StudyEarnstay <no-reply@studyearnstay.com>', to, subject, text, html, replyTo, headers });
   return true;
 }

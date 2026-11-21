@@ -23,6 +23,8 @@ export default function AdminExams() {
         { name: 'pattern', label: 'Exam pattern', type: 'textarea' },
         { name: 'syllabus', label: 'Syllabus', type: 'textarea' },
         { name: 'registration', label: 'Registration', type: 'textarea' },
+        { name: 'news_enabled', label: 'Collect news & email followers', type: 'bool' },
+        { name: 'news_terms', label: 'Other names used in news (optional)', type: 'tags', placeholder: 'JEE Mains, JEE Main 2027', help: 'The short and full names are always searched. Add spellings newspapers use.' },
         { name: 'is_published', label: 'Published', type: 'bool' },
       ]}
       columns={[

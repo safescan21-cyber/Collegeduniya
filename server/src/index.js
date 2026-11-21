@@ -24,6 +24,7 @@ import verifyRoutes from './routes/verify.js';
 import callRoutes from './routes/calls.js';
 import accountRoutes from './routes/account.js';
 import { startCollegeAutofill } from './services/collegeAutofill.js';
+import { startExamNews } from './services/examNews.js';
 import { supabase as sbAdmin } from './supabase.js';
 import { otpReady, notifyReady } from './services/whatsapp.js';
 
@@ -69,6 +70,7 @@ app.listen(PORT, () => {
   console.log(`StudyEarnstay API running on http://localhost:${PORT}`);
   startJobAlertScheduler();
   startCollegeAutofill();
+  startExamNews();
   // chats (messages + call log) older than CHAT_RETENTION_MONTHS (default 6) are deleted daily; posts are kept
   if (process.env.CHAT_PURGE !== 'off') {
     const purge = async () => {

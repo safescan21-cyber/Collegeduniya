@@ -5,6 +5,7 @@ import { supabase } from '../supabase.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/auth.js';
 import { importCountry } from '../services/universities.js';
 import { runAutofill, runReviewInvites, autofillStatus, kickAutofill } from '../services/collegeAutofill.js';
+import { collectExamNews, sendExamNewsDigests, examNewsStatus } from '../services/examNews.js';
 import { parseSheet, guessMapping, stashUpload, importSheet, TARGETS } from '../services/sheetImport.js';
 import { importScorecard, scorecardEnabled } from '../services/scorecard.js';
 import { lookupCollege, applyLookup, enrichMany } from '../services/wikimedia.js';
@@ -837,5 +838,22 @@ router.post('/autofill/run', wrap(async (_req, res) => {
   res.status(202).json({ ok: true, message: 'Started — it works through the colleges in the background.' });
 }));
 router.post('/review-invites/run', wrap(async (_req, res) => { res.json(await runReviewInvites()); }));
+
+// ---------------------------------------------------------------- exam news alerts (migration 021)
+router.get('/exam-news/status', wrap(async (_req, res) => {
+  const [{ count: follows }, { count: emailOn }, { count: items }] = await Promise.all([
+    supabase.from('exam_follows').select('user_id', { count: 'exact', head: true }),
+    supabase.from('exam_follows').select('user_id', { count: 'exact', head: true }).eq('email', true),
+    supabase.from('exam_news').select('id', { count: 'exact', head: true }),
+  ]);
+  res.json({ ...examNewsStatus(), follows: follows || 0, email_on: emailOn || 0, items: items || 0 });
+}));
+router.post('/exam-news/collect', wrap(async (req, res) => {
+  const examId = req.body?.exam_id || null;
+  if (examId) return res.json(await collectExamNews({ examId }));
+  collectExamNews().catch((e) => console.warn('[exam-news]', e.message));
+  res.status(202).json({ ok: true, message: 'Collecting news in the background (about 6 seconds per exam).' });
+}));
+router.post('/exam-news/digest', wrap(async (_req, res) => { res.json(await sendExamNewsDigests()); }));
 
 export default router;

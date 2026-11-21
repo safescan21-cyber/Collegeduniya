@@ -283,6 +283,8 @@ schemas.exams = z.object({
   pattern: optStr,
   syllabus: optStr,
   description: optStr,
+  news_terms: strArr,
+  news_enabled: bool,
   is_published: bool,
 });
 
