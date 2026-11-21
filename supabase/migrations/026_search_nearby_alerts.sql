@@ -10,7 +10,7 @@ alter table public.colleges add column if not exists nearby_fetched_at timestamp
 
 create or replace function public.search_colleges(p_q text, p_limit int default 8)
 returns table (id uuid, name text, city text, state text, country text, country_code text)
-language sql stable security invoker set search_path = public as $$
+language sql stable security definer set search_path = public as $$
   with w as (
     select array_agg(x) words from (
       select lower(x) x from regexp_split_to_table(regexp_replace(
