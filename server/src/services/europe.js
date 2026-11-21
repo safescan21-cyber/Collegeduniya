@@ -46,6 +46,13 @@ async function collegeIndex(countryCode) {
   } };
 }
 
+// Prefer the dataset's own city name (nearest_city can land on a district); fall back to coordinates
+async function cityByName(cc, name) {
+  if (!name || !cc) return null;
+  const { data } = await supabase.from('cities').select('geoname_id, name, admin1').eq('country_code', cc)
+    .or(`name.ilike.${String(name).replace(/[,()*%]/g, ' ').trim()},ascii_name.ilike.${String(name).replace(/[,()*%]/g, ' ').trim()}`).order('population', { ascending: false, nullsFirst: false }).limit(1);
+  return data?.[0] ? { geoname_id: data[0].geoname_id, name: data[0].name, admin1: data[0].admin1 } : null;
+}
 async function nearest(lat, lng) {
   if (lat == null || lng == null) return null;
   const { data } = await supabase.rpc('nearest_city', { lat, lng });
@@ -67,8 +74,8 @@ async function fillCollege(c, fields, factsKey, facts) {
   if (error) throw new Error(error.message);
 }
 
-async function createCollege({ source, external_id, name, country, country_code, website, latitude, longitude, established, type, students_count, factsKey, facts, currency }) {
-  const near = await nearest(latitude, longitude);
+async function createCollege({ source, external_id, name, country, country_code, website, latitude, longitude, established, type, students_count, factsKey, facts, currency, cityName }) {
+  const near = (await cityByName(country_code, cityName)) || await nearest(latitude, longitude);
   const row = {
     source, external_id, name, country, country_code, website: website || null, domains: [host(website || '')].filter(Boolean),
     latitude: latitude ?? null, longitude: longitude ?? null, established: established || null, type: type || 'Other', students_count: students_count || null,
@@ -295,17 +302,18 @@ export async function importEter({ countries = null, dryRun = false, startedBy =
         const legal = { 0: 'public', 1: 'private, government-dependent', 2: 'private, independent' }[legalCode] || null;
         const type = legalCode === '0' ? 'Public' : legalCode === '1' || legalCode === '2' ? 'Private' : null;
         const category = pick(r, [/INSTCATENGL/i, /INSTCAT/i, /CATEGORY/i]);
+        const cityName = pick(r, [/GEO\.CITY$/i]);
         const facts = { eter_id: id, year: yr || null, category: category || null, legal_status: legal || null, students: students || null,
           source: `Data source: ETER project. Download date ${today}` };
         const c = idx.find({ website, names: [nameEn, nameLocal] });
         if (c) {
           await fillCollege(c, { website, latitude: lat, longitude: lng, established: founded, type, students_count: students }, 'eter', facts);
-          if ((!c.city || c.city === 'Not specified') && lat != null) { const near = await nearest(lat, lng); if (near) await supabase.from('colleges').update({ city: near.name, state: near.admin1, city_geoname_id: near.geoname_id, ...(c.source !== 'admin' ? { is_published: true } : {}) }).eq('id', c.id); }
+          if (!c.city || c.city === 'Not specified' || (c.source === 'eter' && cityName && c.city !== cityName)) { const near = (await cityByName(cc, cityName)) || (lat != null && !c.city ? await nearest(lat, lng) : null); if (near) await supabase.from('colleges').update({ city: near.name, state: near.admin1, city_geoname_id: near.geoname_id, ...(c.source !== 'admin' ? { is_published: true } : {}) }).eq('id', c.id); }
           matched++;
         } else {
           if (dryRun) continue;
           const ok = await createCollege({ source: 'eter', external_id: String(id), name, country: cname[cc]?.name || cc, country_code: cc, website, latitude: lat, longitude: lng,
-            established: founded, type, students_count: students, factsKey: 'eter', facts, currency: cname[cc]?.currency_code || null });
+            established: founded, type, students_count: students, factsKey: 'eter', facts, currency: cname[cc]?.currency_code || null, cityName });
           if (ok) created++; else skipped++;
         }
         } catch (e) { skipped++; log(`${cc} ${id}: ${e.message}`); }
