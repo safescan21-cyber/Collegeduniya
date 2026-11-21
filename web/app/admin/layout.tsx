@@ -20,6 +20,7 @@ const NAV = [
   { href: '/admin/qa', label: 'Q&A', icon: MessagesSquare },
   { href: '/admin/articles', label: 'News & guides', icon: Newspaper },
   { href: '/admin/exams', label: 'Exams', icon: BookOpen },
+  { href: '/admin/course-catalog', label: 'Course pages', icon: GraduationCap },
   { href: '/admin/exam-library', label: 'Exam library', icon: FileStack },
   { href: '/admin/mock-tests', label: 'Mock tests', icon: ClipboardCheck, Radio },
   { href: '/admin/newsletter', label: 'Newsletter', icon: Mail },

@@ -541,6 +541,19 @@ Google does not punish a site for using AI. It punishes **mass-produced, thin pa
 
 **What still needs you** (Google rewards these and they can't be automated): your real name and photo on About, named authors who write news and guides from experience, original photos of campuses and PGs, and colleges' real data (fees, placements) entered from official sources.
 
+## 5m. Collegedunia-style college discovery (migration 019)
+
+Same kind of information-dense layout students know from big college portals — built in StudyEarnstay's own design, from your own data.
+
+- **Home page:** a **Top colleges table** with stream tabs (Engineering, Management, Medical, Law…) showing rank, fees, average placement, rating and cutoff; **Explore courses**; **Popular entrance exams**; **Study in these cities**. Courses also sit in the main menu.
+- **College listing (`/colleges`):** every college is a row of facts — fees per year (from its courses), average and highest package, rating, rank (only labelled NIRF when it really is), latest closing rank, approvals and exams accepted — with Compare, Save, Brochure and Apply / Get details. New filters: **course, state, exam accepted, approval (UGC, AICTE, NAAC…)**. Filtered/sorted combinations are `noindex`.
+- **College page:** a header with **Brochure, Write a review, Apply / Get admission help**; new **Highlights** table; **Admission** (exams accepted, how to apply, important dates, eligibility by course); **Ranking** history by year; **Scholarships**; **FAQs**. Each section appears only when the college has that information, and every one can be hidden per college.
+- **Course pages (`/courses`, `/courses/<slug>`):** 24 courses (B.Tech, MBA, MBBS, BBA, BCA, B.Com, LLB, B.Arch, …) with duration, eligibility, entrance exams, and numbers worked out from your colleges — how many offer it, fee range and typical fee, government vs private, median recent salary, states — plus a table of colleges offering it. College courses are linked automatically ("B.Tech CSE", "B.E. Civil" → B.Tech). A course page is indexed only once 3+ colleges offer it or you've written its About text.
+
+**Admin:** College editor has new fields — approvals, exams accepted (slugs), brochure link, admission process, important dates (`Event | Date` per line), scholarships, FAQs (`Q:` / `A:` lines) and a source. **Admin → Course pages** edits the catalogue; write *About* and *Careers* yourself — they are shown only when filled.
+
+Take every figure from the college's official website, prospectus, NIRF data or the counselling authority, and put the link in *Source*. Copying text or data from other portals is not allowed (their content is copyrighted) and Google ignores copied pages anyway.
+
 ## 6. Deploy on your own VPS (Ubuntu + Nginx + PM2)
 
 ```bash

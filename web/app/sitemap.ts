@@ -48,6 +48,7 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
   const topUrls = new Set<string>();
   for (const r of tops) { topUrls.add(topPath(r.stream_slug)); topUrls.add(topPath(r.stream_slug, r.place_slug)); }
   const { data: mocks } = await sb.rpc('mock_catalog');
+  const { data: courseCounts } = await sb.rpc('course_catalog_counts');
   const { data: posts } = await sb.rpc('feed', { p_sort: 'new', p_lim: 50, p_offset: 0 });   // latest; older ones are reached by links
   const { data: blogs } = await sb.rpc('feed', { p_kind: 'blog', p_sort: 'new', p_lim: 50, p_offset: 0 });
   const [ex, sch, visa] = await Promise.all([
@@ -72,6 +73,8 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
     ...Array.from(new Map([...((blogs || []) as any[]), ...((posts || []) as any[])]
       .filter((r) => r.kind === 'blog' || (r.body || '').length >= 280 || r.comments >= 3).map((r) => [r.id, r])).values())
       .map((r) => ({ url: `${SITE_URL}/community/post/${r.id}`, lastModified: r.edited_at || r.created_at, priority: 0.5 })),
+    { url: `${SITE_URL}/courses`, changeFrequency: 'weekly' as const, priority: 0.8 },
+    ...((courseCounts || []) as any[]).filter((r) => Number(r.colleges) >= 3).map((r) => ({ url: `${SITE_URL}/courses/${r.slug}`, changeFrequency: 'weekly' as const, priority: 0.8 })),
     ...((visa.data || []) as any[]).map((r) => ({ url: `${SITE_URL}/study-abroad/visa/${r.country_code.toLowerCase()}`, lastModified: r.updated_at, priority: 0.6 })),
   ];
 }

@@ -457,6 +457,7 @@ const crudConfig = {
   mock_blueprints:    { search: ['title', 'exam_slug'], filters: ['is_published'], order: 'updated_at', key: 'exam_slug' },
   mock_questions:     { search: ['stem', 'topic', 'section'], filters: ['exam_slug', 'section', 'status', 'ai_check', 'difficulty', 'source', 'auto_approved', 'checked_by_admin'], order: 'created_at' },
   reward_catalog:     { search: ['code', 'title'], filters: ['is_active'], order: 'created_at', key: 'code' },
+  course_catalog:     { search: ['name', 'full_name', 'stream'], filters: ['level', 'is_published'], order: 'sort', key: 'slug' },
   quota_seats:        { search: ['course', 'academic_year'], filters: ['college_id', 'status', 'quota_type', 'level', 'is_published', 'open_to'], order: 'created_at',
                         select: '*, colleges(name, slug, city, country)' },
 };

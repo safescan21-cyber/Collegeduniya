@@ -17,6 +17,8 @@ import TranslateText from '@/components/TranslateText';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { FALLBACK_IMG, money, range, SITE_URL } from '@/lib/format';
 import { collegeTitle, collegeDescription, breadcrumbs, updatedOn } from '@/lib/seo';
+import { Highlights, Admission, Rankings, Scholarships, Faqs, parseDates, parseFaqs, feeRange } from '@/components/college/Sections';
+import { Download, PenLine } from 'lucide-react';
 import type { College, Course, Place, Hostel, Job, ReviewPublic, Placement, Cutoff, QuestionPublic, QuotaSeat } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -61,6 +63,8 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const c = await getCollege(slug);
   if (!c) notFound();
+  const hidden = new Set(c.hidden_sections || []);
+  const show = (s: string) => !hidden.has(s);
 
   const sb = supabasePublic();
   const cityQ = c.city.replace(/[",()]/g, '');
@@ -82,6 +86,16 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
     sb.from('questions_public').select('*').eq('college_id', c.id).order('created_at', { ascending: false }).limit(10),
     sb.from('quota_seats_public').select('*').eq('college_id', c.id).order('status').order('created_at', { ascending: false }).limit(12),
   ]);
+  const cx = c as any;
+  const [{ data: rankRows }, { data: examRows }, { data: rowFacts }] = await Promise.all([
+    show('ranking') ? sb.from('college_rankings').select('source, year, category, rank, rank_band, source_url').eq('college_id', c.id).order('year', { ascending: false }).limit(60) : Promise.resolve({ data: [] as any[] }),
+    sb.from('exams').select('slug, short_name').in('slug', (cx.exams_accepted || []).length ? cx.exams_accepted : ['-']),
+    sb.rpc('college_rows', { p_ids: [c.id] }),
+  ]);
+  const examNames: Record<string, string> = Object.fromEntries((examRows || []).map((e: any) => [e.slug, e.short_name]));
+  const rf: any = (rowFacts as any[] | null)?.[0] || {};
+  const dates = parseDates(cx.important_dates);
+  const faqs = parseFaqs(cx.faqs);
   const quotaList = (quota.data || []) as QuotaSeat[];
   const courseList = (courses.data || []) as Course[];
   const placeList = (places.data || []) as Place[];
@@ -96,8 +110,8 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
   const count = rating.data?.review_count || 0;
   const latestPlacement = placementList[0];
   const listItem = { id: c.id, slug: c.slug, name: c.name, city: c.city };
-  const hidden = new Set(c.hidden_sections || []);
-  const show = (s: string) => !hidden.has(s);
+
+
 
   const jsonLd = {
     '@context': 'https://schema.org', '@type': 'CollegeOrUniversity', name: c.name, url: `${SITE_URL}/colleges/${c.slug}`,
@@ -108,12 +122,16 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
 
   const tabs: [string, string][] = [
     ['overview', 'Overview'],
+    ...(show('admission') && (cx.admission_process || dates.length || (cx.exams_accepted || []).length) ? [['admission', 'Admission'] as [string, string]] : []),
     ...(show('quota') && quotaList.length ? [['quota', `${c.country === 'India' ? 'Management quota' : 'Direct admission'} (${quotaList.length})`] as [string, string]] : []),
     ...(show('courses') ? [['courses', `Courses & Fees (${courseList.length})`] as [string, string]] : []),
     ...(show('placements') && placementList.length ? [['placements', 'Placements'] as [string, string]] : []),
     ...(show('cutoffs') && cutoffList.length ? [['cutoffs', 'Cutoffs'] as [string, string]] : []),
+    ...(show('ranking') && (rankRows || []).length ? [['ranking', 'Ranking'] as [string, string]] : []),
+    ...(show('scholarships') && cx.scholarship_info ? [['scholarships', 'Scholarships'] as [string, string]] : []),
     ...(show('reviews') ? [['reviews', `Reviews (${count})`] as [string, string]] : []),
     ...(show('qa') ? [['qa', `Q&A (${questionList.length})`] as [string, string]] : []),
+    ...(show('faqs') && faqs.length ? [['faqs', 'FAQs'] as [string, string]] : []),
     ...(show('community') ? [['community', 'Talk to students'] as [string, string]] : []),
     ...(show('hostels') ? [['hostels', 'PG & Hostels'] as [string, string]] : []),
     ...(show('jobs') ? [['jobs', 'Part-time Jobs'] as [string, string]] : []),
@@ -162,7 +180,12 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
                 </p>
               </div>
             </div>
-            <div className="flex gap-2"><CompareButton item={listItem} /><SaveButton type="college" id={c.id} /></div>
+            <div className="flex flex-wrap gap-2">
+              <CompareButton item={listItem} /><SaveButton type="college" id={c.id} />
+              {cx.brochure_url && <a href={cx.brochure_url} target="_blank" rel="noopener noreferrer" className="btn-ghost border-white/30 bg-white/10 py-2 text-sm text-white hover:bg-white/20"><Download size={15} />Brochure</a>}
+              {show('reviews') && <a href="#reviews" className="btn-ghost border-white/30 bg-white/10 py-2 text-sm text-white hover:bg-white/20"><PenLine size={15} />Write a review</a>}
+              {c.accepts_applications ? <a href="#apply" className="btn-accent py-2 text-sm">Apply now</a> : <a href="#enquiry" className="btn-accent py-2 text-sm">Get admission help</a>}
+            </div>
           </div>
         </div>
       </section>
@@ -223,6 +246,20 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             ) : null}
           </section>
 
+                    <Highlights source={cx.details_source} rows={[
+            ['Established', c.established],
+            ['Ownership', c.type],
+            ['Approvals', (cx.approvals || []).length ? cx.approvals.join(', ') : c.accreditation],
+            ['Affiliated to', cx.affiliated_to],
+            ['Courses offered', courseList.length ? `${courseList.length} course${courseList.length > 1 ? 's' : ''}` : null],
+            ['Fees', show('courses') ? feeRange(rf.fee_low, rf.fee_high, c.currency) : null],
+            ['Entrance exams', (cx.exams_accepted || []).length ? cx.exams_accepted.map((e: string) => examNames[e] || e).join(', ') : null],
+            ['Average package', show('placements') && latestPlacement?.avg_package ? `${pkg(Number(latestPlacement.avg_package), latestPlacement.currency, latestPlacement.package_unit)} (${latestPlacement.year})` : null],
+            ['Rank', rf.rank_value ? `#${rf.rank_value} ${rf.rank_source || ''} ${rf.rank_year || ''}`.trim() : c.ranking ? `#${c.ranking}` : null],
+            ['Students', c.students_count ? `~${c.students_count.toLocaleString('en-IN')}` : null],
+            ['Student rating', count ? `${avg}/5 from ${count} review${count > 1 ? 's' : ''}` : null],
+            ['Official website', c.website ? <a href={c.website} target="_blank" rel="noopener noreferrer" className="text-brand-700 underline">{c.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}</a> : null],
+          ]} />
           {show('quota') && quotaList.length ? (
             <section id="quota" className="scroll-mt-32">
               <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
@@ -260,6 +297,8 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             ) : <EmptyState title="Courses not added yet" />}
           </section>}
 
+          {show('admission') && <Admission name={c.short_name || c.name} process={cx.admission_process} dates={dates} exams={cx.exams_accepted || []} examNames={examNames}
+            eligibility={courseList.filter((x: any) => x.eligibility).slice(0, 15).map((x: any) => ({ course: x.name, text: x.eligibility }))} />}
           {show('placements') && placementList.length > 0 && (
             <section id="placements" className="scroll-mt-32">
               <h2 className="mb-4 flex items-center gap-2 text-xl font-bold text-slate-900"><TrendingUp size={20} className="text-emerald-600" />Placements</h2>
@@ -315,6 +354,8 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             </section>
           )}
 
+          {show('ranking') && <Rankings name={c.short_name || c.name} rows={(rankRows || []) as any[]} />}
+          {show('scholarships') && <Scholarships name={c.short_name || c.name} text={cx.scholarship_info} />}
           {show('reviews') && <section id="reviews" className="scroll-mt-32">
             <ReviewSection collegeId={c.id} collegeName={c.name} reviews={reviewList} avg={avg} count={count} />
           </section>}
@@ -336,6 +377,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             <AskForm collegeId={c.id} collegeName={c.short_name || c.name} />
           </section>}
 
+          {show('faqs') && <Faqs name={c.short_name || c.name} items={faqs} />}
           {show('hostels') && <section id="hostels" className="scroll-mt-32">
             <div className="mb-4 flex items-end justify-between">
               <h2 className="text-xl font-bold text-slate-900">PG & hostels near {c.short_name || c.name}</h2>
@@ -387,7 +429,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
               </a>
             )}
             {c.accepts_applications && (
-              <div className="mt-4 rounded-xl bg-emerald-50 p-3">
+              <div id="apply" className="mt-4 scroll-mt-32 rounded-xl bg-emerald-50 p-3">
                 <p className="mb-2 text-sm font-semibold text-emerald-800">Apply through StudyEarnstay{c.application_note ? ` · ${c.application_note}` : ''}</p>
                 <ApplyCartButton item={listItem} />
               </div>
@@ -406,6 +448,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             {show('reviews') && <a href="#reviews" className="btn-primary mt-2 w-full">Write a review</a>}
           </div>
           {show('enquiry') && <div className="lg:sticky lg:top-32">
+            <div id="enquiry" className="scroll-mt-32" />
             <EnquiryForm kind="college" collegeId={c.id} title={`Enquire about ${c.short_name || c.name}`} subtitle="Admission, fees, scholarships — get a call back." compact />
           </div>}
         </aside>

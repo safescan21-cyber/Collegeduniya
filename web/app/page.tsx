@@ -5,6 +5,7 @@ import {
 import HeroSearch from '@/components/HeroSearch';
 import CityInput from '@/components/CityInput';
 import { CollegeCard, HostelCard, JobCard } from '@/components/Cards';
+import TopCollegesTable, { type TopRow } from '@/components/home/TopCollegesTable';
 import EnquiryForm from '@/components/EnquiryForm';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { counters, ratingsFor } from '@/lib/data';
@@ -21,22 +22,34 @@ const COUNTRIES = [
 ];
 
 async function load() {
-  if (!hasSupabase) return { colleges: [], hostels: [], jobs: [], articles: [] };
+  if (!hasSupabase) return { colleges: [], hostels: [], jobs: [], articles: [], top: [], exams: [], courses: [], cities: [] };
   const sb = supabasePublic();
-  const [c, h, j, a] = await Promise.all([
+  const [c, h, j, a, top, ex, cat, cnt, cities] = await Promise.all([
     sb.from('colleges_public').select('*').eq('is_published', true).order('is_featured', { ascending: false }).order('ranking', { ascending: true, nullsFirst: false }).limit(8),
     sb.from('hostels').select('*, colleges(name, slug)').eq('is_published', true).order('created_at', { ascending: false }).limit(4),
     sb.from('jobs').select('*').eq('is_published', true).eq('status', 'open').order('created_at', { ascending: false }).limit(6),
     sb.from('articles').select('id, slug, title, excerpt, category, cover_url, published_at').eq('is_published', true).order('published_at', { ascending: false }).limit(3),
+    sb.rpc('top_colleges_table', { p_stream: null, p_country: 'India', p_lim: 10 }),
+    sb.from('exams').select('slug, short_name, stream, level, country').eq('is_published', true).order('short_name').limit(400),
+    sb.from('course_catalog').select('slug, name, level, stream').order('sort'),
+    sb.rpc('course_catalog_counts'),
+    sb.rpc('top_study_cities', { p_country: 'India', p_lim: 12 }),
   ]);
+  const counts = Object.fromEntries(((cnt.data || []) as any[]).map((r) => [r.slug, Number(r.colleges)]));
   return {
     colleges: (c.data || []) as College[], hostels: (h.data || []) as Hostel[],
     jobs: (j.data || []) as Job[], articles: (a.data || []) as Article[],
+    top: (top.data || []) as TopRow[], exams: (ex.data || []) as any[],
+    courses: ((cat.data || []) as any[]).map((k) => ({ ...k, colleges: counts[k.slug] || 0 })),
+    cities: (cities.data || []) as { city: string; state: string | null; colleges: number }[],
   };
 }
 
 export default async function HomePage() {
-  const [{ colleges, hostels, jobs, articles }, stats, { t }] = await Promise.all([load(), counters(), getT()]);
+  const [{ colleges, hostels, jobs, articles, top, exams, courses, cities }, stats, { t }] = await Promise.all([load(), counters(), getT()]);
+  const examNames: Record<string, string> = Object.fromEntries(exams.map((e: any) => [e.slug, e.short_name]));
+  const POPULAR_EXAMS = ['jee-main', 'neet-ug', 'cuet-ug', 'cat', 'gate', 'jee-advanced', 'clat', 'mht-cet', 'xat', 'upsc-cse-prelims', 'ssc-cgl', 'ibps-po'];
+  const popularExams = POPULAR_EXAMS.map((s) => exams.find((e: any) => e.slug === s)).filter(Boolean) as any[];
   const ratings = await ratingsFor(colleges.map((c) => c.id));
 
   const statItems = [
@@ -111,16 +124,49 @@ export default async function HomePage() {
         <div className="mb-6 flex items-end justify-between">
           <div>
             <h2 className="section-title">{t('home.topColleges')}</h2>
-            <p className="mt-1 text-slate-500">{t('home.topColleges.sub')}</p>
+            <p className="mt-1 text-slate-500">{top.length ? 'By official rank, with fees, placements, reviews and cutoffs' : t('home.topColleges.sub')}</p>
           </div>
           <Link href="/colleges" className="hidden items-center gap-1 text-sm font-semibold text-brand-700 hover:underline sm:flex">{t('home.viewAll')} <ArrowRight size={16} /></Link>
         </div>
-        {colleges.length ? (
+        {top.length ? <TopCollegesTable initial={top} examNames={examNames} />
+          : colleges.length ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {colleges.map((c) => <CollegeCard key={c.id} c={c} rating={ratings[c.id]} />)}
           </div>
         ) : <SetupNotice />}
       </section>
+
+      {/* COURSES */}
+      {courses.length > 0 && (
+        <section className="container-x mt-16">
+          <div className="mb-6 flex items-end justify-between">
+            <div><h2 className="section-title">Explore courses</h2><p className="mt-1 text-slate-500">Fees, eligibility, entrance exams and the colleges that offer each course</p></div>
+            <Link href="/courses" className="hidden items-center gap-1 text-sm font-semibold text-brand-700 hover:underline sm:flex">All courses <ArrowRight size={16} /></Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {courses.slice(0, 12).map((k: any) => (
+              <Link key={k.slug} href={`/courses/${k.slug}`} className="card p-4 transition hover:border-brand-300 hover:shadow-md">
+                <p className="font-bold text-slate-900">{k.name}</p>
+                <p className="text-xs text-slate-500">{k.stream} · {k.level}</p>
+                {k.colleges > 0 && <p className="mt-2 text-xs font-semibold text-brand-700">{k.colleges.toLocaleString('en-IN')} college{k.colleges > 1 ? 's' : ''}</p>}
+              </Link>))}
+          </div>
+        </section>)}
+
+      {/* EXAMS + CITIES */}
+      {(popularExams.length > 0 || cities.length > 0) && (
+        <section className="container-x mt-16 grid gap-8 lg:grid-cols-2">
+          {popularExams.length > 0 && <div>
+            <div className="mb-4 flex items-end justify-between"><h2 className="section-title">Popular entrance exams</h2><Link href="/exams" className="text-sm font-semibold text-brand-700 hover:underline">All exams</Link></div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{popularExams.map((e) => (
+              <Link key={e.slug} href={`/exams/${e.slug}`} className="card px-3 py-2.5 hover:border-brand-300"><p className="font-semibold text-slate-900">{e.short_name}</p><p className="text-xs text-slate-500">{e.stream || e.level}</p></Link>))}</div>
+          </div>}
+          {cities.length > 0 && <div>
+            <div className="mb-4 flex items-end justify-between"><h2 className="section-title">Study in these cities</h2><Link href="/cities" className="text-sm font-semibold text-brand-700 hover:underline">All cities</Link></div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{cities.map((c) => (
+              <Link key={c.city} href={`/colleges?city=${encodeURIComponent(c.city)}`} className="card px-3 py-2.5 hover:border-brand-300"><p className="font-semibold text-slate-900">{c.city}</p><p className="text-xs text-slate-500">{Number(c.colleges).toLocaleString('en-IN')} college{Number(c.colleges) > 1 ? 's' : ''}</p></Link>))}</div>
+          </div>}
+        </section>)}
 
       {/* COUNTRIES */}
       <section className="container-x mt-16">

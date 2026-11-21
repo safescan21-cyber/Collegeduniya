@@ -14,6 +14,7 @@ import type { DictKey } from '@/lib/i18n';
 
 const MAIN: { href: string; key: DictKey }[] = [
   { href: '/colleges', key: 'nav.colleges' },
+  { href: '/courses', key: 'nav.courses' },
   { href: '/hostels', key: 'nav.hostels' },
   { href: '/jobs', key: 'nav.jobs' },
   { href: '/community', key: 'nav.community' },

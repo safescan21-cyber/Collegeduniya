@@ -160,6 +160,7 @@ const en = {
   'nav.roommates': 'Find a roommate',
   'nav.messages': 'Messages',
   'nav.community': 'Community',
+  'nav.courses': 'Courses',
   'nav.scholarships': 'Scholarships',
   'nav.visa': 'Student visa guides',
   'nav.mock': 'Free mock tests',

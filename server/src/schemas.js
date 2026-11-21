@@ -152,8 +152,16 @@ schemas.colleges = schemas.colleges.extend({
   affiliated_to: optStr,
   admin_note: optStr,
   seo_index: z.enum(['auto', 'index', 'noindex']).optional(),
+  approvals: z.array(z.string().trim().max(40)).max(20).optional(),
+  exams_accepted: z.array(z.string().trim().toLowerCase().regex(/^[a-z0-9-]{2,40}$/, 'Use exam slugs like jee-main')).max(20).optional(),
+  brochure_url: z.union([z.literal(''), z.null(), z.string().trim().url()]).optional().transform((v) => v || null),
+  admission_process: z.string().max(6000).optional().nullable(),
+  important_dates: z.string().max(3000).optional().nullable(),
+  scholarship_info: z.string().max(4000).optional().nullable(),
+  faqs: z.string().max(8000).optional().nullable(),
+  details_source: z.string().max(300).optional().nullable(),
   hidden_fields: z.array(z.enum(['fees', 'contact', 'website', 'address', 'map', 'ranking', 'accreditation', 'established', 'students', 'logo', 'photos', 'description'])).optional(),
-  hidden_sections: z.array(z.enum(['courses', 'placements', 'cutoffs', 'reviews', 'qa', 'hostels', 'jobs', 'nearby', 'gallery', 'apply', 'enquiry'])).optional(),
+  hidden_sections: z.array(z.enum(['admission', 'ranking', 'scholarships', 'faqs', 'courses', 'placements', 'cutoffs', 'reviews', 'qa', 'hostels', 'jobs', 'nearby', 'gallery', 'apply', 'enquiry'])).optional(),
 });
 
 export const collegeBulk = z.object({
@@ -383,6 +391,22 @@ export const leadSchema = z.object({
   source_path: z.string().max(300).optional().nullable(),
   consent_share: z.boolean().optional().default(false),
   website: z.string().max(0).optional(), // honeypot — must stay empty
+});
+
+schemas.course_catalog = z.object({
+  slug: z.string().trim().toLowerCase().regex(/^[a-z0-9-]{2,40}$/),
+  name: z.string().trim().min(2).max(80),
+  full_name: z.string().trim().min(2).max(160),
+  level: z.enum(['UG', 'PG', 'Diploma', 'PhD', 'Certificate']),
+  stream: z.string().trim().min(2).max(60),
+  duration: z.string().max(80).optional().nullable(),
+  eligibility: z.string().max(1000).optional().nullable(),
+  exam_slugs: z.array(z.string().trim().toLowerCase()).max(20).optional(),
+  match: z.string().min(2).max(300),
+  about: z.string().max(20000).optional().nullable(),
+  careers: z.string().max(10000).optional().nullable(),
+  sort: z.coerce.number().int().optional(),
+  is_published: z.boolean().optional(),
 });
 
 export const contactSchema = z.object({
