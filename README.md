@@ -651,3 +651,9 @@ npm run import:eter -- DE FR # some countries only
 Admin → Import → **Every Indian college — AISHE list**, or `cd server && npm run import:aishe` (`--dry` to preview).
 Reads ~70,000 institutions (U-/C-/S- AISHE codes, state, district) from the npm package `aishe-institutions-list` (MIT).
 R&D centres are skipped, colleges already on the site from other sources are not duplicated, and re-running refreshes by AISHE code.
+
+### 5u. AI keys from the admin panel
+
+Admin → Mock tests → **Autopilot** tab → AI providers → **Add key** (super admin only). The key is saved in the
+server-only `app_secrets` table (migration 025), loaded at start-up and never sent back to the browser. Saving a
+working key switches the mock-test Autopilot on and starts writing questions. `deploy/set-ai-key.sh` does the same from the console.

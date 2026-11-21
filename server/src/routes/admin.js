@@ -357,7 +357,34 @@ router.get('/mock/ai-status', wrap(async (_req, res) => {
 // AI provider pool (free tiers + paid + self-hosted)
 router.get('/ai/providers', wrap(async (_req, res) => {
   const { providerStatus, pool } = await import('../services/llm.js');
-  res.json({ data: providerStatus(), order: pool().map((p) => p.id) });
+  const { savedSecretNames } = await import('../services/secrets.js');
+  const saved = await savedSecretNames();
+  res.json({ data: providerStatus().map((p) => ({ ...p, saved_in_panel: saved[p.key_env] || null })), order: pool().map((p) => p.id) });
+}));
+// Save / remove a provider key from the admin panel (super admin only; the key is never sent back)
+router.post('/ai/providers/:id/key', requireSuperAdmin, wrap(async (req, res) => {
+  const { CATALOG, testProvider } = await import('../services/llm.js');
+  const { saveSecret } = await import('../services/secrets.js');
+  const p = CATALOG.find((x) => x.id === req.params.id);
+  if (!p || ['ollama', 'custom'].includes(p.id)) return fail(res, new Error('Unknown provider'), 400);
+  await saveSecret(p.key, req.body?.key, req.user.id);
+  const test = await testProvider(p.id).catch((e) => ({ ok: false, error: e.message }));
+  let autopilot = false;
+  if (test.ok && req.body?.autopilot !== false) {
+    await supabase.from('mock_settings').upsert({ id: 1, autopilot: true, updated_at: new Date().toISOString() });
+    const { runAutopilot, autopilotRunning } = await import('../services/mockAutopilot.js');
+    if (!autopilotRunning()) runAutopilot({ force: true }).catch((e) => console.error('[autopilot]', e.message));
+    autopilot = true;
+  }
+  res.json({ ok: true, test, autopilot });
+}));
+router.delete('/ai/providers/:id/key', requireSuperAdmin, wrap(async (req, res) => {
+  const { CATALOG } = await import('../services/llm.js');
+  const { deleteSecret } = await import('../services/secrets.js');
+  const p = CATALOG.find((x) => x.id === req.params.id);
+  if (!p) return fail(res, new Error('Unknown provider'), 400);
+  await deleteSecret(p.key);
+  res.json({ ok: true });
 }));
 router.post('/ai/providers/:id/test', wrap(async (req, res) => {
   const { testProvider } = await import('../services/llm.js');
