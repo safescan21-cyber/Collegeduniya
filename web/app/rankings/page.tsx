@@ -11,7 +11,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   const cat = sp.category || 'Overall'; const y = sp.year || '';
   return {
-    title: `NIRF ${y ? `${y} ` : ''}ranking — ${cat === 'Overall' ? 'top institutions in India' : `top ${cat.toLowerCase()} institutions`} | Collegeolo`,
+    title: `NIRF ${y ? `${y} ` : ''}ranking — ${cat === 'Overall' ? 'top institutions in India' : `top ${cat.toLowerCase()} institutions`}`,
     description: `Full NIRF India Rankings${y ? ` ${y}` : ''} list for ${cat}, with rank changes from the previous year and links to each college’s fees, courses and reviews.`,
     alternates: { canonical: `/rankings${sp.year || sp.category ? `?${new URLSearchParams(Object.entries({ year: sp.year, category: sp.category }).filter(([, v]) => v) as [string, string][])}` : ''}` },
   };
@@ -38,9 +38,11 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
   const ids = rows.map((r) => r.college_id).filter(Boolean) as string[];
   const { data: cols } = ids.length ? await sb.from('colleges_public').select('id, slug, logo_url').in('id', ids) : { data: [] };
   const slug = new Map((cols || []).map((c: any) => [c.id, c]));
+  // the reports spell some names differently from year to year ("BITS -Pilani" / "BITS - Pilani"): compare on letters only
+  const nk = (name: string, city: string | null) => `${String(name).toLowerCase().replace(/\(.*?\)/g, '').replace(/[^a-z0-9]/g, '')}|${String(city || '').toLowerCase().replace(/[^a-z]/g, '')}`;
   const before = new Map<string, number>();
-  for (const p of (prev || []) as any[]) { if (p.rank) { before.set(p.college_id || `${p.name}|${p.city}`, p.rank); before.set(`${p.name}|${p.city}`, p.rank); } }
-  const prevRank = (r: Row) => before.get(r.college_id || '') ?? before.get(`${r.name}|${r.city}`);
+  for (const p of (prev || []) as any[]) { if (p.rank) { if (p.college_id) before.set(p.college_id, p.rank); before.set(nk(p.name, p.city), p.rank); } }
+  const prevRank = (r: Row) => (r.college_id ? before.get(r.college_id) : undefined) ?? before.get(nk(r.name, r.city));
   const moves = rows.filter((r) => r.rank && prevRank(r)).map((r) => ({ r, d: prevRank(r)! - r.rank! }));
   const up = [...moves].sort((a, b) => b.d - a.d).filter((m) => m.d >= 3).slice(0, 5);
   const down = [...moves].sort((a, b) => a.d - b.d).filter((m) => m.d <= -3).slice(0, 5);
