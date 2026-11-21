@@ -13,9 +13,13 @@ let running = false; let last = null; let lastInvites = null;
 
 export async function runAutofill({ reason = 'schedule' } = {}) {
   if (running) return { skipped: 'already running' };
-  const { data: busy } = await supabase.from('import_runs').select('id').eq('status', 'running').in('kind', ['enrich', 'universities', 'sheet', 'scorecard'])
-    .gte('created_at', new Date(Date.now() - 3 * 3600e3).toISOString()).limit(1);
-  if (busy?.length) return { skipped: 'an import is running' };
+  // runs left "running" by a restart or a stopped import would block everything: close them after 6 hours
+  await supabase.from('import_runs').update({ status: 'failed', message: 'Interrupted (server restarted or import stopped)', finished_at: new Date().toISOString() })
+    .eq('status', 'running').lt('created_at', new Date(Date.now() - 6 * 3600e3).toISOString());
+  // only another photo/details run blocks this one; college imports can run at the same time
+  const { data: busy } = await supabase.from('import_runs').select('id').eq('status', 'running').eq('kind', 'enrich')
+    .gte('created_at', new Date(Date.now() - 2 * 3600e3).toISOString()).limit(1);
+  if (busy?.length) return { skipped: 'a photo run is already going' };
   running = true;
   try {
     // give errored lookups another chance after two weeks
@@ -49,7 +53,7 @@ export const kickAutofill = () => { if (env('AUTOFILL', 'on') !== 'off') setTime
 export function startCollegeAutofill() {
   if (env('AUTOFILL', 'on') !== 'off') {
     const every = Math.max(1, Number(env('AUTOFILL_EVERY_HOURS', 6))) * 3600e3;
-    setTimeout(() => runAutofill(), 5 * 60e3);
+    setTimeout(() => runAutofill(), 3 * 60e3);
     setInterval(() => runAutofill(), every);
   }
   if (env('REVIEW_INVITES', 'on') !== 'off') {

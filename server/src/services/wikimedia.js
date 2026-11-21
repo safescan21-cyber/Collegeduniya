@@ -258,7 +258,10 @@ export async function enrichMany({ country = null, limit = 200, onlyMissingPhoto
   const { data: run } = await supabase.from('import_runs').insert({ kind: 'enrich', params: { country: country || 'all', limit }, started_by: startedBy }).select('id').single();
   const finish = (patch) => run && supabase.from('import_runs').update({ ...patch, finished_at: new Date().toISOString() }).eq('id', run.id);
   let q = supabase.from('colleges').select('id, name, short_name, website, country_code, city, wikidata_id')
-    .is('enriched_at', null).order('is_featured', { ascending: false }).order('ranking', { ascending: true, nullsFirst: false }).limit(Math.min(limit, 5000));
+    .is('enriched_at', null).order('is_featured', { ascending: false }).order('ranking', { ascending: true, nullsFirst: false })
+    .order('wikidata_id', { ascending: true, nullsFirst: false })        // colleges already linked to Wikidata almost always have photos
+    .order('students_count', { ascending: false, nullsFirst: false })    // then the big ones
+    .limit(Math.min(limit, 5000));
   if (country) q = country.length === 2 ? q.eq('country_code', country.toUpperCase()) : q.ilike('country', country);
   if (onlyMissingPhotos) q = q.is('cover_url', null);
   const { data: list, error } = await q;

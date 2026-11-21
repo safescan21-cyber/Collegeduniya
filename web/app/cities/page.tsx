@@ -1,3 +1,4 @@
+import { Flag } from '@/components/Flag';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Globe2 } from 'lucide-react';
@@ -10,7 +11,6 @@ export const metadata: Metadata = {
   description: 'Pick any city in the world to see colleges, PG & hostels, hospitals and part-time jobs for students.',
 };
 type SP = Record<string, string | undefined>;
-const flag = (cc: string) => String.fromCodePoint(...cc.toUpperCase().split('').map((c) => 127397 + c.charCodeAt(0)));
 
 export default async function CitiesPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
@@ -37,7 +37,7 @@ export default async function CitiesPage({ searchParams }: { searchParams: Promi
 
   return (
     <div className="container-x py-10">
-      <h1 className="flex items-center gap-2 text-3xl font-extrabold text-slate-900"><Globe2 className="text-brand-600" />{countryName ? `Cities in ${countryName}` : 'Study anywhere in the world'}</h1>
+      <h1 className="flex items-center gap-2 text-3xl font-extrabold text-slate-900">{sp.country && countryName ? <Flag code={sp.country} country={countryName} className="h-7 w-10 rounded" /> : <Globe2 className="text-brand-600" />}{countryName ? `Cities in ${countryName}` : 'Study anywhere in the world'}</h1>
       <div className="mt-5 max-w-xl"><CityInput mode="navigate" country={sp.country} /></div>
 
       {sp.country ? (
@@ -59,7 +59,7 @@ export default async function CitiesPage({ searchParams }: { searchParams: Promi
             <section key={cont}>
               <h2 className="mb-3 text-lg font-bold text-slate-900">{continents[cont] || cont}</h2>
               <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                {list.map((c) => <Link key={c.code} href={`/cities?country=${c.code}`} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-white hover:shadow-sm"><span className="text-lg">{flag(c.code)}</span>{c.name}</Link>)}
+                {list.map((c) => <Link key={c.code} href={`/cities?country=${c.code}`} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-white hover:shadow-sm"><Flag code={c.code} country={c.name} className="h-4 w-6" />{c.name}</Link>)}
               </div>
             </section>
           ))}

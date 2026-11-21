@@ -1,3 +1,4 @@
+import { Flag } from './Flag';
 import Link from 'next/link';
 import { MapPin, Users, GraduationCap, Home, Briefcase, Clock } from 'lucide-react';
 import { CollegeCard, HostelCard, JobCard, EmptyState } from './Cards';
@@ -14,7 +15,6 @@ export type CityInfo = {
   admin2?: string | null; local_name?: string | null;
 };
 
-const flag = (cc?: string | null) => (cc && cc.length === 2 ? String.fromCodePoint(...cc.toUpperCase().split('').map((c) => 127397 + c.charCodeAt(0))) : '🌍');
 
 export default async function CityView({ city }: { city: CityInfo }) {
   const { t, lang } = await getT();
@@ -60,7 +60,7 @@ export default async function CityView({ city }: { city: CityInfo }) {
     <>
       <section className="bg-gradient-to-br from-brand-950 via-brand-900 to-brand-700 py-12 text-white">
         <div className="container-x">
-          <Link href={city.country_code ? `/cities?country=${city.country_code}` : '/cities'} className="text-sm text-brand-200 hover:underline">{flag(city.country_code)} {city.country}</Link>
+          <Link href={city.country_code ? `/cities?country=${city.country_code}` : '/cities'} className="text-sm text-brand-200 hover:underline">{city.country_code ? <Flag code={city.country_code} country={city.country} className="me-1 h-3.5 w-5 align-[-2px]" /> : null}{city.country}</Link>
           <h1 className="mt-2 text-4xl font-extrabold">{t('city.title')} {shown}{shown !== city.name && <span className="ms-3 text-2xl font-semibold text-brand-200">{city.name}</span>}</h1>
           <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-brand-100">
             <span className="flex items-center gap-1"><MapPin size={16} />{[city.admin2 && city.admin2 !== city.name ? city.admin2 : null, city.admin1, city.country].filter(Boolean).join(', ')}</span>
@@ -92,7 +92,7 @@ export default async function CityView({ city }: { city: CityInfo }) {
             {hostels.length ? (
               <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{hostels.map((h) => <HostelCard key={h.id} h={h} />)}</div>
             ) : <EmptyState icon={<Home size={28} />} title="No verified PGs listed yet" text="Own a PG here? List it free from “List your PG”." />}
-            <div className="mt-5"><LiveNearby lat={city.latitude} lng={city.longitude} kinds={['pg', 'hospital', 'pharmacy', 'transport', 'bank']} radius={5000} title={`Around ${city.name} (map data)`} /></div>
+            <div className="mt-5"><LiveNearby lat={city.latitude} lng={city.longitude} kinds={['visit', 'food', 'pg', 'hospital', 'pharmacy', 'transport', 'bank']} radius={5000} title={`Around ${city.name} (map data)`} /></div>
           </section>
 
           <section id="jobs" className="scroll-mt-24 space-y-5">

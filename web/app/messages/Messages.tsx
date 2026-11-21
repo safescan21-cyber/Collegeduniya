@@ -1,4 +1,5 @@
 'use client';
+import SoundToggle from '@/components/SoundToggle';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -109,7 +110,7 @@ export default function Messages() {
   return (
     <div className="card grid h-[78vh] overflow-hidden md:grid-cols-[320px_1fr]">
       <aside className={`${active ? 'hidden md:flex' : 'flex'} min-h-0 flex-col border-e border-slate-100`}>
-        <p className="flex items-center gap-2 border-b border-slate-100 p-4 font-bold text-slate-900"><MessagesSquare size={18} />Messages</p>
+        <p className="flex items-center gap-2 border-b border-slate-100 p-4 font-bold text-slate-900"><MessagesSquare size={18} />Messages<SoundToggle /></p>
         <div className="flex gap-1 border-b border-slate-100 p-2 text-sm">
           {([['chats', 'Chats', MessagesSquare, 0], ['requests', 'Requests', Inbox, requests.length], ['people', 'My college', Users, 0]] as const).map(([k, l, I, n]) => (
             <button key={k} onClick={() => setTab(k)} className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 ${tab === k ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
-import { searchCities, reverseCity, nearbyPlaces, NEARBY_KINDS, geocode } from '../services/geo.js';
+import { searchCities, reverseCity, nearbyPlaces, NEARBY_KINDS, geocode, PendingError } from '../services/geo.js';
 import { localJobs, providersStatus } from '../services/jobs.js';
 import { translateMany, LANGUAGES, isSupported, providerName } from '../services/translate.js';
 import { supabase } from '../supabase.js';
@@ -50,8 +50,9 @@ router.get('/nearby', limit(60), wrap(async (req, res) => {
     const data = await nearbyPlaces(kind, lat, lng, req.query.radius);
     res.set('Cache-Control', 'public, max-age=86400').json({ data, attribution: '© OpenStreetMap contributors' });
   } catch (e) {
+    if (e instanceof PendingError) return res.set('Cache-Control', 'no-store').json({ data: [], pending: true, attribution: '© OpenStreetMap contributors' });
     console.warn('[overpass]', e.message);
-    res.json({ data: [], error: 'Map data is busy right now — try again shortly.' });
+    res.set('Cache-Control', 'no-store').json({ data: [], error: 'Map data is busy right now — try again shortly.' });
   }
 }));
 

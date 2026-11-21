@@ -413,9 +413,9 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
           </section>}
 
           {show('nearby') && <section id="nearby" className="scroll-mt-32">
-            <h2 className="mb-4 text-xl font-bold text-slate-900">Nearby companies, hospitals & services</h2>
+            <h2 className="mb-4 text-xl font-bold text-slate-900">Nearby hospitals, food, places to visit & services</h2>
             {c.latitude != null && c.longitude != null && (
-              <div className="mb-5"><LiveNearby lat={c.latitude} lng={c.longitude} kinds={['hospital', 'pharmacy', 'pg', 'transport', 'bus', 'bank', 'food']} /></div>
+              <div className="mb-5"><LiveNearby lat={c.latitude} lng={c.longitude} kinds={['hospital', 'food', 'visit', 'pharmacy', 'pg', 'transport', 'bus', 'bank']} /></div>
             )}
             <div className="grid gap-5 md:grid-cols-2">
               <PlaceList title="Companies (jobs & internships)" items={companies} />

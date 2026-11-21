@@ -1,4 +1,5 @@
 'use client';
+import { Flag } from './Flag';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, Loader2 } from 'lucide-react';
@@ -10,7 +11,6 @@ export type CityHit = {
   latitude: number; longitude: number; population: number | null; slug: string | null; source: string;
 };
 
-const flag = (cc: string) => (cc && cc.length === 2 ? String.fromCodePoint(...cc.toUpperCase().split('').map((c) => 127397 + c.charCodeAt(0))) : '🌍');
 
 // Autocomplete over every city in the world (GeoNames table + OpenStreetMap fallback).
 //  - mode="field": works inside a normal <form> (submits the city name under `name`)
@@ -83,7 +83,7 @@ export default function CityInput({ name = 'city', defaultValue = '', placeholde
             <li key={`${c.geoname_id || c.name}-${c.country_code}-${i}`}>
               <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => pick(c)}
                 className={`flex w-full items-center gap-2 px-3 py-2 text-start text-sm ${i === active ? 'bg-brand-50' : 'hover:bg-slate-50'}`}>
-                <span className="text-base">{flag(c.country_code)}</span>
+                {c.country_code ? <Flag code={c.country_code} className="h-3.5 w-5" /> : <span className="text-base">🌍</span>}
                 <span className="min-w-0 flex-1 truncate"><strong>{c.local_name && c.local_name !== c.name ? c.local_name : c.name}</strong>{c.local_name && c.local_name !== c.name && <span className="text-slate-500"> ({c.name})</span>}{c.admin1 ? `, ${c.admin1}` : ''}<span className="text-slate-400"> · {c.country}</span></span>
                 {c.population ? <span className="text-[10px] text-slate-400">{c.population >= 1e6 ? `${(c.population / 1e6).toFixed(1)}M` : `${Math.round(c.population / 1e3)}k`}</span> : null}
               </button>

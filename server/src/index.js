@@ -28,6 +28,7 @@ import { startExamNews } from './services/examNews.js';
 import { startHealthMonitor } from './services/health.js';
 import { supabase as sbAdmin } from './supabase.js';
 import { loadSecrets } from './services/secrets.js';
+import { startNearbyPrefill } from './services/geo.js';
 import { otpReady, notifyReady } from './services/whatsapp.js';
 
 const app = express();
@@ -94,6 +95,7 @@ app.listen(PORT, () => {
   startMockSweeper();
   startAutopilot();
   startPresenceCleanup();
+  startNearbyPrefill();
   loadSecrets().then((n) => n && console.log(`[secrets] ${n} key(s) from the admin panel`)).finally(() =>
     console.log(`[ai] ${llmReady() ? `${llmProvider()} · ${llmModel()}` : 'not configured — mock-test generation and AI feedback are off (rule-based feedback still works)'}`));
 });

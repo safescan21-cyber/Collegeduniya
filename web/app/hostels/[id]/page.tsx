@@ -121,7 +121,7 @@ export default async function HostelPage({ params }: { params: Promise<{ id: str
             </div>
           )}
           {photos.length > 1 && <div><h2 className="mb-3 font-bold text-slate-900">Photos</h2><Gallery photos={photos} alt={h.name} /></div>}
-          {h.latitude != null && h.longitude != null && <LiveNearby lat={h.latitude} lng={h.longitude} kinds={['hospital', 'pharmacy', 'transport', 'bus', 'food', 'bank']} radius={3000} />}
+          {h.latitude != null && h.longitude != null && <LiveNearby lat={h.latitude} lng={h.longitude} kinds={['hospital', 'food', 'visit', 'pharmacy', 'transport', 'bus', 'bank']} radius={3000} />}
           <ShareButtons title={`${h.name} — ${h.type} in ${h.city}`} path={`/hostels/${h.id}`} />
           <HostelReviews hostelId={h.id} reviews={(reviews || []) as any} avg={avg} count={rating?.review_count || 0} />
         </div>

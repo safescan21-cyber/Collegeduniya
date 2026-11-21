@@ -1,3 +1,4 @@
+import { Flag } from '@/components/Flag';
 import Link from 'next/link';
 import {
   GraduationCap, Home, Briefcase, Users, Globe2, Star, MapPin, ArrowRight, ShieldCheck, Target, Scale, FilePlus2, Calculator, PlusCircle,
@@ -17,8 +18,10 @@ import type { Article, College, Hostel, Job } from '@/lib/types';
 export const dynamic = 'force-dynamic';
 
 const COUNTRIES = [
-  { name: 'India', flag: '🇮🇳' }, { name: 'Canada', flag: '🇨🇦' }, { name: 'United Kingdom', flag: '🇬🇧' },
-  { name: 'Australia', flag: '🇦🇺' }, { name: 'Germany', flag: '🇩🇪' }, { name: 'United States', flag: '🇺🇸' },
+  { name: 'India', code: 'IN' }, { name: 'Canada', code: 'CA' }, { name: 'United Kingdom', code: 'GB' },
+  { name: 'Australia', code: 'AU' }, { name: 'Germany', code: 'DE' }, { name: 'United States', code: 'US' },
+  { name: 'France', code: 'FR' }, { name: 'Ireland', code: 'IE' }, { name: 'Netherlands', code: 'NL' },
+  { name: 'Italy', code: 'IT' }, { name: 'New Zealand', code: 'NZ' }, { name: 'Singapore', code: 'SG' },
 ];
 
 async function load() {
@@ -172,12 +175,12 @@ export default async function HomePage() {
 
       {/* COUNTRIES */}
       <section className="container-x mt-16">
-        <h2 className="section-title">{t('home.world')}</h2>
+        <div className="flex items-end justify-between"><h2 className="section-title">{t('home.world')}</h2><Link href="/cities" className="text-sm font-semibold text-brand-700 hover:underline">All countries</Link></div>
         <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           {COUNTRIES.map((c) => (
             <Link key={c.name} href={`/colleges?country=${encodeURIComponent(c.name)}`}
               className="card flex flex-col items-center p-5 text-center transition hover:border-brand-300 hover:shadow-md">
-              <span className="text-4xl">{c.flag}</span>
+              <Flag code={c.code} country={c.name} className="h-10 w-14 rounded-md" />
               <span className="mt-2 text-sm font-semibold text-slate-800">{c.name}</span>
             </Link>
           ))}

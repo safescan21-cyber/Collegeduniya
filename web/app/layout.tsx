@@ -8,6 +8,7 @@ import VisitTracker from '@/components/VisitTracker';
 import ChatWidget from '@/components/ChatWidget';
 import ReferralCapture from '@/components/ReferralCapture';
 import { PresencePing, OnlineAlerts } from '@/components/Presence';
+import MessageAlert from '@/components/MessageAlert';
 import { CallProvider } from '@/components/calls/CallProvider';
 import { orgJsonLd } from '@/lib/org';
 import PwaRegister from '@/components/PwaRegister';
@@ -44,6 +45,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <ReferralCapture />
             <PresencePing />
             <OnlineAlerts />
+            <MessageAlert />
             <PwaRegister />
             <main className="flex-1">{children}</main>
             <Footer />

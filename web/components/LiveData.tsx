@@ -1,17 +1,18 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Hospital, Pill, BedDouble, TrainFront, Landmark, Bus, Coffee, BookOpen, ExternalLink, Loader2, Briefcase, Phone, Siren } from 'lucide-react';
+import { Hospital, Pill, BedDouble, TrainFront, Landmark, Bus, Coffee, BookOpen, ExternalLink, Loader2, Briefcase, Phone, Siren, Camera } from 'lucide-react';
 import { API_URL } from '@/lib/api';
 import { useLang } from './LangProvider';
 
-type Place = { id: string; kind: string; name: string; distance_km: number; address: string | null; phone: string | null; website: string | null; emergency: boolean; osm_url: string; latitude: number; longitude: number };
+type Place = { id: string; kind: string; name: string; distance_km: number; cuisine?: string | null; type?: string | null; address: string | null; phone: string | null; website: string | null; emergency: boolean; osm_url: string; latitude: number; longitude: number };
 type ExtJob = { id: string; source: string; title: string; company: string | null; location: string; snippet: string; salary_min: number | null; salary_max: number | null; salary_text: string | null; contract: string | null; url: string; posted_at: string | null };
 
 const KINDS: Record<string, { label: string; icon: any }> = {
   hospital: { label: 'Hospitals', icon: Hospital }, pharmacy: { label: 'Pharmacies', icon: Pill },
   pg: { label: 'Hostels & guest houses', icon: BedDouble }, transport: { label: 'Railway', icon: TrainFront },
   bus: { label: 'Bus stations', icon: Bus }, bank: { label: 'Banks & ATMs', icon: Landmark },
-  food: { label: 'Food', icon: Coffee }, library: { label: 'Libraries', icon: BookOpen },
+  food: { label: 'Food & cafés', icon: Coffee }, library: { label: 'Libraries', icon: BookOpen },
+  visit: { label: 'Places to visit', icon: Camera },
 };
 
 // Live points of interest around a location from OpenStreetMap (via our API, cached)
@@ -24,11 +25,19 @@ export function LiveNearby({ lat, lng, kinds = ['hospital', 'pharmacy', 'pg', 't
   const [err, setErr] = useState('');
   const [r, setR] = useState(radius);
 
+  const [pending, setPending] = useState(false);
   useEffect(() => {
-    setRows(null); setErr('');
-    fetch(`${API_URL}/api/nearby?lat=${lat}&lng=${lng}&kind=${kind}&radius=${r}`)
-      .then((x) => x.json()).then((b) => { setRows(b.data || []); if (b.error) setErr(b.error); })
-      .catch(() => { setRows([]); setErr('Could not load map data.'); });
+    let stop = false; let tries = 0; let timer: any;
+    setRows(null); setErr(''); setPending(false);
+    const load = () => fetch(`${API_URL}/api/nearby?lat=${lat}&lng=${lng}&kind=${kind}&radius=${r}`)
+      .then((x) => x.json()).then((b) => {
+        if (stop) return;
+        if (b.pending && tries++ < 12) { setPending(true); timer = setTimeout(load, 8000); return; }   // first visit here: data is being collected
+        setPending(false); setRows(b.data || []); if (b.error) setErr(b.error);
+      })
+      .catch(() => { if (!stop) { setPending(false); setRows([]); setErr('Could not load map data.'); } });
+    load();
+    return () => { stop = true; clearTimeout(timer); };
   }, [lat, lng, kind, r]);
 
   return (
@@ -45,7 +54,7 @@ export function LiveNearby({ lat, lng, kinds = ['hospital', 'pharmacy', 'pg', 't
           return <button key={k} onClick={() => setKind(k)} className={`${kind === k ? 'chip-brand' : 'chip'} cursor-pointer py-1.5`}><K.icon size={12} />{K.label}</button>;
         })}
       </div>
-      {rows === null ? <div className="grid h-24 place-items-center"><Loader2 className="animate-spin text-slate-300" /></div> : rows.length === 0 ? (
+      {rows === null ? <div className="grid h-24 place-items-center text-center"><Loader2 className="animate-spin text-slate-300" />{pending && <p className="text-xs text-slate-500">Collecting places around here for the first time — this takes up to a minute…</p>}</div> : rows.length === 0 ? (
         <p className="mt-4 text-sm text-slate-400">{err || 'Nothing mapped here yet.'}</p>
       ) : (
         <ul className="mt-3 max-h-96 divide-y divide-slate-100 overflow-y-auto">
@@ -53,7 +62,7 @@ export function LiveNearby({ lat, lng, kinds = ['hospital', 'pharmacy', 'pg', 't
             <li key={p.id} className="flex items-start gap-3 py-2.5">
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-1.5 font-medium text-slate-800">{p.name}{p.emergency && <span className="chip-red py-0"><Siren size={10} />24×7 ER</span>}</p>
-                {p.address && <p className="truncate text-xs text-slate-500">{p.address}</p>}
+                {(p.cuisine || p.address) && <p className="truncate text-xs text-slate-500">{[p.cuisine, p.address].filter(Boolean).join(' · ')}</p>}
                 <div className="mt-0.5 flex flex-wrap gap-3 text-xs">
                   {p.phone && <a href={`tel:${p.phone}`} className="flex items-center gap-1 text-brand-700"><Phone size={11} />{p.phone}</a>}
                   <a href={`https://www.google.com/maps/dir/?api=1&destination=${p.latitude},${p.longitude}`} target="_blank" rel="noopener noreferrer" className="text-brand-700">Directions</a>
@@ -64,7 +73,7 @@ export function LiveNearby({ lat, lng, kinds = ['hospital', 'pharmacy', 'pg', 't
           ))}
         </ul>
       )}
-      <p className="mt-3 text-[10px] text-slate-400">Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap contributors</a></p>
+      <p className="mt-3 text-[10px] text-slate-400">Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap contributors</a> · search by <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer" className="underline">Photon</a></p>
     </div>
   );
 }
