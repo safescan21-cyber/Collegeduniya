@@ -12,6 +12,7 @@ import { PublicProfileSettings, EducationEditor, LoginHistory, MockHistory } fro
 import CampusSettings from '@/components/campus/CampusSettings';
 import MyExams from '@/components/exams/MyExams';
 import DeleteAccount from '@/components/DeleteAccount';
+import PasswordSettings from '@/components/account/PasswordSettings';
 import { Stars } from '@/components/Cards';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { range, timeAgo } from '@/lib/format';
@@ -344,6 +345,7 @@ function Dashboard() {
             <div className="sm:col-span-2"><button className="btn-primary"><Save size={16} />Save profile</button></div>
           </form>
           <LoginHistory />
+          <PasswordSettings />
           <DeleteAccount />
           </div>
           <div className="space-y-6"><CampusSettings /><PublicProfileSettings /><EducationEditor /></div>

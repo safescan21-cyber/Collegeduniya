@@ -1,13 +1,15 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, KeyRound, ArrowLeft, GraduationCap, BedDouble, Building2, MessageCircle } from 'lucide-react';
+import Link from 'next/link';
+import { Mail, KeyRound, ArrowLeft, GraduationCap, BedDouble, Building2, MessageCircle, Lock, Eye, EyeOff } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useLang } from '@/components/LangProvider';
 
 type Mode = 'login' | 'register';
 type Channel = 'email' | 'whatsapp';
+type Method = 'password' | 'code';
 
 // WhatsApp login appears once NEXT_PUBLIC_WHATSAPP_LOGIN=on (after the Supabase "Send SMS" hook + WhatsApp template are set up)
 const WA_LOGIN = process.env.NEXT_PUBLIC_WHATSAPP_LOGIN === 'on';
@@ -39,6 +41,11 @@ export default function LoginForm() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
+  // password login works without any email service; the email code needs SMTP on the auth server
+  const [method, setMethod] = useState<Method>(params.get('method') === 'code' ? 'code' : 'password');
+  const [password, setPassword] = useState('');
+  const [password2, setPassword2] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [info, setInfo] = useState('');
@@ -94,11 +101,71 @@ export default function LoginForm() {
         setMode('register');
         return setErr('No account with this email yet — add your name to register.');
       }
-      return setErr(error.message);
+      return setErr(/sending|smtp|email/i.test(error.message) ? 'We could not send the code email right now — please use "Password" instead.' : error.message);
     }
     setStep('otp');
     setInfo(`We sent a verification code to ${email}. Check inbox and spam.`);
     startCooldown();
+  };
+
+  const finish = async (userId: string) => {
+    if (mode === 'register' && (name || phone || accountType !== 'student')) {
+      const { data: p } = await supabase.from('profiles').select('full_name, phone, account_type').eq('id', userId).maybeSingle();
+      const patch: Record<string, string> = {};
+      if (accountType !== 'student' && p?.account_type !== accountType) patch.account_type = accountType;
+      if (!p?.full_name && name) patch.full_name = name.trim();
+      if (!p?.phone && phone) patch.phone = phone.trim();
+      if (Object.keys(patch).length) await supabase.from('profiles').update(patch).eq('id', userId);
+    }
+    await refreshProfile();
+    const dest = params.get('next') ? safeNext : accountType === 'pg_owner' ? '/owner' : accountType === 'employer' ? '/employer' : safeNext;
+    router.replace(dest);
+    router.refresh();
+  };
+
+  const withPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErr(''); setInfo('');
+    const em = email.trim().toLowerCase();
+    if (mode === 'register' && name.trim().length < 2) return setErr('Enter your full name.');
+    if (!/^\S+@\S+\.\S+$/.test(em)) return setErr('Enter a valid email address.');
+    if (password.length < 8) return setErr('Password must be at least 8 characters.');
+    if (mode === 'register' && password !== password2) return setErr('The two passwords do not match.');
+    setBusy(true);
+    if (mode === 'login') {
+      const { data, error } = await supabase.auth.signInWithPassword({ email: em, password });
+      if (error || !data.user) {
+        setBusy(false);
+        return setErr(/invalid login/i.test(error?.message || '')
+          ? 'Wrong email or password. If you joined with an email code, log in with "Email code" once and set a password in your dashboard.'
+          : error?.message || 'Could not log in.');
+      }
+      await finish(data.user.id);
+      setBusy(false);
+      return;
+    }
+    const { data, error } = await supabase.auth.signUp({
+      email: em, password,
+      options: { data: { full_name: name.trim(), phone: phone.trim(), account_type: accountType }, emailRedirectTo: `${window.location.origin}${safeNext}` },
+    });
+    if (error) {
+      setBusy(false);
+      return setErr(/already registered|already exists/i.test(error.message) ? 'This email already has an account — use Login.' : error.message);
+    }
+    if (!data.session) { setBusy(false); setInfo(`Almost done — open the link we emailed to ${em} to confirm your account.`); return; }
+    await finish(data.user!.id);
+    setBusy(false);
+  };
+
+  const forgot = async () => {
+    setErr(''); setInfo('');
+    const em = email.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(em)) return setErr('Type your email above first.');
+    setBusy(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(em, { redirectTo: `${window.location.origin}/auth/reset` });
+    setBusy(false);
+    if (error) return setErr('We could not send the reset email right now. Try "Email code", or contact support.');
+    setInfo(`If ${em} has an account, a reset link is on its way. Check inbox and spam.`);
   };
 
   const verify = async (e: React.FormEvent) => {
@@ -112,20 +179,8 @@ export default function LoginForm() {
       : await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token, type: 'email' });
     if (error || !data.user) { setBusy(false); return setErr(error?.message || 'Invalid or expired code.'); }
 
-    // Existing user who used "register": make sure name/phone are saved
-    if (mode === 'register' && (name || phone || accountType !== 'student')) {
-      const { data: p } = await supabase.from('profiles').select('full_name, phone, account_type').eq('id', data.user.id).maybeSingle();
-      const patch: Record<string, string> = {};
-      if (accountType !== 'student' && p?.account_type !== accountType) patch.account_type = accountType;
-      if (!p?.full_name && name) patch.full_name = name.trim();
-      if (!p?.phone && phone) patch.phone = phone.trim();
-      if (Object.keys(patch).length) await supabase.from('profiles').update(patch).eq('id', data.user.id);
-    }
-    await refreshProfile();
+    await finish(data.user.id);
     setBusy(false);
-    const dest = params.get('next') ? safeNext : accountType === 'pg_owner' ? '/owner' : accountType === 'employer' ? '/employer' : safeNext;
-    router.replace(dest);
-    router.refresh();
   };
 
   return (
@@ -133,7 +188,7 @@ export default function LoginForm() {
       <div className="mb-6 text-center">
         <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-brand-600 text-white"><GraduationCap /></span>
         <h1 className="mt-4 text-2xl font-extrabold text-slate-900">{step === 'otp' ? 'Enter verification code' : mode === 'register' ? t('login.create') : t('login.welcome')}</h1>
-        <p className="mt-1 text-sm text-slate-500">{step === 'otp' ? info : channel === 'whatsapp' ? 'No password — we send a one-time code on WhatsApp.' : t('login.noPassword')}</p>
+        <p className="mt-1 text-sm text-slate-500">{step === 'otp' ? info : method === 'password' ? (mode === 'register' ? 'Sign up with email and password, or use a one-time email code.' : 'Log in with your password or a one-time email code.') : channel === 'whatsapp' ? 'No password — we send a one-time code on WhatsApp.' : t('login.noPassword')}</p>
       </div>
 
       {step === 'email' && (
@@ -144,7 +199,15 @@ export default function LoginForm() {
                 className={`rounded-lg py-2 capitalize transition ${mode === m ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500'}`}>{m}</button>
             ))}
           </div>
-          {WA_LOGIN && (
+          <div className="mb-4 grid grid-cols-2 gap-2 text-sm font-semibold">
+            {([['password', 'Password', Lock], ['code', 'Email code', KeyRound]] as const).map(([v, label, Icon]) => (
+              <button key={v} type="button" onClick={() => { setMethod(v); setErr(''); setInfo(''); if (v === 'password') setChannel('email'); }}
+                className={`flex items-center justify-center gap-2 rounded-xl border py-2.5 ${method === v ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-600'}`}>
+                <Icon size={16} />{label}
+              </button>
+            ))}
+          </div>
+          {WA_LOGIN && method === 'code' && (
             <div className="mb-4 grid grid-cols-2 gap-2 text-sm font-semibold">
               {([['email', 'Email', Mail], ['whatsapp', 'WhatsApp', MessageCircle]] as const).map(([v, label, Icon]) => (
                 <button key={v} type="button" onClick={() => { setChannel(v); setErr(''); }}
@@ -154,7 +217,7 @@ export default function LoginForm() {
               ))}
             </div>
           )}
-          <form onSubmit={sendCode} className="space-y-4">
+          <form onSubmit={method === 'password' ? withPassword : sendCode} className="space-y-4">
             {mode === 'register' && (
               <>
                 <div>
@@ -197,8 +260,30 @@ export default function LoginForm() {
               </div>
             </div>
             )}
+            {method === 'password' && (
+              <>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <label className="label">Password *</label>
+                    {mode === 'login' && <button type="button" onClick={forgot} className="text-xs font-semibold text-brand-700 hover:underline">Forgot password?</button>}
+                  </div>
+                  <div className="relative">
+                    <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input type={showPw ? 'text' : 'password'} required minLength={8} className="input pl-9 pr-10" value={password} onChange={(e) => setPassword(e.target.value)}
+                      placeholder={mode === 'register' ? 'At least 8 characters' : 'Your password'} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} />
+                    <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" aria-label={showPw ? 'Hide password' : 'Show password'}>{showPw ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                  </div>
+                </div>
+                {mode === 'register' && <div><label className="label">Confirm password *</label>
+                  <input type={showPw ? 'text' : 'password'} required className="input" value={password2} onChange={(e) => setPassword2(e.target.value)} placeholder="Type it again" autoComplete="new-password" /></div>}
+              </>
+            )}
             {err && <p className="text-sm text-rose-600">{err}</p>}
-            <button disabled={busy} className={`w-full ${channel === 'whatsapp' ? 'btn-primary bg-emerald-600 hover:bg-emerald-700' : 'btn-primary'}`}>{busy ? '…' : channel === 'whatsapp' ? 'Send code on WhatsApp' : t('login.sendCode')}</button>
+            {info && <p className="text-sm text-emerald-700">{info}</p>}
+            <button disabled={busy} className={`w-full ${channel === 'whatsapp' && method === 'code' ? 'btn-primary bg-emerald-600 hover:bg-emerald-700' : 'btn-primary'}`}>
+              {busy ? '…' : method === 'password' ? (mode === 'register' ? 'Create account' : 'Log in') : channel === 'whatsapp' ? 'Send code on WhatsApp' : t('login.sendCode')}
+            </button>
+            {mode === 'register' && <p className="text-center text-xs text-slate-500">By creating an account you agree to the <Link href="/terms" className="underline">terms</Link> and <Link href="/privacy" className="underline">privacy policy</Link>.</p>}
           </form>
         </>
       )}
