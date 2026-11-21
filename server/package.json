@@ -14,6 +14,7 @@
     "import:uk": "node scripts/import-uk.js",
     "import:aishe": "node scripts/import-aishe.js",
     "import:nirf": "node scripts/import-nirf.js",
+    "import:nirf-data": "node scripts/import-nirf-data.js",
     "import:eter": "node scripts/import-eter.js",
     "import:sheet": "node scripts/import-sheet.js",
     "enrich": "node scripts/enrich.js",

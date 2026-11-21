@@ -90,7 +90,8 @@ export function rankingHighlights(rows: RankRow[], review?: { avg: number; count
   const seen = new Set<string>(); return out.filter((h) => (seen.has(h.text) ? false : (seen.add(h.text), true))).slice(0, 7);
 }
 
-export function Rankings({ name, rows, review }: { name: string; rows: RankRow[]; review?: { avg: number; count: number } | null }) {
+export function Rankings({ name, rows, review, nirf }: { name: string; rows: RankRow[]; review?: { avg: number; count: number } | null;
+  nirf?: { year: number; score: number | null; tlr: number; rpc: number; go: number; oi: number; perception: number } | null }) {
   if (!rows.length) return null;
   const hl = rankingHighlights(rows, review);
   const years = Array.from(new Set(rows.map((r) => r.year))).sort((a, b) => b - a).slice(0, 5);
@@ -98,6 +99,17 @@ export function Rankings({ name, rows, review }: { name: string; rows: RankRow[]
   return (
     <section id="ranking" className="card scroll-mt-32 overflow-hidden">
       <h2 className="flex items-center gap-2 px-6 pt-5 text-xl font-bold text-slate-900"><Trophy size={20} className="text-amber-500" />{name} ranking</h2>
+      {nirf && (
+        <div className="mx-6 mt-3 rounded-xl border border-slate-100 p-3">
+          <p className="text-sm font-semibold text-slate-800">NIRF {nirf.year} score{nirf.score != null ? <>: <b className="text-brand-700">{nirf.score.toFixed(2)}</b> / 100</> : null}</p>
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {([['Teaching & resources', nirf.tlr], ['Research', nirf.rpc], ['Graduation outcomes', nirf.go], ['Outreach & inclusivity', nirf.oi], ['Perception', nirf.perception]] as [string, number][]).map(([l, v]) => (
+              <div key={l} className="text-xs"><p className="text-slate-500">{l}</p>
+                <div className="mt-1 h-1.5 rounded-full bg-slate-100"><div className="h-1.5 rounded-full bg-brand-600" style={{ width: `${Math.max(2, Math.min(100, v))}%` }} /></div>
+                <p className="mt-0.5 font-semibold text-slate-800">{v.toFixed(1)}</p></div>))}
+          </div>
+        </div>
+      )}
       {hl.length > 0 && (
         <ul className="mx-6 mt-3 grid gap-2 sm:grid-cols-2">
           {hl.map((h) => (
