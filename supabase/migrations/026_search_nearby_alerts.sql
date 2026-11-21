@@ -35,6 +35,7 @@ language sql stable security definer set search_path = public as $$
     (lower(c.name) like q.full_q || '%') desc,
     (select bool_and(lower(c.name) like '%' || wd || '%') from unnest(q.words) wd) desc,
     (c.facts->>'institution' = 'University' or c.name ilike '%universit%') desc,
+    length(c.name) < length(q.full_q) + 15 desc,
     (c.cover_url is not null) desc,
     length(c.name)
   limit least(greatest(coalesce(p_limit, 8), 1), 20);
