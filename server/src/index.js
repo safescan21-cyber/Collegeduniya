@@ -20,6 +20,9 @@ import mockRoutes from './routes/mock.js';
 import presenceRoutes, { startPresenceCleanup } from './routes/presence.js';
 import { llmReady, llmProvider, llmModel } from './services/llm.js';
 import hookRoutes from './routes/hooks.js';
+import verifyRoutes from './routes/verify.js';
+import callRoutes from './routes/calls.js';
+import { supabase as sbAdmin } from './supabase.js';
 import { otpReady, notifyReady } from './services/whatsapp.js';
 
 const app = express();
@@ -44,6 +47,8 @@ app.use('/api/chat', chatRoutes);
 app.use('/api', geoRoutes);         // /api/cities, /api/nearby, /api/local-jobs, /api/translate, /api/languages
 app.use('/api/payments', paymentRoutes);
 app.use('/api/mock', mockRoutes);
+app.use('/api/verify', verifyRoutes);
+app.use('/api/calls', callRoutes);
 app.use('/api', presenceRoutes);   // /api/presence, /api/session/login
 app.use('/api', communityRoutes);    // /api/notify/visit, /api/notify/message
 app.use('/api/admin', rateLimit({ windowMs: 60_000, limit: 300 }), adminRoutes);
@@ -60,6 +65,14 @@ app.use((err, _req, res, _next) => {
 app.listen(PORT, () => {
   console.log(`StudyEarnstay API running on http://localhost:${PORT}`);
   startJobAlertScheduler();
+  // chats (messages + call log) older than CHAT_RETENTION_MONTHS (default 6) are deleted daily; posts are kept
+  if (process.env.CHAT_PURGE !== 'off') {
+    const purge = async () => {
+      const { data, error } = await sbAdmin.rpc('purge_old_chats', { p_months: Number(process.env.CHAT_RETENTION_MONTHS || 6) });
+      if (error) console.warn('[chat purge]', error.message); else if (data?.[0]?.messages) console.log('[chat purge]', data[0]);
+    };
+    setTimeout(purge, 60_000); setInterval(purge, 24 * 3600e3);
+  }
   startNotifier();
   startMockSweeper();
   startAutopilot();

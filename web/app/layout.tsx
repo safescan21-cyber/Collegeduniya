@@ -8,6 +8,7 @@ import VisitTracker from '@/components/VisitTracker';
 import ChatWidget from '@/components/ChatWidget';
 import ReferralCapture from '@/components/ReferralCapture';
 import { PresencePing, OnlineAlerts } from '@/components/Presence';
+import { CallProvider } from '@/components/calls/CallProvider';
 import PwaRegister from '@/components/PwaRegister';
 import { ListTray } from '@/components/ActionButtons';
 import { SITE_URL } from '@/lib/format';
@@ -35,6 +36,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <HrefLang />
         <LangProvider lang={lang} dict={dict}>
           <AuthProvider>
+          <CallProvider>
             <Header />
             <VisitTracker />
             <ReferralCapture />
@@ -45,6 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Footer />
             <ListTray />
             <ChatWidget />
+          </CallProvider>
           </AuthProvider>
         </LangProvider>
       </body>

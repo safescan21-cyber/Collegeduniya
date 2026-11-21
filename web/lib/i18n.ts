@@ -159,6 +159,7 @@ const en = {
   'nav.quiz': 'Career quiz',
   'nav.roommates': 'Find a roommate',
   'nav.messages': 'Messages',
+  'nav.community': 'Community',
   'nav.scholarships': 'Scholarships',
   'nav.visa': 'Student visa guides',
   'nav.mock': 'Free mock tests',

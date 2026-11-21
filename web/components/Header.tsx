@@ -16,6 +16,7 @@ const MAIN: { href: string; key: DictKey }[] = [
   { href: '/colleges', key: 'nav.colleges' },
   { href: '/hostels', key: 'nav.hostels' },
   { href: '/jobs', key: 'nav.jobs' },
+  { href: '/community', key: 'nav.community' },
   { href: '/exams', key: 'nav.exams' },
 ];
 

@@ -9,6 +9,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { JobAlertManager } from '@/components/JobAlerts';
 import { NotificationList } from '@/components/Notifications';
 import { PublicProfileSettings, EducationEditor, LoginHistory, MockHistory } from '@/components/ProfileExtras';
+import CampusSettings from '@/components/campus/CampusSettings';
 import { Stars } from '@/components/Cards';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { range, timeAgo } from '@/lib/format';
@@ -340,7 +341,7 @@ function Dashboard() {
           </form>
           <LoginHistory />
           </div>
-          <div className="space-y-6"><PublicProfileSettings /><EducationEditor /></div>
+          <div className="space-y-6"><CampusSettings /><PublicProfileSettings /><EducationEditor /></div>
           </div>
         )}
       </div>

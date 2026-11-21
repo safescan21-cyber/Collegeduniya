@@ -344,6 +344,9 @@ export const moderation = {
   reward_redemptions: z.object({ status: z.enum(['requested', 'fulfilled', 'rejected']).optional(), voucher: optStr, admin_note: optStr }),
   ambassadors: z.object({ status: z.enum(['applied', 'approved', 'rejected', 'paused']).optional(), admin_note: optStr }),
   mock_question_reports: z.object({ status: z.enum(['open', 'fixed', 'dismissed']).optional() }),
+  posts: z.object({ status: z.enum(['published', 'hidden', 'removed']).optional(), hidden_reason: optStr }),
+  post_comments: z.object({ status: z.enum(['published', 'hidden']).optional() }),
+  content_reports: z.object({ status: z.enum(['open', 'actioned', 'dismissed']).optional(), admin_note: optStr }),
   reward_points: z.object({ status: z.enum(['pending', 'approved', 'reversed']).optional(), note: optStr }),
 };
 

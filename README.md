@@ -498,6 +498,29 @@ Guests can take tests and see results; the result page asks them to add an email
 
 **Server env (optional):** `AI_EXPLAIN_PER_DAY=20`, `AI_HINTS_PER_TEST=3`.
 
+## 5k. Campus community, verified tick, college chat & calls (migration 017)
+
+Run `supabase/migrations/017_campus_social.sql` after 016 (already applied to the hosted project). It also creates two storage buckets: **community** (public — post photos/videos, profile photos) and **verification** (private — selfies, only the API can read them).
+
+**Profile (Dashboard → Profile → "My college & chat")** — profile photo, college, course, passing-out year, gender (private, never shown), and switches for calls, last seen and "show me in People from my college".
+
+**Verified tick (`/verify`)** — the student takes two live selfies with the phone camera (no gallery upload): one plain, one doing a random action ("thumbs up next to your face"). The AI checks that they are live, match the profile photo and show the action, and, for students who chose *female*, that the person presents as female. Most are auto-approved or rejected; unsure ones go to **Admin → Verifications**. Selfies are deleted as soon as a decision is made. Changing gender or profile photo removes the tick. Needs a vision-capable AI: `GEMINI_API_KEY` (free) or `ANTHROPIC_API_KEY`; other providers work with `<ID>_VISION_MODEL`.
+
+**Chat rules (enforced in the database, not just the UI)**
+- Only students, and only with students of the **same college**.
+- Anyone → a girl: starts as a **request** (with an optional note); she accepts or declines. Declined requests can be repeated after 30 days. Max 10 requests a day.
+- A **verified girl** can message anyone in her college directly. Boys ↔ boys: direct. "Other / prefer not to say" is treated like boys.
+- The same rule now also applies to the older college Q&A and roommate chats.
+- Inbox shows the verified tick, **last seen** (if the student allows it), chat requests and "People from my college" (senior / junior / batchmate from the passing-out year).
+- **Voice & video calls** in accepted chats (WebRTC, peer-to-peer; ringing and signalling over Supabase Realtime private channels). Students can turn calls off. For calls on networks that block peer-to-peer, add a TURN relay in `server/.env`: `CLOUDFLARE_TURN_KEY_ID` + `CLOUDFLARE_TURN_API_TOKEN` (Cloudflare Calls TURN, free tier) or `TURN_URLS` + `TURN_USERNAME` + `TURN_CREDENTIAL` (e.g. your own coturn on the VPS). Without it, most Wi-Fi/4G calls still connect.
+- Report and block on every chat; chats are deleted automatically after **6 months** (`CHAT_RETENTION_MONTHS`, daily job). Posts stay.
+
+**Community (`/community`)** — posts with photos (shrunk in the browser), videos (≤ 50 MB), place / "use my location" (rounded to ~100 m), emoji; blogs with a title; and **mock-test result posts** (shared from the result page — score and rank are written by the database, so they can't be faked). Everyone, logged in or not, can read; logged-in students like / dislike / comment / reply / share. Each post shows who posted, their college, the date and time. Girls' posts and profiles show only their name, tick and college (no photo, full name or education). Feed tabs: All / Posts / Blogs / Mock results (sort by latest, most liked, or highest score). Each post has a shareable page `/community/post/<id>`.
+
+**Moderation (Admin → Posts & reports)** — every report with an *Investigate* view: the reported post/comment, the chat (last 100 messages) for reported chats, the person's college, tick status, recent posts and how many reports they have. One click to hide the post/comment, **block the user**, remove the tick or dismiss. A post or comment reported by 3 different students is hidden automatically until an admin looks. Admin → Verifications shows the AI's unsure cases with the photos.
+
+**Server env (optional):** `CHAT_RETENTION_MONTHS=6`, `CHAT_PURGE=off` (to disable the job), TURN settings above.
+
 ## 6. Deploy on your own VPS (Ubuntu + Nginx + PM2)
 
 ```bash

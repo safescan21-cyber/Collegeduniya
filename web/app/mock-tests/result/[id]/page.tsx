@@ -2,7 +2,7 @@
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Trophy, Target, TrendingUp, Sparkles, CheckCircle2, XCircle, MinusCircle, Flag, Loader2, RotateCcw, Mail, Timer, Medal, Wand2, Copy, Check, Save } from 'lucide-react';
+import { Trophy, Target, TrendingUp, Sparkles, CheckCircle2, XCircle, MinusCircle, Flag, Loader2, RotateCcw, Mail, Timer, Medal, Wand2, Copy, Check, Save, Share2 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { api } from '@/lib/api';
@@ -67,6 +67,13 @@ export default function Result({ params }: { params: Promise<{ id: string }> }) 
     setExBusy('');
   };
   const guest = !!(user as any)?.is_anonymous;
+  const [shareMsg, setShareMsg] = useState(''); const [shareNote, setShareNote] = useState(''); const [shareOpen, setShareOpen] = useState(false);
+  const shareResult = async () => {
+    setShareMsg('');
+    const { data, error } = await sb.from('posts').insert({ user_id: user!.id, kind: 'result', mock_attempt_id: id, body: shareNote.trim() || null }).select('id').single();
+    if (error) return setShareMsg(error.message);
+    router.push(`/community/post/${data.id}`);
+  };
   const saveGuest = async (e: React.FormEvent) => {
     e.preventDefault(); setGMsg('');
     const { error } = await sb.auth.updateUser({ email: gEmail.trim() }, { emailRedirectTo: `${location.origin}/dashboard?tab=mocks` });
@@ -222,6 +229,14 @@ export default function Result({ params }: { params: Promise<{ id: string }> }) 
             </div>);
         })}</div>
       </section>
+      {!guest && (
+        <section className="card mt-6 p-5">
+          {!shareOpen ? <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-bold text-slate-900">Share your score with the community</p><p className="text-xs text-slate-500">Friends can like, comment and try the same test. Only your score and rank are shared — not your answers.</p></div>
+            <button onClick={() => setShareOpen(true)} className="btn-primary py-1.5"><Share2 size={15} />Share result</button></div>
+          : <div className="space-y-2"><textarea className="input" rows={2} maxLength={1000} value={shareNote} onChange={(e) => setShareNote(e.target.value)} placeholder="Add a line (optional) — e.g. Quant is getting better!" />
+            <div className="flex justify-end gap-2"><button onClick={() => setShareOpen(false)} className="btn-ghost py-1.5">Cancel</button><button onClick={shareResult} className="btn-primary py-1.5"><Share2 size={15} />Post to community</button></div></div>}
+          {shareMsg && <p className="mt-2 text-sm text-rose-600">{shareMsg}</p>}
+        </section>)}
       <div className="mt-8 text-center"><Link href={`/mock-tests/${a.exam_slug}`} className="btn-primary"><RotateCcw size={16} />Take another {a.title}</Link></div>
     </div>
   );

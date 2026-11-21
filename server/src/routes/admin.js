@@ -549,6 +549,9 @@ const modConfig = {
   ambassadors: { select: '*, profiles(full_name, email, phone, referral_code), colleges(name, slug)', filters: ['status', 'college_id'], search: ['college_name', 'city'], key: 'user_id' },
   mock_question_reports: { select: '*, mock_questions(id, exam_slug, section, stem, status), profiles(full_name, email)', filters: ['status', 'question_id'], search: ['reason'] },
   reward_points: { select: '*, profiles(full_name, email)', filters: ['status', 'reason', 'user_id'], search: ['reason', 'note'] },
+  posts: { select: '*, profiles(full_name, email, username, college_id), colleges(name, slug)', filters: ['status', 'kind', 'user_id', 'college_id'], search: ['title', 'body', 'place'] },
+  post_comments: { select: '*, profiles(full_name, email, username), posts(id, title, body)', filters: ['status', 'post_id', 'user_id'], search: ['body'] },
+  content_reports: { select: '*, profiles:reporter_id(full_name, email)', filters: ['status', 'target_type', 'target_id'], search: ['reason'] },
 };
 
 for (const [table, cfg] of Object.entries(modConfig)) {
@@ -740,6 +743,67 @@ router.patch('/users/:id', wrap(async (req, res, next) => {
   const { data, error } = await supabase.from('profiles').update(parsed.data).eq('id', req.params.id).select().single();
   if (error) return fail(res, error);
   res.json({ data });
+}));
+
+// ---------------------------------------------------------------- selfie verifications (AI decides; admin sees the "review" ones)
+router.get('/verifications', wrap(async (req, res) => {
+  const status = ['review', 'verified', 'rejected', 'pending', 'expired'].includes(req.query.status) ? req.query.status : 'review';
+  const { data, error } = await supabase.from('identity_verifications')
+    .select('id, user_id, status, challenge, selfie_paths, ai, reason, decided_by, created_at, decided_at, profiles(full_name, email, username, gender, avatar_url, college_id, colleges(name))')
+    .eq('status', status).order('created_at', { ascending: false }).limit(100);
+  if (error) return fail(res, error);
+  const rows = await Promise.all((data || []).map(async (r) => ({
+    ...r,
+    selfies: await Promise.all((r.selfie_paths || []).map(async (p) => (await supabase.storage.from('verification').createSignedUrl(p, 300)).data?.signedUrl || null)),
+  })));
+  res.json({ data: rows });
+}));
+
+router.post('/verifications/:id/decide', wrap(async (req, res) => {
+  const approve = req.body?.approve === true;
+  const note = typeof req.body?.note === 'string' ? req.body.note.slice(0, 300) : null;
+  const { data: r } = await supabase.from('identity_verifications').select('id, user_id, selfie_paths').eq('id', req.params.id).maybeSingle();
+  if (!r) return fail(res, new Error('Not found'), 404);
+  const status = approve ? 'verified' : 'rejected';
+  const reason = approve ? 'You are verified.' : (note || 'We could not verify these photos. Please try again with a clear profile photo of your face.');
+  await supabase.from('identity_verifications').update({ status, reason, decided_by: 'admin', decided_at: new Date().toISOString(), selfie_paths: [] }).eq('id', r.id);
+  await supabase.from('profiles').update({ verification: status, verified_at: approve ? new Date().toISOString() : null }).eq('id', r.user_id);
+  if (r.selfie_paths?.length) await supabase.storage.from('verification').remove(r.selfie_paths);
+  await supabase.from('notifications').insert({ user_id: r.user_id, kind: 'verification', title: approve ? 'You are verified ✔' : 'Verification not approved', body: reason, link: '/verify' });
+  res.json({ ok: true, status });
+}));
+
+// remove the tick (e.g. after a report)
+router.post('/users/:id/unverify', wrap(async (req, res) => {
+  const { error } = await supabase.from('profiles').update({ verification: 'none', verified_at: null }).eq('id', req.params.id);
+  if (error) return fail(res, error);
+  res.json({ ok: true });
+}));
+
+// ---------------------------------------------------------------- report investigation: what was reported + the person's history
+router.get('/content_reports/:id/context', wrap(async (req, res) => {
+  const { data: rep } = await supabase.from('content_reports').select('*').eq('id', req.params.id).maybeSingle();
+  if (!rep) return fail(res, new Error('Not found'), 404);
+  let target = null; let userId = null; let messages = null;
+  if (rep.target_type === 'post') {
+    ({ data: target } = await supabase.from('posts').select('*').eq('id', rep.target_id).maybeSingle()); userId = target?.user_id;
+  } else if (rep.target_type === 'comment') {
+    ({ data: target } = await supabase.from('post_comments').select('*').eq('id', rep.target_id).maybeSingle()); userId = target?.user_id;
+  } else if (rep.target_type === 'user') {
+    userId = rep.target_id;
+  } else if (rep.target_type === 'conversation') {
+    ({ data: target } = await supabase.from('conversations').select('*').eq('id', rep.target_id).maybeSingle());
+    if (target) {
+      userId = target.user_a === rep.reporter_id ? target.user_b : target.user_a;
+      ({ data: messages } = await supabase.from('messages').select('sender_id, body, created_at').eq('conversation_id', target.id).order('created_at', { ascending: false }).limit(100));
+    }
+  }
+  const [{ data: user }, { count: reports }, { data: posts }] = userId ? await Promise.all([
+    supabase.from('profiles').select('id, full_name, email, username, gender, verification, is_blocked, created_at, college_id, colleges(name)').eq('id', userId).maybeSingle(),
+    supabase.from('content_reports').select('id', { count: 'exact', head: true }).or(`target_id.eq.${userId}`),
+    supabase.from('posts').select('id, kind, title, body, status, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(10),
+  ]) : [{ data: null }, { count: 0 }, { data: [] }];
+  res.json({ report: rep, target, user, user_reports: reports || 0, recent_posts: posts || [], messages: messages ? [...messages].reverse() : null });
 }));
 
 export default router;

@@ -17,6 +17,17 @@ export type Profile = {
   public_profile?: boolean;
   show_mock_scores?: boolean;
   show_online?: boolean;
+  avatar_url?: string | null;
+  gender?: 'female' | 'male' | 'other' | 'prefer_not' | null;
+  college_id?: string | null;
+  course?: string | null;
+  batch_year?: number | null;
+  verification?: 'none' | 'pending' | 'verified' | 'rejected' | 'review';
+  verified_at?: string | null;
+  allow_calls?: boolean;
+  show_last_seen?: boolean;
+  campus_visible?: boolean;
+  last_seen_at?: string | null;
   is_blocked: boolean;
   created_at: string;
 };

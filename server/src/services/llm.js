@@ -24,9 +24,9 @@
 const env = (k) => (process.env[k] || '').trim();
 
 export const CATALOG = [
-  { id: 'anthropic', name: 'Anthropic Claude (paid)', key: 'ANTHROPIC_API_KEY', model: 'claude-sonnet-5-5', modelEnv: 'LLM_ANTHROPIC_MODEL', kind: 'anthropic',
+  { id: 'anthropic', name: 'Anthropic Claude (paid)', key: 'ANTHROPIC_API_KEY', model: 'claude-sonnet-5-5', modelEnv: 'LLM_ANTHROPIC_MODEL', kind: 'anthropic', vision: true,
     base: () => env('ANTHROPIC_API_URL') || 'https://api.anthropic.com/v1/messages', signup: 'https://console.anthropic.com' },
-  { id: 'gemini', name: 'Google Gemini', key: 'GEMINI_API_KEY', model: 'gemini-3.8-flash', base: () => 'https://generativelanguage.googleapis.com/v1beta/openai', signup: 'https://aistudio.google.com/apikey' },
+  { id: 'gemini', name: 'Google Gemini', key: 'GEMINI_API_KEY', model: 'gemini-3.8-flash', vision: true, base: () => 'https://generativelanguage.googleapis.com/v1beta/openai', signup: 'https://aistudio.google.com/apikey' },
   { id: 'groq', name: 'Groq', key: 'GROQ_API_KEY', model: 'openai/gpt-oss-120b', base: () => 'https://api.groq.com/openai/v1', signup: 'https://console.groq.com/keys' },
   { id: 'sambanova', name: 'SambaNova Cloud', key: 'SAMBANOVA_API_KEY', model: 'DeepSeek-V3.2', base: () => 'https://api.sambanova.ai/v1', signup: 'https://cloud.sambanova.ai' },
   { id: 'openrouter', name: 'OpenRouter (free models)', key: 'OPENROUTER_API_KEY', model: 'nvidia/nemotron-3-super-120b-a12b:free', base: () => 'https://openrouter.ai/api/v1', signup: 'https://openrouter.ai/keys' },
@@ -108,14 +108,18 @@ function cool(p, e) {
 
 const TIMEOUT = Number(process.env.LLM_TIMEOUT_MS || 120000);
 
-async function callOne(p, { system, prompt, maxTokens, temperature, json }) {
+async function callOne(p, { system, prompt, maxTokens, temperature, json, images }) {
+  const imgs = images || [];
+  const model = imgs.length ? visionModelOf(p) : p.modelName;
   const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), TIMEOUT);
   try {
     if (p.kind === 'anthropic') {
       const r = await fetch(p.base(), {
         method: 'POST', signal: ctl.signal,
         headers: { 'content-type': 'application/json', 'x-api-key': env('ANTHROPIC_API_KEY'), 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model: p.modelName, max_tokens: maxTokens, temperature, system, messages: [{ role: 'user', content: prompt }] }),
+        body: JSON.stringify({ model, max_tokens: maxTokens, temperature, system, messages: [{ role: 'user', content: imgs.length
+          ? [...imgs.map((i) => ({ type: 'image', source: { type: 'base64', media_type: i.mime, data: i.data } })), { type: 'text', text: prompt }]
+          : prompt }] }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new ProviderError(d?.error?.message || `HTTP ${r.status}`, { status: r.status, retryAfter: Number(r.headers.get('retry-after')) || 0 });
@@ -126,8 +130,10 @@ async function callOne(p, { system, prompt, maxTokens, temperature, json }) {
       method: 'POST', signal: ctl.signal,
       headers: { 'content-type': 'application/json', ...(key ? { authorization: `Bearer ${key}` } : {}),
         ...(p.id === 'openrouter' ? { 'HTTP-Referer': env('SITE_URL') || 'https://studyearnstay.com', 'X-Title': 'StudyEarnstay' } : {}) },
-      body: JSON.stringify({ model: p.modelName, max_tokens: maxTokens, temperature, ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
-        messages: [{ role: 'system', content: system }, { role: 'user', content: prompt }] }),
+      body: JSON.stringify({ model, max_tokens: maxTokens, temperature, ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
+        messages: [{ role: 'system', content: system }, { role: 'user', content: imgs.length
+          ? [...imgs.map((i) => ({ type: 'image_url', image_url: { url: `data:${i.mime};base64,${i.data}` } })), { type: 'text', text: prompt }]
+          : prompt }] }),
     });
     let r = await send(json);
     let d = await r.json().catch(() => ({}));
@@ -145,9 +151,14 @@ async function callOne(p, { system, prompt, maxTokens, temperature, json }) {
   } finally { clearTimeout(t); }
 }
 
+// vision: Claude and Gemini read images out of the box; any other provider needs <ID>_VISION_MODEL (e.g. GROQ_VISION_MODEL)
+const visionModelOf = (p) => env(`${p.id.toUpperCase()}_VISION_MODEL`) || (p.vision ? p.modelName : '');
+export const visionReady = () => pool().some((p) => visionModelOf(p));
+
 // check=true → prefer providers other than `avoid` (the one that wrote the question)
-function candidates({ check, avoid }) {
+function candidates({ check, avoid, images }) {
   let ps = pool();
+  if (images?.length) ps = ps.filter((p) => visionModelOf(p));
   if (!check) ps = ps.filter((p) => !p.checkerOnly);
   else ps = [...ps.filter((p) => p.checkerOnly), ...ps.filter((p) => !p.checkerOnly)];
   if (avoid) ps = [...ps.filter((p) => p.id !== avoid), ...ps.filter((p) => p.id === avoid)];
@@ -156,12 +167,13 @@ function candidates({ check, avoid }) {
   return ready.length ? ready : ps.sort((a, b) => h(a.id).cooldown_until - h(b.id).cooldown_until).slice(0, 1);   // all cooling → try the soonest
 }
 
-export async function complete({ system, prompt, maxTokens = 4000, temperature = 0.7, check = false, avoid = null, json = false }) {
+export async function complete({ system, prompt, maxTokens = 4000, temperature = 0.7, check = false, avoid = null, json = false, images = null }) {
+  if (images?.length && !visionReady()) throw new Error('No AI provider that can read photos — add GEMINI_API_KEY (free) or ANTHROPIC_API_KEY');
   if (!llmReady()) throw new Error('AI is not configured — add at least one provider key in server/.env (see services/llm.js)');
   const errors = [];
-  for (const p of candidates({ check, avoid })) {
+  for (const p of candidates({ check, avoid, images })) {
     try {
-      const text = await callOne(p, { system, prompt, maxTokens, temperature, json });
+      const text = await callOne(p, { system, prompt, maxTokens, temperature, json, images });
       const st = h(p.id); st.ok++; st.last_ok = new Date().toISOString();
       return { text, model: `${p.id}:${p.modelName}`, provider: p.id };
     } catch (e) {
