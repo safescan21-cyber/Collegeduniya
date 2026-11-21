@@ -6,6 +6,7 @@ import AutofillCard from '@/components/admin/AutofillCard';
 import SheetImport from '@/components/admin/SheetImport';
 import OfficialDataImport from '@/components/admin/OfficialDataImport';
 import EuropeImport from '@/components/admin/EuropeImport';
+import NirfDataImport from '@/components/admin/NirfDataImport';
 import { timeAgo } from '@/lib/format';
 
 type Run = { id: string; kind: string; params: any; status: string; inserted: number; updated: number; skipped: number; message: string | null; created_at: string; finished_at: string | null };
@@ -95,6 +96,7 @@ export default function AdminImport() {
       <div className="grid gap-6 lg:grid-cols-2">
         <SheetImport onStarted={loadRuns} />
         <OfficialDataImport />
+        <NirfDataImport />
         <EuropeImport onStarted={loadRuns} />
         <div className="card p-5">
           <h2 className="font-bold text-slate-900">🇮🇳 Every Indian college — AISHE list</h2>

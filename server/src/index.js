@@ -38,7 +38,17 @@ const origins = (process.env.CORS_ORIGIN || 'http://localhost:3000').split(',').
 app.set('trust proxy', 1); // behind Nginx on the VPS
 app.use(helmet());
 // the NIRF data import runs in an admin's browser on nirfindia.org (which refuses server downloads) and posts each sheet here
-app.use('/api/admin/import/nirf-sheet', cors({ origin: ['https://www.nirfindia.org', 'https://nirfindia.org'], methods: ['POST'], allowedHeaders: ['Authorization', 'Content-Type'] }));
+const nirfCors = cors({ origin: ['https://www.nirfindia.org', 'https://nirfindia.org'], methods: ['POST'], allowedHeaders: ['Content-Type', 'X-Import-Code'] });
+app.options('/api/nirf-sheet', nirfCors);
+app.post('/api/nirf-sheet', nirfCors, express.json({ limit: '4mb' }), async (req, res) => {
+  try {
+    const { checkImportCode } = await import('./services/importCodes.js');
+    if (!checkImportCode(req.get('X-Import-Code'), 'nirf')) return res.status(401).json({ error: 'Import code missing or expired — create a new one in Admin → Import' });
+    const { importNirfSheet } = await import('./services/nirfData.js');
+    const b = req.body || {};
+    res.json(await importNirfSheet({ year: Number(b.year) || 2025, category: String(b.category || ''), pageUrl: b.pageUrl, row: b.row, pdfBase64: b.pdf || null }));
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
 app.use(cors({ origin: origins, credentials: true }));
 app.post('/api/payments/razorpay/webhook', ...razorpayWebhook);   // needs the raw body, so before express.json
 app.use('/api/hooks', hookRoutes);                                  // Supabase Auth hooks (signed raw body)

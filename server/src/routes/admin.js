@@ -207,6 +207,12 @@ router.post('/import/nirf-data', wrap(async (req, res) => {
   importNirfData({ year, categories, limit, startedBy: req.user.id, log: (m) => console.log(`[nirf-data] ${m}`) }).catch((e) => console.error('[nirf-data]', e.message));
   res.status(202).json({ ok: true, message: `Reading NIRF ${year} data sheets in the background (about 1,500 institutions, 20–40 minutes). Progress shows under “Recent imports”.` });
 }));
+router.post('/import-codes', requireSuperAdmin, wrap(async (req, res) => {
+  const { createImportCode } = await import('../services/importCodes.js');
+  const purpose = String(req.body?.purpose || 'nirf');
+  if (purpose !== 'nirf') return fail(res, new Error('Unknown purpose'), 400);
+  res.json(createImportCode(purpose, req.user.id));
+}));
 router.post('/import/nirf-sheet', wrap(async (req, res) => {
   const { importNirfSheet } = await import('../services/nirfData.js');
   const b = req.body || {};
