@@ -1,0 +1,11 @@
+# Collegeolo additions to its self-hosted Supabase (added to COMPOSE_FILE by deploy/set-smtp.sh).
+# Login/sign-up emails show the 6-digit code the Collegeolo login form asks for.
+services:
+  auth:
+    environment:
+      GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: https://www.collegeolo.com/email/otp.html
+      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: https://www.collegeolo.com/email/otp.html
+      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: Your Collegeolo login code
+      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: Your Collegeolo sign-up code
+      GOTRUE_MAILER_OTP_EXP: 3600
+      GOTRUE_RATE_LIMIT_EMAIL_SENT: 60
