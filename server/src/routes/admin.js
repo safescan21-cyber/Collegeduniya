@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { importDiscoverUni, importEter } from '../services/europe.js';
+import { importAisheList } from '../services/aisheList.js';
 import crypto from 'node:crypto';
 import { supabase } from '../supabase.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/auth.js';
@@ -188,6 +189,10 @@ router.post('/import/uk', ukZip.single('file'), wrap(async (req, res) => {
   importDiscoverUni({ zipBuffer: req.file?.buffer || null, startedBy: req.user.id, log: (m) => console.log(`[discover-uni] ${m}`) })
     .then(() => kickAutofill()).catch((e) => console.error('[discover-uni]', e.message));
   res.status(202).json({ ok: true, message: 'UK import started (≈400 providers, ≈30,000 courses; 5–15 minutes). Progress shows under “Recent imports”.' });
+}));
+router.post('/import/aishe-list', wrap(async (req, res) => {
+  importAisheList({ startedBy: req.user.id, log: (m) => console.log(`[aishe] ${m}`) }).then(() => kickAutofill()).catch((e) => console.error('[aishe]', e.message));
+  res.status(202).json({ ok: true, message: 'India import started (≈70,000 institutions, 5–10 minutes). Progress shows under “Recent imports”.' });
 }));
 router.post('/import/eter', wrap(async (req, res) => {
   const countries = Array.isArray(req.body?.countries) ? req.body.countries.filter((c) => /^[A-Za-z]{2}$/.test(c)) : null;

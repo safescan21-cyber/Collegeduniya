@@ -645,3 +645,9 @@ npm run import:eter -- DE FR # some countries only
 - ETER's terms don't clearly allow commercial use; confirm with info@eter-project.com before relying on it publicly.
 - `DISCOVER_UNI_URL` / `ETER_API_URL` in server/.env override the download addresses.
 - Auto-deploy now applies new files in `supabase/migrations/` before restarting the API.
+
+### 5t. All Indian institutions (AISHE list)
+
+Admin → Import → **Every Indian college — AISHE list**, or `cd server && npm run import:aishe` (`--dry` to preview).
+Reads ~70,000 institutions (U-/C-/S- AISHE codes, state, district) from the npm package `aishe-institutions-list` (MIT).
+R&D centres are skipped, colleges already on the site from other sources are not duplicated, and re-running refreshes by AISHE code.

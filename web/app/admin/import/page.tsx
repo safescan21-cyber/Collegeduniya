@@ -97,6 +97,14 @@ export default function AdminImport() {
         <OfficialDataImport />
         <EuropeImport onStarted={loadRuns} />
         <div className="card p-5">
+          <h2 className="font-bold text-slate-900">🇮🇳 Every Indian college — AISHE list</h2>
+          <p className="mt-1 text-sm text-slate-500">About 70,000 universities, colleges and standalone institutions (nursing, B.Ed, polytechnics …) from the Ministry of Education's AISHE list, with state and district. Each is placed in its district town; fees, courses and photos are filled later (automatically from Wikipedia where possible, or by your team). Colleges already on the site and your own edits are kept.</p>
+          <button disabled={!!busy} className="btn-primary mt-4" onClick={async () => {
+            if (!confirm('Import about 70,000 Indian institutions now? It takes 5–10 minutes.')) return;
+            try { const r = await api('/api/admin/import/aishe-list', { method: 'POST' }); setMsg(r.message); loadRuns(); } catch (e: any) { setMsg(e.message); }
+          }}><Download size={16} />Import Indian institutions</button>
+        </div>
+        <div className="card p-5">
           <h2 className="font-bold text-slate-900">🇺🇸 Every U.S. college with real tuition</h2>
           <p className="mt-1 text-sm text-slate-500">Imports about 6,000 colleges from the U.S. Department of Education College Scorecard: tuition (in-state / out-of-state), size, admission rate, location and website.</p>
           {integ && !integ.scorecard && <p className="mt-3 rounded-lg bg-amber-50 p-2 text-xs text-amber-800">Add COLLEGE_SCORECARD_API_KEY to server/.env (free at api.data.gov/signup) and restart the API.</p>}
@@ -106,7 +114,7 @@ export default function AdminImport() {
           }}><Download size={16} />Import U.S. colleges</button>
           <h3 className="mt-6 font-semibold text-slate-900">Coverage plan</h3>
           <ul className="mt-2 list-disc space-y-1 ps-5 text-sm text-slate-600">
-            <li>India: AISHE list (upload) + your own detailed profiles</li>
+            <li>India: AISHE list (button above, ≈70,000) + your own detailed profiles</li>
             <li>United States: College Scorecard (button above)</li>
             <li>UK: Discover Uni (HESA) · Europe: ETER (card above)</li>
             <li>Rest of the world: Hipolabs + Wikidata (country import above, or <code>--all</code>)</li>

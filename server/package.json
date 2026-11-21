@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Collegeolo.com Node.js API \u2014 admin, uploads, visitor analytics",
+  "description": "Collegeolo.com Node.js API — admin, uploads, visitor analytics",
   "main": "src/index.js",
   "scripts": {
     "dev": "node --watch src/index.js",
@@ -12,6 +12,7 @@
     "import:universities": "node scripts/import-universities.js",
     "import:us": "node scripts/import-us.js",
     "import:uk": "node scripts/import-uk.js",
+    "import:aishe": "node scripts/import-aishe.js",
     "import:eter": "node scripts/import-eter.js",
     "import:sheet": "node scripts/import-sheet.js",
     "enrich": "node scripts/enrich.js",
@@ -27,6 +28,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
     "adm-zip": "^0.6.1",
+    "aishe-institutions-list": "^1.0.7",
     "cors": "^2.8.5",
     "csv-parse": "^7.0.3",
     "dotenv": "^16.4.5",
