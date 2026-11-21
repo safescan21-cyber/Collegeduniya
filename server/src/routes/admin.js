@@ -207,6 +207,11 @@ router.post('/import/nirf-data', wrap(async (req, res) => {
   importNirfData({ year, categories, limit, startedBy: req.user.id, log: (m) => console.log(`[nirf-data] ${m}`) }).catch((e) => console.error('[nirf-data]', e.message));
   res.status(202).json({ ok: true, message: `Reading NIRF ${year} data sheets in the background (about 1,500 institutions, 20–40 minutes). Progress shows under “Recent imports”.` });
 }));
+router.post('/import/nirf-sheet', wrap(async (req, res) => {
+  const { importNirfSheet } = await import('../services/nirfData.js');
+  const b = req.body || {};
+  res.json(await importNirfSheet({ year: Number(b.year) || 2025, category: String(b.category || ''), pageUrl: b.pageUrl, row: b.row, pdfBase64: b.pdf || null }));
+}));
 router.post('/import/eter', wrap(async (req, res) => {
   const countries = Array.isArray(req.body?.countries) ? req.body.countries.filter((c) => /^[A-Za-z]{2}$/.test(c)) : null;
   importEter({ countries, startedBy: req.user.id, log: (m) => console.log(`[eter] ${m}`) })

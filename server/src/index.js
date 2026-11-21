@@ -37,6 +37,8 @@ const origins = (process.env.CORS_ORIGIN || 'http://localhost:3000').split(',').
 
 app.set('trust proxy', 1); // behind Nginx on the VPS
 app.use(helmet());
+// the NIRF data import runs in an admin's browser on nirfindia.org (which refuses server downloads) and posts each sheet here
+app.use('/api/admin/import/nirf-sheet', cors({ origin: ['https://www.nirfindia.org', 'https://nirfindia.org'], methods: ['POST'], allowedHeaders: ['Authorization', 'Content-Type'] }));
 app.use(cors({ origin: origins, credentials: true }));
 app.post('/api/payments/razorpay/webhook', ...razorpayWebhook);   // needs the raw body, so before express.json
 app.use('/api/hooks', hookRoutes);                                  // Supabase Auth hooks (signed raw body)

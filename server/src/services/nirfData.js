@@ -162,3 +162,49 @@ export async function importNirfData({ year = 2025, categories = null, limit = n
     return res;
   } catch (e) { await finish({ status: 'failed', message: e.message }); throw e; }
 }
+
+// ---------------------------------------------------------------- browser-assisted import
+// nirfindia.org refuses downloads from hosting servers, so an admin's browser fetches each ranking row's data sheet
+// (slowly) and posts it here; reading, matching and saving happen on the server with the same code as above.
+let cachedMatch = null; let cachedAt = 0;
+async function matcherCached() {
+  if (!cachedMatch || Date.now() - cachedAt > 30 * 60e3) { cachedMatch = await nirfMatcher(); cachedAt = Date.now(); }
+  return cachedMatch;
+}
+
+export async function importNirfSheet({ year, category, pageUrl, row, pdfBase64 }) {
+  const r = row || {};
+  if (!/^IR-[A-Z]-[A-Z]-\d+$/.test(String(r.id || ''))) throw Object.assign(new Error('Bad institute id'), { status: 400 });
+  if (!PAGES.some(([c]) => c === category)) throw Object.assign(new Error('Unknown category'), { status: 400 });
+  const match = await matcherCached();
+  const c = match({ name: r.name, city: r.city, state: r.state });
+  const rank = Number.isInteger(r.rank) ? r.rank : null; const band = r.band && /^\d+-\d+$/.test(r.band) ? r.band : null;
+  const score = Number.isFinite(r.score) ? r.score : null;
+  await supabase.from('ranking_lists').upsert({ source: 'NIRF', year, category, rank, rank_band: band, name: String(r.name).slice(0, 300), city: r.city || null, state: r.state || null,
+    college_id: c?.id || null, source_url: pageUrl || null }, { onConflict: 'source,year,category,name,city' });
+  if (!c) return { matched: false };
+  await supabase.from('college_rankings').upsert({ college_id: c.id, source: 'NIRF', year, category, rank, rank_band: band, score, source_url: pageUrl || null }, { onConflict: 'college_id,source,year,category' });
+  const p = r.params;
+  if (p && category === 'Overall' && ['tlr', 'rpc', 'go', 'oi', 'perception'].every((k) => Number.isFinite(p[k]))) {
+    const { data: cur } = await supabase.from('colleges').select('facts').eq('id', c.id).single();
+    await supabase.from('colleges').update({ facts: { ...(cur?.facts || {}), nirf: { year, id: r.id, score, tlr: p.tlr, rpc: p.rpc, go: p.go, oi: p.oi, perception: p.perception } } }).eq('id', c.id);
+  }
+  if (!pdfBase64) return { matched: true, college: c.name };
+  const isDiscipline = DISCIPLINE.has(category);
+  if (!isDiscipline) {   // general lists: skip when a discipline sheet already named this college's programmes
+    const { count } = await supabase.from('courses').select('id', { count: 'exact', head: true }).eq('college_id', c.id).eq('source', 'nirf').not('external_id', 'like', 'all|%');
+    if (count) return { matched: true, college: c.name, skipped: 'programmes already named' };
+  }
+  const parsed = parseSheet(pdfRows(Buffer.from(String(pdfBase64), 'base64')));
+  const keys = new Set([...Object.keys(parsed.intake), ...parsed.placements.map((x) => x.prog)]);
+  const src = `NIRF ${year} — data submitted by the institution (${r.id})`;
+  const courseRows = [...keys].map((k) => ({ college_id: c.id, source: 'nirf', external_id: `${isDiscipline ? category : 'all'}|${k}`, name: programmeName(isDiscipline ? category : null, k),
+    level: k.startsWith('PG') ? 'PG' : 'UG', duration: yearsOf(k), seats: parsed.intake[k] || null, currency: 'INR', url: null }));
+  if (courseRows.length) { const { error } = await supabase.from('courses').upsert(courseRows, { onConflict: 'college_id,source,external_id' }); if (error) throw new Error(`courses: ${error.message}`); }
+  const pl = parsed.placements.filter((x) => x.year).map((x) => ({ college_id: c.id, year: x.year, course: programmeName(isDiscipline ? category : null, x.prog),
+    median_package: x.median, currency: 'INR', package_unit: 'year', students_placed: x.placed,
+    placement_rate: x.graduating ? Math.round((1000 * (x.placed || 0)) / x.graduating) / 10 : null, source: src }));
+  const dedup = [...new Map(pl.map((x) => [`${x.year}|${x.course}`, x])).values()];
+  if (dedup.length) { const { error } = await supabase.from('college_placements').upsert(dedup, { onConflict: 'college_id,year,course' }); if (error) throw new Error(`placements: ${error.message}`); }
+  return { matched: true, college: c.name, courses: courseRows.length, placements: dedup.length };
+}
