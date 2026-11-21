@@ -185,12 +185,13 @@ export async function importCountry(countryInput, { startedBy = null, dryRun = f
     const rows = mergeSources(hipo, wiki, country);
     await fillCities(rows);
 
-    // Skip anything an admin already created by hand (same website host or same name)
+    // Skip anything an admin created by hand or that came from an official dataset (same website host, name or Wikidata id)
+    const KEEP = new Set(['admin', 'eter', 'discover_uni', 'scorecard', 'aishe']);
     const { data: existing } = await supabase.from('colleges').select('id, name, website, source, external_id, wikidata_id, city')
       .or(`country.eq."${country.name}",country_code.eq.${country.code || 'XX'}`).limit(20000);
-    const manualHosts = new Set((existing || []).filter((e) => e.source === 'admin').map((e) => host(e.website || '')).filter(Boolean));
-    const manualNames = new Set((existing || []).filter((e) => e.source === 'admin').map((e) => normName(e.name)));
-    const manualWiki = new Set((existing || []).filter((e) => e.source === 'admin' && e.wikidata_id).map((e) => e.wikidata_id));
+    const manualHosts = new Set((existing || []).filter((e) => KEEP.has(e.source)).map((e) => host(e.website || '')).filter(Boolean));
+    const manualNames = new Set((existing || []).filter((e) => KEEP.has(e.source)).map((e) => normName(e.name)));
+    const manualWiki = new Set((existing || []).filter((e) => KEEP.has(e.source) && e.wikidata_id).map((e) => e.wikidata_id));
     const known = new Set((existing || []).filter((e) => e.source !== 'admin').map((e) => `${e.source}:${e.external_id}`));
 
     const toSave = rows.filter((r) => !manualHosts.has(host(r.website || '')) && !manualNames.has(normName(r.name)) && !(r.wikidata_id && manualWiki.has(r.wikidata_id)));

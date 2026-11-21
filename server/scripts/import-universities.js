@@ -3,7 +3,7 @@
 //   npm run import:universities -- IN          (one country, ISO code or English name)
 //   npm run import:universities -- IN GB US CA
 //   npm run import:universities -- --all       (every country in the countries table; takes a while)
-//   add --dry to preview without saving
+//   add --dry to preview without saving; --all --from=BR resumes at Brazil
 import 'dotenv/config';
 import { supabase } from '../src/supabase.js';
 import { importCountry } from '../src/services/universities.js';
@@ -16,6 +16,8 @@ if (args.includes('--all')) {
   if (error) { console.error(error.message); process.exit(1); }
   list = data.map((c) => c.code);
 }
+const from = args.find((a) => a.startsWith('--from='))?.slice(7).toUpperCase();
+if (from && list.includes(from)) list = list.slice(list.indexOf(from)); // resume a stopped --all run
 if (!list.length) { console.error('Usage: npm run import:universities -- IN [GB US …] | --all [--dry]'); process.exit(1); }
 
 for (const c of list) {
