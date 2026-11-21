@@ -600,3 +600,7 @@ With Nginx serving both on one domain, set `NEXT_PUBLIC_API_URL=https://studyear
 Point the domain's DNS **A records** (`@` and `www`) to the VPS IP.
 
 Alternative: front-end on Vercel, API on the VPS or Render — just set the two URLs accordingly.
+
+### 5n. Automatic photos, details and review invitations
+- **Photos & details fill themselves.** Every `AUTOFILL_EVERY_HOURS` (default 6) and 30 s after any import, the server takes the next `AUTOFILL_BATCH` colleges that were never checked and fills Wikipedia "About", logo, Wikimedia Commons campus photos (with author + licence credit), website, founding year, location and student count. Failed lookups retry after 14 days; page-quality scores refresh afterwards. Admin → Import shows progress and a **Run now** button. `AUTOFILL=off` stops it.
+- **Reviews are never generated.** Fake or AI-written reviews break the Consumer Protection Act 2019 and BIS IS 19000:2022 (online consumer reviews). Instead, once a day students who set "My college" a week earlier (or are student/alumni members) get one invitation to review it — in the app and on WhatsApp/email — and one reminder after 30 days. Migration `020_review_invites.sql`. `REVIEW_INVITES=off` stops it.

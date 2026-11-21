@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { supabase } from '../supabase.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/auth.js';
 import { importCountry } from '../services/universities.js';
+import { runAutofill, runReviewInvites, autofillStatus, kickAutofill } from '../services/collegeAutofill.js';
 import { parseSheet, guessMapping, stashUpload, importSheet, TARGETS } from '../services/sheetImport.js';
 import { importScorecard, scorecardEnabled } from '../services/scorecard.js';
 import { lookupCollege, applyLookup, enrichMany } from '../services/wikimedia.js';
@@ -149,6 +150,7 @@ router.post('/import/universities', wrap(async (req, res) => {
     .gte('created_at', new Date(Date.now() - 30 * 60e3).toISOString()).limit(1);
   if (running?.length) return fail(res, new Error('Another import is running — wait for it to finish'), 409);
   importCountry(country, { startedBy: req.user.id, log: (m) => console.log(`[import ${country}] ${m}`) })
+    .then(() => kickAutofill())
     .catch((e) => console.error(`[import ${country}]`, e.message));
   res.status(202).json({ ok: true, message: `Import for ${country} started` });
 }));
@@ -167,13 +169,13 @@ router.post('/import/sheet/commit', wrap(async (req, res) => {
   const { token, mapping, country, source, publish, titleCaseNames } = req.body || {};
   if (!token || !mapping?.name || !country) return fail(res, new Error('token, mapping.name and country are required'));
   importSheet({ token, mapping, country, source, publish: publish !== false, titleCaseNames: titleCaseNames !== false, startedBy: req.user.id,
-    log: (m) => console.log(`[sheet] ${m}`) }).catch((e) => console.error('[sheet]', e.message));
+    log: (m) => console.log(`[sheet] ${m}`) }).then(() => kickAutofill()).catch((e) => console.error('[sheet]', e.message));
   res.status(202).json({ ok: true, message: 'Import started — progress shows under “Recent imports”.' });
 }));
 
 router.post('/import/scorecard', wrap(async (req, res) => {
   if (!scorecardEnabled()) return fail(res, new Error('Set COLLEGE_SCORECARD_API_KEY in server/.env (free at api.data.gov/signup)'));
-  importScorecard({ startedBy: req.user.id, log: (m) => console.log(`[scorecard] ${m}`) }).catch((e) => console.error('[scorecard]', e.message));
+  importScorecard({ startedBy: req.user.id, log: (m) => console.log(`[scorecard] ${m}`) }).then(() => kickAutofill()).catch((e) => console.error('[scorecard]', e.message));
   res.status(202).json({ ok: true, message: 'US import started (≈6,000 colleges, a few minutes).' });
 }));
 
@@ -819,5 +821,21 @@ router.get('/contact_messages/count', wrap(async (_req, res) => {
   const { count } = await supabase.from('contact_messages').select('id', { count: 'exact', head: true }).eq('status', 'open');
   res.json({ open: count || 0 });
 }));
+
+// ---------------------------------------------------------------- automatic photos & details + review invitations
+router.get('/autofill/status', wrap(async (_req, res) => {
+  const [{ count: waiting }, { count: withPhotos }, { count: total }, { count: invites }] = await Promise.all([
+    supabase.from('colleges').select('id', { count: 'exact', head: true }).is('enriched_at', null),
+    supabase.from('colleges').select('id', { count: 'exact', head: true }).not('cover_url', 'is', null),
+    supabase.from('colleges').select('id', { count: 'exact', head: true }),
+    supabase.from('review_invites').select('user_id', { count: 'exact', head: true }),
+  ]);
+  res.json({ ...autofillStatus(), waiting: waiting || 0, with_photos: withPhotos || 0, total: total || 0, invites_sent: invites || 0 });
+}));
+router.post('/autofill/run', wrap(async (_req, res) => {
+  runAutofill({ reason: 'admin' }).catch(() => {});
+  res.status(202).json({ ok: true, message: 'Started — it works through the colleges in the background.' });
+}));
+router.post('/review-invites/run', wrap(async (_req, res) => { res.json(await runReviewInvites()); }));
 
 export default router;

@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, XCircle, Loader2, Download, RefreshCw, Search } from 'lucide-react';
 import { api } from '@/lib/api';
+import AutofillCard from '@/components/admin/AutofillCard';
 import SheetImport from '@/components/admin/SheetImport';
 import OfficialDataImport from '@/components/admin/OfficialDataImport';
 import { timeAgo } from '@/lib/format';
@@ -53,6 +54,7 @@ export default function AdminImport() {
     <div className="space-y-6">
       <h1 className="text-2xl font-extrabold text-slate-900">Data import & integrations</h1>
 
+      <AutofillCard />
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="card p-5">
           <h2 className="font-bold text-slate-900">Import colleges from public data</h2>
