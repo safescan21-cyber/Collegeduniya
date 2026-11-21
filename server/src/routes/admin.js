@@ -412,6 +412,10 @@ router.get('/email/auth-log', requireSuperAdmin, wrap(async (_req, res) => {
     { cwd: dir, timeout: 30000 }, (e, so, se) => resolve(String(so || se || (e && e.message) || '').trim())));
   res.json({ env, lines });
 }));
+router.post('/email/reapply', requireSuperAdmin, wrap(async (_req, res) => {
+  const { reapplyEmail } = await import('../services/emailSetup.js');
+  res.json(await reapplyEmail());
+}));
 router.post('/email/setup', requireSuperAdmin, wrap(async (req, res) => {
   const { setupEmail } = await import('../services/emailSetup.js');
   const { email, password, host, port } = req.body || {};

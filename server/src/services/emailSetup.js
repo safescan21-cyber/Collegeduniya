@@ -17,14 +17,45 @@ const OVERRIDE = path.resolve(here, '../../../deploy/supabase-collegeolo.overrid
 const run = (cmd, args, opts) => new Promise((resolve, reject) =>
   execFile(cmd, args, { timeout: 180000, ...opts }, (e, out, err) => (e ? reject(new Error(String(err || e.message).trim().slice(-300))) : resolve(out))));
 
+// Replace every copy of each setting (docker compose uses the LAST one if a key appears twice), then add one line each
 function setEnvLines(file, values) {
-  let lines = fs.readFileSync(file, 'utf8').split('\n');
-  for (const [k, v] of Object.entries(values)) {
-    const line = `${k}=${v}`;
-    const i = lines.findIndex((l) => l.startsWith(`${k}=`));
-    if (i >= 0) lines[i] = line; else lines.splice(lines.length - (lines[lines.length - 1] === '' ? 1 : 0), 0, line);
+  const keys = new Set(Object.keys(values));
+  const lines = fs.readFileSync(file, 'utf8').split('\n').filter((l) => !keys.has(l.split('=')[0].trim()));
+  while (lines.length && lines[lines.length - 1] === '') lines.pop();
+  for (const [k, v] of Object.entries(values)) lines.push(`${k}=${v}`);
+  fs.writeFileSync(file, `${lines.join('\n')}\n`, { mode: 0o600 });
+}
+
+// Point the login service (GoTrue) at this mail account and restart it
+async function applyToLoginService({ email, password, host, port }) {
+  const envFile = path.join(SUPABASE_DIR, '.env');
+  if (!fs.existsSync(envFile)) return `Login service not on this server (${SUPABASE_DIR} missing) — set SMTP in your Supabase dashboard instead`;
+  if (/[\n\r]/.test(password)) throw new Error('Invalid password');
+  const cur = fs.readFileSync(envFile, 'utf8');
+  const cfs = [...cur.matchAll(/^COMPOSE_FILE=(.*)$/gm)].map((m) => m[1].trim());
+  const cf = cfs[cfs.length - 1] || '';
+  const values = { SMTP_ADMIN_EMAIL: email, SMTP_HOST: host, SMTP_PORT: String(port), SMTP_USER: email, SMTP_PASS: password, SMTP_SENDER_NAME: 'Collegeolo' };
+  if (fs.existsSync(OVERRIDE)) {
+    fs.copyFileSync(OVERRIDE, path.join(SUPABASE_DIR, 'docker-compose.collegeolo.yml'));
+    const parts = (cf || 'docker-compose.yml').split(':').filter(Boolean);
+    values.COMPOSE_FILE = (parts.includes('docker-compose.collegeolo.yml') ? parts : [...parts, 'docker-compose.collegeolo.yml']).join(':');
   }
-  fs.writeFileSync(file, lines.join('\n'), { mode: 0o600 });
+  setEnvLines(envFile, values);
+  await run('docker', ['compose', 'up', '-d', '--force-recreate', 'auth'], { cwd: SUPABASE_DIR });
+  // confirm the running service really has the new settings
+  await new Promise((r) => setTimeout(r, 4000));
+  const got = await run('docker', ['compose', 'exec', '-T', 'auth', 'sh', '-c', 'echo "$GOTRUE_SMTP_HOST|$GOTRUE_SMTP_USER"'], { cwd: SUPABASE_DIR }).catch((e) => e.message);
+  if (!String(got).includes(host)) throw new Error(`Login service did not pick up the mail settings (it reports: ${String(got).trim().slice(0, 120)})`);
+  return 'Login service restarted with the new email settings (checked)';
+}
+
+// Re-apply the saved account (SMTP_URL) to the login service — no password needed again
+export async function reapplyEmail() {
+  const u = process.env.SMTP_URL;
+  if (!u) throw Object.assign(new Error('No email account saved yet — connect Gmail first'), { status: 400 });
+  const url = new URL(u);
+  const email = decodeURIComponent(url.username); const password = decodeURIComponent(url.password);
+  return { ok: true, steps: [await applyToLoginService({ email, password, host: url.hostname, port: Number(url.port) || 587 })] };
 }
 
 export async function setupEmail({ email, password, host = 'smtp.gmail.com', port = 587, testTo, userId = null }) {
@@ -51,23 +82,7 @@ export async function setupEmail({ email, password, host = 'smtp.gmail.com', por
   steps.push('Saved for site emails (alerts, exam news, notifications)');
 
   // 3. the login service (Supabase GoTrue) on this server
-  const envFile = path.join(SUPABASE_DIR, '.env');
-  if (fs.existsSync(envFile)) {
-    if (/[\n\r]/.test(password)) throw new Error('Invalid password');
-    const cur = fs.readFileSync(envFile, 'utf8');
-    const cf = (cur.match(/^COMPOSE_FILE=(.*)$/m)?.[1] || '').trim();
-    const values = { SMTP_ADMIN_EMAIL: email, SMTP_HOST: host, SMTP_PORT: String(port), SMTP_USER: email, SMTP_PASS: password, SMTP_SENDER_NAME: 'Collegeolo' };
-    if (fs.existsSync(OVERRIDE)) {
-      fs.copyFileSync(OVERRIDE, path.join(SUPABASE_DIR, 'docker-compose.collegeolo.yml'));
-      const parts = (cf || 'docker-compose.yml').split(':').filter(Boolean);
-      if (!parts.includes('docker-compose.collegeolo.yml')) values.COMPOSE_FILE = [...parts, 'docker-compose.collegeolo.yml'].join(':');
-    }
-    setEnvLines(envFile, values);
-    await run('docker', ['compose', 'up', '-d', 'auth'], { cwd: SUPABASE_DIR });
-    steps.push('Login service restarted with the new email settings');
-  } else {
-    steps.push(`Login service not on this server (${SUPABASE_DIR} missing) — set SMTP in your Supabase dashboard instead`);
-  }
+  steps.push(await applyToLoginService({ email, password, host, port }));
 
   // 4. test email
   if (testTo) {

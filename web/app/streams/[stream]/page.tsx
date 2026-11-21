@@ -16,7 +16,7 @@ async function load(slug: string) {
   if (!hasSupabase) return { s, top: [], exams: [], courses: [], cities: [], news: [], overview: null as any };
   const sb = supabasePublic();
   const [top, ex, cat, cnt, cities, ov] = await Promise.all([
-    sb.rpc('top_colleges_table', { p_stream: s.name, p_country: 'India', p_lim: 10 }),
+    sb.rpc('top_colleges_table_v2', { p_stream: s.name, p_country: 'India', p_lim: 10 }),
     sb.from('exams').select('id, slug, short_name, full_name, level, exam_date, conducting_body').eq('is_published', true).eq('stream', s.name).order('short_name').limit(60),
     sb.from('course_catalog').select('slug, name, full_name, level, duration').eq('is_published', true).eq('stream', s.name).order('sort'),
     sb.rpc('course_catalog_counts'),

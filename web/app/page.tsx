@@ -32,7 +32,7 @@ async function load() {
     sb.from('hostels').select('*, colleges(name, slug)').eq('is_published', true).order('created_at', { ascending: false }).limit(4),
     sb.from('jobs').select('*').eq('is_published', true).eq('status', 'open').order('created_at', { ascending: false }).limit(6),
     sb.from('articles').select('id, slug, title, excerpt, category, cover_url, published_at').eq('is_published', true).order('published_at', { ascending: false }).limit(3),
-    sb.rpc('top_colleges_table', { p_stream: null, p_country: 'India', p_lim: 10 }),
+    sb.rpc('top_colleges_table_v2', { p_stream: null, p_country: 'India', p_lim: 10 }),
     sb.from('exams').select('slug, short_name, stream, level, country').eq('is_published', true).order('short_name').limit(400),
     sb.from('course_catalog').select('slug, name, level, stream').order('sort'),
     sb.rpc('course_catalog_counts'),
@@ -129,7 +129,7 @@ export default async function HomePage() {
         <div className="mb-6 flex items-end justify-between">
           <div>
             <h2 className="section-title">{t('home.topColleges')}</h2>
-            <p className="mt-1 text-slate-500">{top.length ? 'By official rank, with fees, placements, reviews and cutoffs' : t('home.topColleges.sub')}</p>
+            <p className="mt-1 text-slate-500">{top.length ? `By NIRF ${(top[0] as any)?.rank_year || ''} rank — with other rankings, reviews and fees where published` : t('home.topColleges.sub')}</p>
           </div>
           <Link href="/colleges" className="hidden items-center gap-1 text-sm font-semibold text-brand-700 hover:underline sm:flex">{t('home.viewAll')} <ArrowRight size={16} /></Link>
         </div>
