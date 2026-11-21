@@ -165,14 +165,15 @@ const PHOTON_Q = {
   library: [['library', ['amenity:library']]],
   visit: [['museum', ['tourism:museum', 'tourism:gallery']], ['park', ['leisure:park', 'leisure:garden']], ['monument', ['historic:monument', 'historic:memorial', 'historic:fort', 'historic:palace']], ['attraction', ['tourism:attraction', 'tourism:viewpoint', 'tourism:zoo']]],
 };
-async function photonArea(lat, lng) {
-  const rows = []; const seen = new Set();
+export async function photonArea(lat, lng, { report = null } = {}) {
+  const rows = []; const seen = new Set(); const errors = [];
   for (const [kind, queries] of Object.entries(PHOTON_Q)) {
     for (const [q, tags] of queries) {
       const params = new URLSearchParams({ q, lat: String(lat), lon: String(lng), limit: '25', location_bias_scale: '0.1', zoom: '14', lang: 'en' });
       for (const t of tags) params.append('osm_tag', t);
       await throttle('photon', 250);
-      const data = await fetchJson(`${PHOTON}/api/?${params}`, { timeoutMs: 15000 });
+      let data;
+      try { data = await fetchJson(`${PHOTON}/api/?${params}`, { timeoutMs: 15000 }); } catch (e) { errors.push(`${kind}/${q}: ${e.message}`); continue; }
       for (const f of data?.features || []) {
         const pr = f.properties || {}; const [lo, la] = f.geometry?.coordinates || [];
         const id = `${{ N: 'node', W: 'way', R: 'relation' }[pr.osm_type] || 'node'}/${pr.osm_id}`;
@@ -186,6 +187,9 @@ async function photonArea(lat, lng) {
       }
     }
   }
+  if (errors.length) console.warn('[photon]', errors.length, 'failed —', errors[0]);
+  if (report) report.errors = errors;
+  if (!rows.length && errors.length) throw new Error(errors[0]);
   return rows;
 }
 

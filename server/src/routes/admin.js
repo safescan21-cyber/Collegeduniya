@@ -349,6 +349,18 @@ router.get('/users/:id/activity', wrap(async (req, res) => {
   res.json({ logins: l.data || [], mocks: m.data || [] });
 }));
 
+// Nearby places diagnostics: GET /api/admin/nearby/test?lat=28.567&lng=77.21
+router.get('/nearby/test', wrap(async (req, res) => {
+  const { photonArea } = await import('../services/geo.js');
+  const lat = Number(req.query.lat) || 28.5672; const lng = Number(req.query.lng) || 77.21;
+  const report = {}; const t0 = Date.now();
+  try {
+    const rows = await photonArea(lat, lng, { report });
+    const byKind = {}; for (const r of rows) byKind[r.kind] = (byKind[r.kind] || 0) + 1;
+    res.json({ ok: true, ms: Date.now() - t0, total: rows.length, byKind, errors: report.errors });
+  } catch (e) { res.json({ ok: false, ms: Date.now() - t0, error: e.message, errors: report.errors }); }
+}));
+
 // ---------------------------------------------------------------- mock tests (AI question bank)
 router.get('/mock/ai-status', wrap(async (_req, res) => {
   const { llmReady, llmProvider, llmModel } = await import('../services/llm.js');
