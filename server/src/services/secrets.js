@@ -3,7 +3,7 @@ import { supabase } from '../supabase.js';
 // Keys saved from the admin panel (table app_secrets, server-only). Loaded into process.env at start-up, so
 // services read them exactly like keys from server/.env. A key saved in the panel wins over the .env value.
 export const ALLOWED = new Set(['ANTHROPIC_API_KEY', 'GEMINI_API_KEY', 'GROQ_API_KEY', 'SAMBANOVA_API_KEY', 'OPENROUTER_API_KEY',
-  'NVIDIA_API_KEY', 'MISTRAL_API_KEY', 'CEREBRAS_API_KEY', 'COHERE_API_KEY', 'CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID']);
+  'NVIDIA_API_KEY', 'MISTRAL_API_KEY', 'CEREBRAS_API_KEY', 'COHERE_API_KEY', 'CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID', 'SMTP_URL', 'MAIL_FROM']);
 
 export async function loadSecrets() {
   const { data, error } = await supabase.from('app_secrets').select('name, value');

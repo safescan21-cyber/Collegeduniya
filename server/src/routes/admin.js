@@ -378,6 +378,17 @@ router.post('/ai/providers/:id/key', requireSuperAdmin, wrap(async (req, res) =>
   }
   res.json({ ok: true, test, autopilot });
 }));
+// Connect the email account that sends login codes and site emails (super admin only)
+router.get('/email/status', wrap(async (_req, res) => {
+  const { mailEnabled } = await import('../services/mailer.js');
+  const from = process.env.MAIL_FROM || null;
+  res.json({ enabled: mailEnabled(), from });
+}));
+router.post('/email/setup', requireSuperAdmin, wrap(async (req, res) => {
+  const { setupEmail } = await import('../services/emailSetup.js');
+  const { email, password, host, port } = req.body || {};
+  res.json(await setupEmail({ email, password, host, port, testTo: req.profile?.email || null, userId: req.user.id }));
+}));
 router.delete('/ai/providers/:id/key', requireSuperAdmin, wrap(async (req, res) => {
   const { CATALOG } = await import('../services/llm.js');
   const { deleteSecret } = await import('../services/secrets.js');

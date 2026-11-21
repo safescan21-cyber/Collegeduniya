@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Activity, CheckCircle2, AlertTriangle, XCircle, Loader2, RefreshCw, BellRing } from 'lucide-react';
 import { api } from '@/lib/api';
+import EmailSetup from '@/components/admin/EmailSetup';
 import { timeAgo } from '@/lib/format';
 
 type Check = { name: string; group: string; warn: boolean; ok: boolean; detail: string; ms: number; checkedAt: string; since: string; fails: number };
@@ -33,6 +34,7 @@ export default function HealthPage() {
   const groups = Array.from(new Set((s?.checks || []).map((c) => c.group)));
   return (
     <div className="space-y-5">
+      <EmailSetup />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">System health</h1>

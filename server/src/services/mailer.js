@@ -5,6 +5,7 @@ import nodemailer from 'nodemailer';
 // and MAIL_FROM="Collegeolo <hello@collegeolo.com>". Without SMTP_URL, mail is skipped.
 let transport = null;
 export const mailEnabled = () => Boolean(process.env.SMTP_URL);
+export const resetMailer = () => { transport = null; };
 
 export async function sendMail({ to, subject, text, html, replyTo, headers }) {
   if (!mailEnabled() || !to) return false;
