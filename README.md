@@ -558,7 +558,7 @@ Take every figure from the college's official website, prospectus, NIRF data or 
 
 ```bash
 # on the server
-git clone https://github.com/safescan21-cyber/Collegeduniya.git /var/www/collegeolo
+git clone -b feature/growth-features https://github.com/safescan21-cyber/Collegeduniya.git /var/www/collegeolo
 cd /var/www/collegeolo
 
 cd server && npm ci --omit=dev && cp .env.example .env && nano .env
@@ -595,7 +595,7 @@ sudo ln -s /etc/nginx/sites-available/collegeolo /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 sudo certbot --nginx -d collegeolo.com -d www.collegeolo.com
 ```
-With Nginx serving both on one domain, set `NEXT_PUBLIC_API_URL=https://www.collegeolo.com` and `CORS_ORIGIN=https://www.collegeolo.com,https://www.collegeolo.com`.
+With Nginx serving both on one domain, set `NEXT_PUBLIC_API_URL=https://www.collegeolo.com` and `CORS_ORIGIN=https://www.collegeolo.com,https://collegeolo.com`.
 
 Point the domain's DNS **A records** (`@` and `www`) to the VPS IP.
 
