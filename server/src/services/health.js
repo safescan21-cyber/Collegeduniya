@@ -29,7 +29,6 @@ async function http(url, opts = {}, expect = (s) => s >= 200 && s < 400) {
   if (!expect(r.status)) throw new Error(`HTTP ${r.status}`);
   return `HTTP ${r.status}`;
 }
-const sbHeaders = { apikey: KEY, Authorization: `Bearer ${KEY}` };
 
 function certDays(host) {
   return new Promise((resolve, reject) => {
@@ -57,7 +56,16 @@ const CHECKS = [
     if (error) throw new Error(error.message);
     return `${data.length} buckets`;
   } },
-  { name: 'Live chat & calls', group: 'Supabase', run: () => http(`${SB}/realtime/v1/api/tenants/realtime-dev/health`, { headers: sbHeaders }, (s) => s < 500) },
+  { name: 'Live chat & calls', group: 'Supabase', run: () => new Promise((resolve, reject) => {
+    // a real realtime connection, the same way chat and calls connect
+    const ch = supabase.channel(`health-${Date.now()}`);
+    const done = (fn, v) => { supabase.removeChannel(ch).catch(() => {}); fn(v); };
+    const t = setTimeout(() => done(reject, new Error('no realtime connection in 8s')), 8000);
+    ch.subscribe((status) => {
+      if (status === 'SUBSCRIBED') { clearTimeout(t); done(resolve, 'connected'); }
+      else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') { clearTimeout(t); done(reject, new Error(`realtime ${status.toLowerCase()}`)); }
+    });
+  }) },
   { name: 'Outgoing email', group: 'Services', warn: true, run: async () => {
     if (!mailEnabled()) throw new Error('not set up — run deploy/set-smtp.sh');
     return 'configured';
@@ -81,11 +89,11 @@ const CHECKS = [
     return `valid ${d} more days`;
   } })),
   { name: 'Background jobs', group: 'Jobs', warn: true, run: async () => {
-    const { data, error } = await supabase.from('import_runs').select('kind, status, error, created_at')
+    const { data, error } = await supabase.from('import_runs').select('kind, status, message, created_at')
       .gte('created_at', new Date(Date.now() - 24 * 3600e3).toISOString()).order('created_at', { ascending: false }).limit(50);
     if (error) throw new Error(error.message);
-    const failed = (data || []).filter((r) => r.status === 'error' || r.status === 'failed');
-    if (failed.length) throw new Error(`${failed.length} failed in 24h (latest: ${failed[0].kind}${failed[0].error ? ` — ${String(failed[0].error).slice(0, 80)}` : ''})`);
+    const failed = (data || []).filter((r) => r.status === 'failed');
+    if (failed.length) throw new Error(`${failed.length} failed in 24h (latest: ${failed[0].kind}${failed[0].message ? ` — ${String(failed[0].message).slice(0, 80)}` : ''})`);
     return `${(data || []).length} runs in 24h, none failed`;
   } },
 ];
