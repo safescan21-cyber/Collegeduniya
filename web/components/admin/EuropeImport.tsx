@@ -33,11 +33,11 @@ export default function EuropeImport({ onStarted }: { onStarted?: () => void }) 
       <h2 className="font-bold text-slate-900">🇬🇧🇪🇺 UK & Europe — official data</h2>
 
       <h3 className="mt-3 font-semibold text-slate-900">United Kingdom — Discover Uni (HESA)</h3>
-      <p className="mt-1 text-sm text-slate-500">Every UK university and college with its undergraduate courses (links to the course page), graduate median salary and % in work or further study per course, and National Student Survey satisfaction. Licence CC BY 4.0 — credited as “Contains HESA data” on each college page. Existing colleges are matched by website or name; only empty fields are filled.</p>
+      <p className="mt-1 text-sm text-slate-500">Every UK university and college with its undergraduate courses (links to the course page), graduate median salary and % in work or further study per course, and National Student Survey satisfaction. HESA's website blocks automatic downloads, so download the zip in your browser (free, no login) and upload it below. Licence CC BY 4.0 — credited as “Contains HESA data” on each college page. Existing colleges are matched by website or name; only empty fields are filled.</p>
       <div className="mt-3 flex flex-wrap items-end gap-2">
         <button className="btn-primary" disabled={!!busy} onClick={() => run('uk', () => call('uk'))}>
-          {busy === 'uk' ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}Download latest &amp; import</button>
-        <span className="text-xs text-slate-400">or upload the zip from hesa.ac.uk/data-and-analysis/discover-uni-dataset:</span>
+          {busy === 'uk' ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}Try automatic download</button>
+        <a href="https://www.hesa.ac.uk/data-and-analysis/discover-uni-dataset" target="_blank" rel="noopener" className="text-xs text-brand-700 underline">Get the zip from hesa.ac.uk</a>
         <input type="file" accept=".zip" className="input w-64 py-1.5" onChange={(e) => setFile(e.target.files?.[0] || null)} />
         <button className="btn-ghost" disabled={!file || !!busy} onClick={() => run('ukzip', () => { const fd = new FormData(); fd.append('file', file!); return call('uk', fd); })}>
           {busy === 'ukzip' ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}Import zip</button>

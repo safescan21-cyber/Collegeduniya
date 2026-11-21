@@ -14,7 +14,9 @@ import { slugify } from '../schemas.js';
 
 const UK_SOURCE = 'Discover Uni (HESA), CC BY 4.0';
 const HESA_PAGE = 'https://www.hesa.ac.uk/data-and-analysis/discover-uni-dataset';
-const ETER_API = process.env.ETER_API_URL || 'https://www.eter-project.com/api/3.0/HEIs/full';
+const ETER_API = process.env.ETER_API_URL || 'https://eter-project.com/api/4.0/HEIs/query/flattened';
+const ETER_FIELDS = ['BAS.ETERID', 'BAS.REFYEAR', 'BAS.COUNTRY', 'BAS.INSTNAME', 'BAS.INSTNAMEENGL', 'BAS.WEBSITE', 'BAS.FOUNDYEAR', 'BAS.LEGALSTAT', 'BAS.INSTCATENGL',
+  'GEO.CITY', 'GEO.COORDLAT', 'GEO.COORDLON', 'STUD.ISCED5_7MEN', 'STUD.ISCED5_7WOMEN', 'STUD.ISCED5_7GENUNCL', 'STUD.ISCED8MEN', 'STUD.ISCED8WOMEN'];
 
 async function fetchBuf(url, { timeoutMs = 300000, headers = {} } = {}) {
   const r = await fetch(url, { headers: { 'User-Agent': USER_AGENT, ...headers }, redirect: 'follow', signal: AbortSignal.timeout(timeoutMs) });
@@ -95,7 +97,10 @@ const finishRun = (id, patch) => id && supabase.from('import_runs').update({ ...
 // ---------------------------------------------------------------- UK: Discover Uni
 async function discoverUniZipUrl() {
   if (process.env.DISCOVER_UNI_URL) return process.env.DISCOVER_UNI_URL;
-  const html = (await fetchBuf(HESA_PAGE, { timeoutMs: 30000 })).toString('utf8');
+  let html;
+  try { html = (await fetchBuf(HESA_PAGE, { timeoutMs: 30000 })).toString('utf8'); } catch (e) {
+    throw new Error(`HESA's website blocks automatic downloads (${e.message}). Download the zip at ${HESA_PAGE} in your browser and upload it in Admin → Import → UK & Europe.`);
+  }
   const links = [...html.matchAll(/href="([^"]+)"/g)].map((m) => new URL(m[1].replace(/&amp;/g, '&'), HESA_PAGE).href);
   const hit = links.find((u) => /\.zip(\?|$)/i.test(u)) || links.find((u) => /download/i.test(u) && /(discover|unistats|kis|on_?course)/i.test(u));
   if (!hit) throw new Error('Could not find the download link on the HESA page — set DISCOVER_UNI_URL in server/.env, or upload the zip in Admin → Import');
@@ -237,20 +242,30 @@ function flatten(o, pre = '', out = {}) {
 export async function importEter({ countries = null, dryRun = false, startedBy = null, log = () => {} } = {}) {
   const runId = dryRun ? null : await startRun('eter', { countries }, startedBy);
   try {
-    log(`Downloading ${ETER_API}`);
-    const raw = JSON.parse((await fetchBuf(ETER_API, { headers: { Accept: 'application/json' } })).toString('utf8'));
-    const list = (Array.isArray(raw) ? raw : raw.data || raw.HEIs || raw.items || []).map((r) => flatten(r));
+    // ETER answers one reference year at a time; the newest years can be partly empty, so take the last few
+    const list = [];
+    const thisYear = new Date().getFullYear();
+    for (let y = thisYear - 1; y >= thisYear - 6; y--) {
+      log(`ETER ${y}…`);
+      const r = await fetch(ETER_API, { method: 'POST', headers: { 'User-Agent': USER_AGENT, 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ filter: { 'BAS.REFYEAR.v': y, ...(countries?.length ? { 'BAS.COUNTRY.v': { $in: countries.map((c) => (c.toUpperCase() === 'GB' ? 'UK' : c.toUpperCase() === 'GR' ? 'EL' : c.toUpperCase())) } } : {}) }, fieldIds: ETER_FIELDS, searchTerms: [] }),
+        signal: AbortSignal.timeout(180000) });
+      if (!r.ok) { log(`ETER ${y}: HTTP ${r.status}`); continue; }
+      const rows = await r.json().catch(() => []);
+      for (const row of Array.isArray(rows) ? rows : []) list.push({ ...flatten(row), _yr: y });
+      log(`ETER ${y}: ${Array.isArray(rows) ? rows.length : 0} institutions`);
+      if (list.length && y <= thisYear - 4) break; // three populated years are plenty
+    }
     if (!list.length) throw new Error('ETER answered with no institutions');
-    log(`${list.length} institution-years`);
-    if (dryRun) { log(`Fields: ${Object.keys(list[0]).slice(0, 120).join(', ')}`); return { dryRun: true, rows: list.length, sample: list[0] }; }
+    if (dryRun) { log(`Fields: ${Object.keys(list[0]).join(', ')}`); return { dryRun: true, rows: list.length, sample: list[0] }; }
 
     // latest year per institution
     const latest = new Map();
     for (const r of list) {
-      const id = pick(r, [/ETERID$/i, /ETER_?ID/i, /^_id$/]); const yr = Number(pick(r, [/REFYEAR$/i, /\.YEAR$/i])) || 0;
+      const id = pick(r, [/ETERID$/i, /ETER_?ID$/i, /^_id$/]); const yr = Number(pick(r, [/REFYEAR$/i])) || r._yr || 0;
       if (!id) continue;
       const cur = latest.get(id);
-      const st = Number(pick(r, [/STUD\.?ENRTOT/i, /ENRTOT/i, /TOTAL.*STUD/i, /STUD.*TOTAL/i])) || null;
+      const st = Math.round(['STUD.ISCED5_7MEN', 'STUD.ISCED5_7WOMEN', 'STUD.ISCED5_7GENUNCL', 'STUD.ISCED8MEN', 'STUD.ISCED8WOMEN'].reduce((a, k) => a + (Number(val(r[k])) || 0), 0)) || null;
       if (!cur || yr > cur.yr) latest.set(id, { r, yr, students: st || cur?.students || null, sYr: st ? yr : cur?.sYr || 0 });
       else if (st && yr > (cur.sYr || 0)) { cur.students = st; cur.sYr = yr; }
     }
@@ -269,13 +284,16 @@ export async function importEter({ countries = null, dryRun = false, startedBy =
     for (const [cc, items] of byCountry) {
       const idx = await collegeIndex(cc);
       for (const { id, r, yr, students } of items) {
+        try {
         const nameEn = pick(r, [/INSTNAMEENGL/i, /NAME_?EN/i]); const nameLocal = pick(r, [/INSTNAME$/i, /\.NAME$/i]);
         const name = nameEn || nameLocal; if (!name) { skipped++; continue; }
         const website = url(pick(r, [/WEBSITE/i, /\.URL$/i]));
-        const lat = Number(pick(r, [/\.LAT/i, /LATITUDE/i])) || null; const lng = Number(pick(r, [/\.LON/i, /LONGITUDE/i])) || null;
-        const founded = Number(pick(r, [/FOUNDYEAR/i, /FOUNDATION/i])) || null;
-        const legal = String(pick(r, [/LEGALSTATUS/i, /INSTITUTIONALCONTROL/i]) || '').toLowerCase();
-        const type = /public|1/.test(legal) && !/private|government-dependent|2|3/.test(legal) ? 'Public' : /private|2|3/.test(legal) ? 'Private' : null;
+        const lat = Number(pick(r, [/COORDLAT$/i, /LATITUDE$/i])) || null; const lng = Number(pick(r, [/COORDLON$/i, /LONGITUDE$/i])) || null;
+        const founded = Number(pick(r, [/BAS\.FOUNDYEAR$/i, /^FOUNDYEAR$/i])) || null;
+        // ETER legal status: 0 public, 1 private government-dependent, 2 private independent
+        const legalCode = String(pick(r, [/LEGALSTAT$/i]) ?? '');
+        const legal = { 0: 'public', 1: 'private, government-dependent', 2: 'private, independent' }[legalCode] || null;
+        const type = legalCode === '0' ? 'Public' : legalCode === '1' || legalCode === '2' ? 'Private' : null;
         const category = pick(r, [/INSTCATENGL/i, /INSTCAT/i, /CATEGORY/i]);
         const facts = { eter_id: id, year: yr || null, category: category || null, legal_status: legal || null, students: students || null,
           source: `Data source: ETER project. Download date ${today}` };
@@ -290,6 +308,7 @@ export async function importEter({ countries = null, dryRun = false, startedBy =
             established: founded, type, students_count: students, factsKey: 'eter', facts, currency: cname[cc]?.currency_code || null });
           if (ok) created++; else skipped++;
         }
+        } catch (e) { skipped++; log(`${cc} ${id}: ${e.message}`); }
       }
       log(`${cc}: ${items.length} institutions`);
     }
