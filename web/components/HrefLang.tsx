@@ -4,8 +4,11 @@ import { SITE_URL } from '@/lib/format';
 
 const PRIVATE = /^\/(admin|dashboard|login|owner|employer|offline)(\/|$)/;
 
-// <link rel="alternate" hreflang="…"> for every site language → Google indexes each language version
-// (?hl=xx switches the language, see proxy.ts). React hoists these tags into <head>.
+// <link rel="alternate" hreflang="…"> only for languages with real, reviewed translations (English + Hindi by default).
+// The other ~130 languages are machine-translated menus around English content: listing them would show Google
+// 130 near-copies of every page, which hurts rankings. Students can still switch language (?hl=xx, see proxy.ts).
+// Add a language here once its pages are properly translated: HREFLANG_LANGS=en,hi,ta
+const INDEXED = (process.env.HREFLANG_LANGS || 'en,hi').split(',').map((s) => s.trim()).filter(Boolean);
 export default async function HrefLang() {
   const path = (await headers()).get('x-ses-path') || '/';
   if (PRIVATE.test(path)) return null;
@@ -16,7 +19,7 @@ export default async function HrefLang() {
   return (
     <>
       <link rel="alternate" hrefLang="x-default" href={url()} />
-      {LANGUAGES.map((l) => <link key={l.code} rel="alternate" hrefLang={l.code} href={url(l.code)} />)}
+      {LANGUAGES.filter((l) => INDEXED.includes(l.code)).map((l) => <link key={l.code} rel="alternate" hrefLang={l.code} href={url(l.code === 'en' ? undefined : l.code)} />)}
     </>
   );
 }

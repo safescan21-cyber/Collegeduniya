@@ -8,7 +8,7 @@ import { topPath } from '@/lib/top';
 export const revalidate = 21600;
 export const metadata: Metadata = {
   title: 'Top colleges by stream, state and city',
-  description: 'Ranked lists of top engineering, medical, management, law, arts and science colleges in every state and city — with fees, placements and reviews.',
+  description: 'Engineering, medical, management, law, arts and science colleges by state and city, in order of their official rank (NIRF where available), with fees and student reviews where we have them.',
   alternates: { canonical: '/top' },
 };
 

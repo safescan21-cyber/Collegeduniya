@@ -9,6 +9,7 @@ import ChatWidget from '@/components/ChatWidget';
 import ReferralCapture from '@/components/ReferralCapture';
 import { PresencePing, OnlineAlerts } from '@/components/Presence';
 import { CallProvider } from '@/components/calls/CallProvider';
+import { orgJsonLd } from '@/lib/org';
 import PwaRegister from '@/components/PwaRegister';
 import { ListTray } from '@/components/ActionButtons';
 import { SITE_URL } from '@/lib/format';
@@ -34,6 +35,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={lang} dir={RTL.has(lang) ? 'rtl' : 'ltr'}>
       <body className="flex min-h-screen flex-col">
         <HrefLang />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd()) }} />
         <LangProvider lang={lang} dict={dict}>
           <AuthProvider>
           <CallProvider>

@@ -8,7 +8,7 @@ import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'College predictor — JEE, NEET, CUET, state CETs and more',
-  description: 'Free college predictors for every entrance exam: enter your rank, category and home state to see colleges where you have a high, medium or low chance.',
+  description: 'Free college predictors for JEE, NEET, CUET and other entrance exams: enter your rank, category and home state to see colleges where you have a high, medium or low chance, based on last year’s closing ranks.',
 };
 
 export default async function PredictorPage() {

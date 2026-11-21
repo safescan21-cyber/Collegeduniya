@@ -2,6 +2,7 @@ import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 
 // Google allows 50,000 URLs per sitemap file. Sitemap 0 = pages, PGs, jobs, exams, news, Q&A, quota seats;
 // then one file per 40,000 colleges; then one per 40,000 cities/towns (population ≥ CITY_MIN_POP).
+// Only pages with real content are listed: colleges with seo_score ≥ 4 (or forced by an admin), towns with seo_ok (migration 018).
 export const SHARD = 40000;
 export const CITY_MIN_POP = Number(process.env.SITEMAP_CITY_MIN_POP || 1000);
 
@@ -9,10 +10,10 @@ export async function sitemapPlan() {
   if (!hasSupabase) return { colleges: 0, cities: 0, collegeShards: 0, cityShards: 0 };
   const sb = supabasePublic();
   const [c, y] = await Promise.all([
-    sb.from('colleges_public').select('id', { count: 'exact', head: true }).eq('is_published', true),
-    sb.from('cities').select('geoname_id', { count: 'exact', head: true }).gte('population', CITY_MIN_POP),
+    sb.rpc('sitemap_college_count'),
+    sb.from('cities').select('geoname_id', { count: 'exact', head: true }).eq('seo_ok', true).gte('population', CITY_MIN_POP),
   ]);
-  const colleges = c.count || 0; const cities = y.count || 0;
+  const colleges = Number((c as any).data) || 0; const cities = y.count || 0;
   return { colleges, cities, collegeShards: Math.ceil(colleges / SHARD), cityShards: Math.ceil(cities / SHARD) };
 }
 

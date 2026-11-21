@@ -552,6 +552,7 @@ const modConfig = {
   posts: { select: '*, profiles(full_name, email, username, college_id), colleges(name, slug)', filters: ['status', 'kind', 'user_id', 'college_id'], search: ['title', 'body', 'place'] },
   post_comments: { select: '*, profiles(full_name, email, username), posts(id, title, body)', filters: ['status', 'post_id', 'user_id'], search: ['body'] },
   content_reports: { select: '*, profiles:reporter_id(full_name, email)', filters: ['status', 'target_type', 'target_id'], search: ['reason'] },
+  contact_messages: { select: '*', filters: ['status', 'topic'], search: ['full_name', 'email', 'message', 'about'] },
 };
 
 for (const [table, cfg] of Object.entries(modConfig)) {
@@ -804,6 +805,18 @@ router.get('/content_reports/:id/context', wrap(async (req, res) => {
     supabase.from('posts').select('id, kind, title, body, status, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(10),
   ]) : [{ data: null }, { count: 0 }, { data: [] }];
   res.json({ report: rep, target, user, user_reports: reports || 0, recent_posts: posts || [], messages: messages ? [...messages].reverse() : null });
+}));
+
+// ---------------------------------------------------------------- page quality for Google (migration 018): run after big imports
+router.post('/seo/refresh', wrap(async (_req, res) => {
+  const { data, error } = await supabase.rpc('refresh_seo', {});
+  if (error) return fail(res, error);
+  res.json({ data: data?.[0] || null });
+}));
+
+router.get('/contact_messages/count', wrap(async (_req, res) => {
+  const { count } = await supabase.from('contact_messages').select('id', { count: 'exact', head: true }).eq('status', 'open');
+  res.json({ open: count || 0 });
 }));
 
 export default router;

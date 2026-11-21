@@ -22,6 +22,7 @@ import { llmReady, llmProvider, llmModel } from './services/llm.js';
 import hookRoutes from './routes/hooks.js';
 import verifyRoutes from './routes/verify.js';
 import callRoutes from './routes/calls.js';
+import accountRoutes from './routes/account.js';
 import { supabase as sbAdmin } from './supabase.js';
 import { otpReady, notifyReady } from './services/whatsapp.js';
 
@@ -49,6 +50,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/mock', mockRoutes);
 app.use('/api/verify', verifyRoutes);
 app.use('/api/calls', callRoutes);
+app.use('/api/account', accountRoutes);
 app.use('/api', presenceRoutes);   // /api/presence, /api/session/login
 app.use('/api', communityRoutes);    // /api/notify/visit, /api/notify/message
 app.use('/api/admin', rateLimit({ windowMs: 60_000, limit: 300 }), adminRoutes);
@@ -72,6 +74,14 @@ app.listen(PORT, () => {
       if (error) console.warn('[chat purge]', error.message); else if (data?.[0]?.messages) console.log('[chat purge]', data[0]);
     };
     setTimeout(purge, 60_000); setInterval(purge, 24 * 3600e3);
+  }
+  // which college and city pages have enough real information to be shown to Google (migration 018)
+  if (process.env.SEO_REFRESH !== 'off') {
+    const seo = async () => {
+      const { data, error } = await sbAdmin.rpc('refresh_seo', {});
+      if (error) console.warn('[seo refresh]', error.message); else console.log('[seo refresh]', data?.[0]);
+    };
+    setTimeout(seo, 120_000); setInterval(seo, 24 * 3600e3);
   }
   startNotifier();
   startMockSweeper();

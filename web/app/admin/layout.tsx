@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, GraduationCap, Home, Briefcase, Star, FileText, Users, ShieldAlert, PhoneCall, FilePlus2, MessagesSquare, Newspaper, BookOpen, Mail, MessageSquareHeart, Building2, DatabaseZap, Armchair, ClipboardList, ChartColumn, Trophy, Award, Plane, Handshake, Rocket, CreditCard, Flag, UsersRound, CalendarCheck, FileStack, Gift, Megaphone, ClipboardCheck, Radio, BadgeCheck, Rss } from 'lucide-react';
+import { BarChart3, GraduationCap, Home, Briefcase, Star, FileText, Users, ShieldAlert, PhoneCall, FilePlus2, MessagesSquare, Newspaper, BookOpen, Mail, MessageSquareHeart, Building2, DatabaseZap, Armchair, ClipboardList, ChartColumn, Trophy, Award, Plane, Handshake, Rocket, CreditCard, Flag, UsersRound, CalendarCheck, FileStack, Gift, Megaphone, ClipboardCheck, Radio, BadgeCheck, Rss, Inbox } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 
 const NAV = [
@@ -26,6 +26,7 @@ const NAV = [
   { href: '/admin/companies', label: 'Companies', icon: Building2 },
   { href: '/admin/pg-visits', label: 'PG visits', icon: CalendarCheck },
   { href: '/admin/community', label: 'Community', icon: UsersRound },
+  { href: '/admin/messages', label: 'Contact & grievances', icon: Inbox },
   { href: '/admin/feed', label: 'Posts & reports', icon: Rss },
   { href: '/admin/verifications', label: 'Verifications', icon: BadgeCheck },
   { href: '/admin/reports', label: 'Reports (old)', icon: Flag },

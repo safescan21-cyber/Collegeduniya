@@ -36,6 +36,7 @@ export const COLLEGE_FIELDS: FieldDef[] = [
   { name: 'application_note', label: 'Application note', type: 'text', placeholder: 'No application fee' },
   { name: 'is_featured', label: 'Featured on home', type: 'bool' },
   { name: 'is_published', label: 'Published (visible on site)', type: 'bool' },
+  { name: 'seo_index', label: 'Google indexing (auto = only when the page has enough real information)', type: 'select', options: ['auto', 'index', 'noindex'] },
   { name: 'admin_note', label: 'Internal note (never shown)', type: 'textarea' },
 ];
 

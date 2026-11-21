@@ -47,7 +47,7 @@ export default async function HostelsPage({ searchParams }: { searchParams: Prom
       : q.order('is_verified', { ascending: false }).order('created_at', { ascending: false });
     const { data, count } = await q.range((page - 1) * PER_PAGE, page * PER_PAGE - 1);
     if (page === 1) {
-      const { data: promo } = await sb.from('promotions').select('item_id').eq('item_type', 'hostel').limit(200);
+      const { data: promo } = await sb.from('promotions').select('item_id').eq('item_type', 'hostel').lte('starts_at', new Date().toISOString()).gt('ends_at', new Date().toISOString()).limit(200);
       const ids = Array.from(new Set((promo || []).map((p: any) => p.item_id)));
       if (ids.length) {
         const { data: sp2 } = await filters(sb.from('hostels').select('*, colleges(name, slug), hostel_rooms(beds_available)').in('id', ids).eq('is_published', true)).limit(3);

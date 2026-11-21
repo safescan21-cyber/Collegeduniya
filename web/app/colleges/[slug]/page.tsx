@@ -16,6 +16,7 @@ import { LiveJobs, LiveNearby } from '@/components/LiveData';
 import TranslateText from '@/components/TranslateText';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { FALLBACK_IMG, money, range, SITE_URL } from '@/lib/format';
+import { collegeTitle, collegeDescription, breadcrumbs, updatedOn } from '@/lib/seo';
 import type { College, Course, Place, Hostel, Job, ReviewPublic, Placement, Cutoff, QuestionPublic, QuotaSeat } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -29,11 +30,19 @@ async function getCollege(slug: string) {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const c = await getCollege(slug);
-  if (!c) return { title: 'College not found' };
+  if (!c) return { title: 'College not found', robots: { index: false } };
+  const sb = supabasePublic();
+  const [{ data: q }, { data: ok }, { data: rt }] = await Promise.all([
+    sb.rpc('college_quality', { p_id: c.id }), sb.rpc('college_indexable', { p_id: c.id }),
+    sb.from('college_ratings').select('avg_rating, review_count').eq('college_id', c.id).maybeSingle(),
+  ]);
+  const signals: string[] = (q as any)?.[0]?.signals || [];
   return {
-    title: `${c.name}, ${c.city} — Fees, Courses, Placements, Reviews, Hostels`,
-    description: (c.description || `${c.name} in ${c.city}, ${c.country}: courses, fees, placements, cutoffs, reviews, nearby PG & hostels and part-time jobs.`).slice(0, 160),
+    title: collegeTitle(c, signals),
+    description: collegeDescription(c, { avg: Number(rt?.avg_rating || 0), count: Number(rt?.review_count || 0) }),
     alternates: { canonical: `/colleges/${c.slug}` },
+    // thin pages stay usable for students but out of Google until they have real information (see migration 018)
+    robots: ok === true ? { index: true, follow: true } : { index: false, follow: true },
     openGraph: { images: c.cover_url ? [c.cover_url] : [] },
   };
 }
@@ -123,6 +132,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs([['Colleges', '/colleges'], ...(cityRow?.slug ? [[c.city, `/city/${cityRow.slug}`] as [string, string]] : []), [c.name, `/colleges/${c.slug}`]])) }} />
       <section className="relative h-72 bg-brand-950 sm:h-80">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={c.cover_url || FALLBACK_IMG} alt={c.name} className="absolute inset-0 h-full w-full object-cover opacity-50" />
@@ -172,13 +182,17 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
               <h2 className="text-xl font-bold text-slate-900">About {c.short_name || c.name}</h2>
               <ShareButtons title={`${c.name} — fees, courses & reviews`} path={`/colleges/${c.slug}`} />
             </div>
-            <TranslateText text={c.description || 'Details coming soon.'} className="mt-3 whitespace-pre-line leading-relaxed text-slate-600" />
+            <TranslateText text={c.description || collegeDescription(c, { avg, count })} className="mt-3 whitespace-pre-line leading-relaxed text-slate-600" />
             {(c as any).description_source === 'wikipedia' && (c as any).wikipedia_url && (
               <p className="mt-2 text-xs text-slate-400">Text from <a href={(c as any).wikipedia_url} target="_blank" rel="noopener" className="underline">Wikipedia</a>, licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener license" className="underline">CC BY-SA 4.0</a>.</p>
             )}
             {(c as any).source && (c as any).source !== 'admin' && (
               <p className="mt-3 text-xs text-slate-400">Profile from public data ({({ hipolabs: 'Hipolabs university list', wikidata: 'Wikidata', aishe: 'AISHE, Govt. of India', scorecard: 'U.S. College Scorecard' } as Record<string, string>)[(c as any).source] || (c as any).source}{(c as any).wikidata_id ? ' + Wikidata' : ''}). <Link href="/counselling" className="underline">Ask us</Link> for current fees and admission details.</p>
             )}
+            <p className="mt-2 text-xs text-slate-400">
+              {updatedOn((c as any).data_updated_at || (c as any).updated_at) && <>Last updated {updatedOn((c as any).data_updated_at || (c as any).updated_at)} · </>}
+              <Link href="/editorial-policy" className="underline">How we collect college data</Link> · <Link href={`/contact?topic=correction&about=${encodeURIComponent(c.name)}`} className="underline">Report a correction</Link>
+            </p>
             <div className="mt-3 flex flex-wrap gap-2 text-sm">
               {c.students_count ? <span className="chip">~{c.students_count.toLocaleString()} students</span> : null}
               {c.admission_rate != null ? <span className="chip">Admission rate {Math.round(Number(c.admission_rate) * 100)}%</span> : null}

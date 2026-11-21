@@ -49,7 +49,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
     q = sp.sort === 'pay' ? q.order('pay_max', { ascending: false, nullsFirst: false }) : q.order('created_at', { ascending: false });
     const { data, count } = await q.range((page - 1) * PER_PAGE, page * PER_PAGE - 1);
     if (page === 1) {
-      const { data: promo } = await sb.from('promotions').select('item_id').eq('item_type', 'job').limit(200);
+      const { data: promo } = await sb.from('promotions').select('item_id').eq('item_type', 'job').lte('starts_at', new Date().toISOString()).gt('ends_at', new Date().toISOString()).limit(200);
       const ids = Array.from(new Set((promo || []).map((p: any) => p.item_id)));
       if (ids.length) {
         const { data: sp2 } = await filters(sb.from('jobs').select('*').in('id', ids).eq('is_published', true).eq('status', 'open')).limit(3);

@@ -17,7 +17,10 @@ async function getQ(id: string) {
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const q = await getQ((await params).id);
-  return q ? { title: q.title, description: (q.body || q.title).slice(0, 160) } : { title: 'Question not found' };
+  if (!q) return { title: 'Question not found', robots: { index: false } };
+  // unanswered questions stay out of Google until someone answers
+  return { title: q.title, description: (q.body || q.title).slice(0, 160), alternates: { canonical: `/questions/${q.id}` },
+    robots: Number((q as any).answer_count) > 0 ? { index: true, follow: true } : { index: false, follow: true } };
 }
 
 export default async function QuestionPage({ params }: { params: Promise<{ id: string }> }) {

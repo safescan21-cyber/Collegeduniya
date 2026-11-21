@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ORG } from '@/lib/org';
 import { Logo } from './Header';
 import NewsletterForm from './NewsletterForm';
 import { getT } from '@/lib/i18n-server';
@@ -54,7 +55,16 @@ export default async function Footer() {
         </div>
       </div>
       <div className="border-t border-white/10 py-5 text-center text-xs text-brand-200/60">
-        © {new Date().getFullYear()} StudyEarnstay.com — Study • Earn • Stay · <a href="mailto:hello@studyearnstay.com" className="hover:text-white">hello@studyearnstay.com</a>
+        <nav className="mb-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm text-brand-100/80">
+          <Link href="/about" className="hover:text-white">About us</Link>
+          <Link href="/editorial-policy" className="hover:text-white">How we work</Link>
+          <Link href="/community-guidelines" className="hover:text-white">Community guidelines</Link>
+          <Link href="/privacy" className="hover:text-white">Privacy</Link>
+          <Link href="/terms" className="hover:text-white">Terms</Link>
+          <Link href="/contact" className="hover:text-white">Contact</Link>
+          <Link href="/contact#grievance" className="hover:text-white">Grievance officer</Link>
+        </nav>
+        © {new Date().getFullYear()} {ORG.legalName || 'StudyEarnstay.com'} — Study • Earn • Stay · <a href={`mailto:${ORG.email}`} className="hover:text-white">{ORG.email}</a>
         <p className="mt-2">Cities: <a href="https://www.geonames.org" className="underline" target="_blank" rel="noopener noreferrer">GeoNames</a> · Maps & places: <a href="https://www.openstreetmap.org/copyright" className="underline" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a> · University data: Hipolabs, Wikidata</p>
       </div>
     </footer>

@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 async function getCity(slug: string) {
   if (!hasSupabase) return null;
   const { data } = await supabasePublic().from('cities').select('*').eq('slug', slug).maybeSingle();
-  return data as CityInfo | null;
+  return data as (CityInfo & { seo_ok?: boolean }) | null;
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -25,6 +25,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: `${local ? `${local} (${c.name})` : c.name}: colleges, PG & part-time jobs — ${c.country}`,
     description: `Find colleges and universities in ${c.name}, PGs and hostels nearby, hospitals, and part-time jobs for students — StudyEarnstay.`,
     alternates: { canonical: `/city/${c.slug}` },
+    // a town page goes to Google only when it lists something real (3+ colleges, or a PG / job) — migration 018
+    robots: c.seo_ok ? { index: true, follow: true } : { index: false, follow: true },
   };
 }
 

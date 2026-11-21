@@ -521,6 +521,26 @@ Run `supabase/migrations/017_campus_social.sql` after 016 (already applied to th
 
 **Server env (optional):** `CHAT_RETENTION_MONTHS=6`, `CHAT_PURGE=off` (to disable the job), TURN settings above.
 
+## 5l. Built for people (and for Google) — page quality, trust pages, privacy (migration 018)
+
+Google does not punish a site for using AI. It punishes **mass-produced, thin pages** ("scaled content abuse") and sites where nobody can tell **who is behind them, where the information comes from, or how to complain**. This release fixes both.
+
+**Only pages with real substance are indexed** (they still work for visitors):
+- **College pages** get a quality score from what they actually have — student reviews 3, placements 2, cutoffs 2, ≥2 courses with fees 2, our own write-up of 250+ characters 2, rank 1, fees 1, answered Q&A 1, a linked PG 1, contact details 1. Wikipedia text scores 0 (it already exists elsewhere). **4 points or more → indexed and in the sitemap**; less → `noindex, follow`. Admin → College → *Google indexing* can force `index` / `noindex`.
+- **City pages** are indexed only with 3+ colleges, or at least one PG or job.
+- **Q&A** pages only once answered; **community posts** only if they're blogs, 280+ characters, or have 3+ comments.
+- Scores refresh daily (`SEO_REFRESH`) — after a big import call `POST /api/admin/seo/refresh`.
+- Titles say only what the page has ("Christ University, Bengaluru — Courses & Fees, Placements, Cutoffs"), descriptions are built from real facts, and "Details coming soon" is gone.
+- **Languages:** only English and Hindi get hreflang links (`HREFLANG_LANGS`). The other ~130 languages are machine-translated menus around English text, so `?hl=xx` for them is `noindex` — still usable by students.
+
+**Trust pages:** `/about` (who runs it, how the site makes money), `/editorial-policy` (sources, how reviews and listings are checked, exactly where AI is used and where it never is), `/contact` (form + **grievance officer**), `/privacy` (DPDP Act 2023 / DPDP Rules 2025), `/terms`, `/community-guidelines` — linked from every page's footer. **Fill in `NEXT_PUBLIC_ORG_*` and `NEXT_PUBLIC_GRIEVANCE_OFFICER` in `web/.env.local`**: the IT Rules, 2021 require the grievance officer's name and contact to be published. Messages arrive in **Admin → Contact & grievances** (grievances: acknowledge in 24 h, resolve in 15 days).
+
+**Structured data:** Organization + WebSite (site search) on every page, BreadcrumbList on colleges, Person authors on news (with "Updated" dates), BlogPosting / DiscussionForumPosting on community posts.
+
+**Honesty fixes:** "Featured" colleges now carry a visible label (they can include partner colleges); expired sponsored listings no longer show; overclaiming descriptions ("every college", "verified reviews") toned down; students can now **delete their account** (Dashboard → Profile), which the privacy policy and the DPDP Act promise.
+
+**What still needs you** (Google rewards these and they can't be automated): your real name and photo on About, named authors who write news and guides from experience, original photos of campuses and PGs, and colleges' real data (fees, placements) entered from official sources.
+
 ## 6. Deploy on your own VPS (Ubuntu + Nginx + PM2)
 
 ```bash

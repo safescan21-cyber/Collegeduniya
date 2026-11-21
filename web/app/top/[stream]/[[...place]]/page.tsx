@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: { params: Promise<P> }): Prom
   const label = topLabel(d.t.stream, d.t.place);
   return {
     title: `${label} ${YEAR}: fees, ranking, placements & reviews`,
-    description: `List of ${d.total} ${d.t.stream.toLowerCase()} colleges${d.t.place ? ` in ${d.t.place}` : ''} ranked by official ranking, with fees, courses, placements and verified student reviews.`,
+    description: `List of ${d.total} ${d.t.stream.toLowerCase()} colleges${d.t.place ? ` in ${d.t.place}` : ''} in order of official rank (NIRF where available), with fees and student reviews where we have them.`,
     alternates: { canonical: topPath(p.stream, p.place?.[0]) },
   };
 }

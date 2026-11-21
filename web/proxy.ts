@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { LANG_COOKIE, isLang } from '@/lib/i18n';
 
 // 1. ?hl=ta (any supported language) switches the site language and remembers it — shareable links,
-//    and how search engines reach each language version (see hreflang tags in app/layout.tsx).
+//    and how search engines reach the Hindi version (see components/HrefLang.tsx; other languages are noindex).
 // 2. Keeps the Supabase session cookie fresh and protects private pages.
 export async function proxy(request: NextRequest) {
   const hl = request.nextUrl.searchParams.get('hl');
@@ -18,8 +18,11 @@ export async function proxy(request: NextRequest) {
     h.set('x-ses-path', clean.pathname + clean.search);
     return NextResponse.next({ request: { headers: h } });
   };
+  const indexedLangs = (process.env.HREFLANG_LANGS || 'en,hi').split(',').map((x) => x.trim());
   const finish = (res: NextResponse) => {
     if (langFromUrl) res.cookies.set(LANG_COOKIE, langFromUrl, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' });
+    // machine-translated-menu versions (?hl=xx outside HREFLANG_LANGS) are for people, not for Google's index
+    if (langFromUrl && !indexedLangs.includes(langFromUrl)) res.headers.set('X-Robots-Tag', 'noindex, follow');
     return res;
   };
 

@@ -1,13 +1,26 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { supabase } from '../supabase.js';
-import { leadSchema, newsletterSchema } from '../schemas.js';
+import { leadSchema, newsletterSchema, contactSchema } from '../schemas.js';
 import { autoShare } from '../services/leadShare.js';
 
 const router = Router();
 
 const formLimit = rateLimit({ windowMs: 10 * 60_000, limit: 8, standardHeaders: true, legacyHeaders: false,
   message: { error: 'Too many requests — please try again in a few minutes.' } });
+
+// POST /api/contact — contact form, data corrections, grievances (IT Rules 2021 / DPDP), privacy requests
+router.post('/contact', formLimit, async (req, res) => {
+  const parsed = contactSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const first = Object.values(parsed.error.flatten().fieldErrors)[0]?.[0];
+    return res.status(422).json({ error: first || 'Please check the form' });
+  }
+  const { website: _hp, ...msg } = parsed.data;
+  const { data, error } = await supabase.from('contact_messages').insert({ ...msg, user_id: req.user?.id || null }).select('id, created_at').single();
+  if (error) { console.error('[contact]', error.message); return res.status(500).json({ error: 'Could not send — please email us instead.' }); }
+  res.status(201).json({ ok: true, ref: data.id.slice(0, 8).toUpperCase(), received: data.created_at });
+});
 
 // POST /api/leads — "Get free counselling" / college or PG enquiry
 router.post('/leads', formLimit, async (req, res) => {

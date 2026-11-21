@@ -151,6 +151,7 @@ schemas.colleges = schemas.colleges.extend({
   management: optStr,
   affiliated_to: optStr,
   admin_note: optStr,
+  seo_index: z.enum(['auto', 'index', 'noindex']).optional(),
   hidden_fields: z.array(z.enum(['fees', 'contact', 'website', 'address', 'map', 'ranking', 'accreditation', 'established', 'students', 'logo', 'photos', 'description'])).optional(),
   hidden_sections: z.array(z.enum(['courses', 'placements', 'cutoffs', 'reviews', 'qa', 'hostels', 'jobs', 'nearby', 'gallery', 'apply', 'enquiry'])).optional(),
 });
@@ -347,6 +348,7 @@ export const moderation = {
   posts: z.object({ status: z.enum(['published', 'hidden', 'removed']).optional(), hidden_reason: optStr }),
   post_comments: z.object({ status: z.enum(['published', 'hidden']).optional() }),
   content_reports: z.object({ status: z.enum(['open', 'actioned', 'dismissed']).optional(), admin_note: optStr }),
+  contact_messages: z.object({ status: z.enum(['open', 'replied', 'resolved', 'spam']).optional(), admin_note: optStr }),
   reward_points: z.object({ status: z.enum(['pending', 'approved', 'reversed']).optional(), note: optStr }),
 };
 
@@ -381,6 +383,17 @@ export const leadSchema = z.object({
   source_path: z.string().max(300).optional().nullable(),
   consent_share: z.boolean().optional().default(false),
   website: z.string().max(0).optional(), // honeypot — must stay empty
+});
+
+export const contactSchema = z.object({
+  topic: z.enum(['general', 'correction', 'grievance', 'privacy', 'partnership', 'press']).default('general'),
+  about: z.string().trim().max(200).optional().nullable(),
+  full_name: str.min(2).max(100),
+  email: z.string().trim().toLowerCase().email().max(200),
+  phone: z.union([z.literal(''), z.string().trim().regex(/^[+\d][\d\s-]{6,18}$/, 'Enter a valid phone number')]).optional().transform((v) => v || null),
+  message: z.string().trim().min(10, 'Please write a little more').max(5000),
+  page: z.string().max(300).optional().nullable(),
+  website: z.string().max(0).optional(), // honeypot
 });
 
 export const newsletterSchema = z.object({

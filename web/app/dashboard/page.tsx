@@ -10,6 +10,7 @@ import { JobAlertManager } from '@/components/JobAlerts';
 import { NotificationList } from '@/components/Notifications';
 import { PublicProfileSettings, EducationEditor, LoginHistory, MockHistory } from '@/components/ProfileExtras';
 import CampusSettings from '@/components/campus/CampusSettings';
+import DeleteAccount from '@/components/DeleteAccount';
 import { Stars } from '@/components/Cards';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { range, timeAgo } from '@/lib/format';
@@ -340,6 +341,7 @@ function Dashboard() {
             <div className="sm:col-span-2"><button className="btn-primary"><Save size={16} />Save profile</button></div>
           </form>
           <LoginHistory />
+          <DeleteAccount />
           </div>
           <div className="space-y-6"><CampusSettings /><PublicProfileSettings /><EducationEditor /></div>
           </div>

@@ -21,6 +21,7 @@ export function CollegeCard({ c, rating }: { c: Partial<College> & { slug: strin
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={c.cover_url || FALLBACK_IMG} alt={c.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
         {c.ranking ? <span className="absolute left-3 top-3 rounded-lg bg-white/95 px-2 py-1 text-xs font-bold text-brand-700">#{c.ranking} Rank</span> : null}
+        {c.is_featured ? <span className="absolute right-3 top-3 rounded-lg bg-accent-500 px-2 py-1 text-[11px] font-bold text-slate-900" title="Chosen by StudyEarnstay; may include partner colleges">Featured</span> : null}
         {c.type ? <span className="absolute bottom-3 left-3 rounded-lg bg-brand-950/80 px-2 py-1 text-xs font-medium text-white">{c.type}</span> : null}
         {c.id && (
           <div className="absolute right-3 top-3 flex gap-1.5">
