@@ -5,7 +5,7 @@ import { EmptyState } from '@/components/Cards';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import type { Exam } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 export const metadata: Metadata = {
   title: 'Entrance exams — eligibility, pattern, dates & colleges',
   description: 'JEE, NEET, CUET, CAT, GATE, IELTS and more: eligibility, exam pattern, official websites and colleges that accept each exam.',

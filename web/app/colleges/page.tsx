@@ -9,7 +9,7 @@ import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { cleanTerm, distinctValues } from '@/lib/data';
 import type { College } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 const PER_PAGE = 15;
 const APPROVALS = ['UGC', 'AICTE', 'NAAC A++', 'NAAC A+', 'NAAC A', 'NBA', 'NMC', 'BCI', 'PCI', 'COA', 'INC', 'NCTE'];
 

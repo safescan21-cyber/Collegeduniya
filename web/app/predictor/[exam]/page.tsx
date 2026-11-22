@@ -9,7 +9,7 @@ import PercentileRank from '@/components/PercentileRank';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { readRange } from '@/lib/sitemapPlan';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 const YEAR = new Date().getFullYear();
 
 async function load(slug: string) {

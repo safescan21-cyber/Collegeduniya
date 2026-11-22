@@ -15,7 +15,7 @@ import { STREAMS } from '@/lib/streams';
 import { FALLBACK_IMG, timeAgo } from '@/lib/format';
 import type { Article, College, Hostel, Job } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 
 const COUNTRIES = [
   { name: 'India', code: 'IN' }, { name: 'Canada', code: 'CA' }, { name: 'United Kingdom', code: 'GB' },

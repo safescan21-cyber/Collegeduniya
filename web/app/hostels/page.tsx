@@ -7,7 +7,7 @@ import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { cleanTerm, distinctValues } from '@/lib/data';
 import type { Hostel } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 const PER_PAGE = 12;
 type SP = Record<string, string | undefined>;
 

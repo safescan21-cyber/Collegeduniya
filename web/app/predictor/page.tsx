@@ -5,7 +5,7 @@ import { Target } from 'lucide-react';
 import Predictor from './Predictor';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 export const metadata: Metadata = {
   title: 'College predictor — JEE, NEET, CUET, state CETs and more',
   description: 'Free college predictors for JEE, NEET, CUET and other entrance exams: enter your rank, category and home state to see colleges where you have a high, medium or low chance, based on last year’s closing ranks.',

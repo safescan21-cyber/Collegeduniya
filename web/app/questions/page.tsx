@@ -6,7 +6,7 @@ import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { cleanTerm } from '@/lib/data';
 import type { QuestionPublic } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 export const metadata: Metadata = {
   title: 'Student Q&A — ask about colleges, admissions, PGs and jobs',
   description: 'Ask questions about colleges, courses, fees, hostels and part-time jobs. Answers from students and the Collegeolo team.',

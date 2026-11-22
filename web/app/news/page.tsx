@@ -7,7 +7,7 @@ import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { FALLBACK_IMG, timeAgo } from '@/lib/format';
 import type { Article } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 export const metadata: Metadata = {
   title: 'Education news, admission alerts & student guides',
   description: 'Latest admission news, exam updates, study abroad guides and tips on PGs and part-time jobs for students.',

@@ -5,7 +5,7 @@ import { ExternalLink, Clock, Wallet, Briefcase } from 'lucide-react';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { renderMarkdown } from '@/lib/markdown';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 async function get(cc: string) {
   if (!hasSupabase || !/^[a-z]{2}$/i.test(cc)) return null;
   return (await supabasePublic().from('visa_guides').select('*').eq('country_code', cc.toUpperCase()).eq('is_published', true).maybeSingle()).data as any;

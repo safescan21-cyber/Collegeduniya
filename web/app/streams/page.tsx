@@ -4,7 +4,7 @@ import { ArrowRight } from 'lucide-react';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { STREAMS } from '@/lib/streams';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 export const metadata: Metadata = {
   title: 'Choose your stream — colleges, courses and exams by stream',
   description: 'Engineering, MBA, medical, law, design, commerce, science, arts and more: top colleges, courses, entrance exams and predictors for each stream.',

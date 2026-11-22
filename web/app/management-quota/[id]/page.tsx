@@ -12,7 +12,7 @@ import { getT } from '@/lib/i18n-server';
 import { money, SITE_URL, FALLBACK_IMG } from '@/lib/format';
 import type { QuotaSeat } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 
 async function getSeat(id: string) {
   if (!hasSupabase || !/^[0-9a-f-]{36}$/i.test(id)) return null;

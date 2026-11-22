@@ -10,7 +10,7 @@ import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { timeAgo } from '@/lib/format';
 import type { Exam } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 
 async function getExam(slug: string) {
   if (!hasSupabase) return null;

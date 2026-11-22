@@ -11,7 +11,7 @@ import { cleanTerm } from '@/lib/data';
 import { getT } from '@/lib/i18n-server';
 import type { QuotaSeat } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 const PER_PAGE = 18;
 type SP = Record<string, string | undefined>;
 const QUOTAS = ['Management', 'NRI', 'NRI Sponsored', 'Institutional', 'Foreign National', 'International', 'Direct admission', 'Self-financed', 'Private / fee-paying', 'Scholarship'];

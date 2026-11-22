@@ -8,7 +8,7 @@ import { renderMarkdown } from '@/lib/markdown';
 import { SITE_URL } from '@/lib/format';
 import type { Article } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 
 async function getArticle(slug: string) {
   if (!hasSupabase) return null;

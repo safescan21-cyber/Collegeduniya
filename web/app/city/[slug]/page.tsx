@@ -4,7 +4,7 @@ import CityView, { type CityInfo } from '@/components/CityView';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n-server';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 
 async function getCity(slug: string) {
   if (!hasSupabase) return null;

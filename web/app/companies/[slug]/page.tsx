@@ -6,7 +6,7 @@ import TranslateText from '@/components/TranslateText';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import type { Job } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 
 async function getCompany(slug: string) {
   if (!hasSupabase) return null;

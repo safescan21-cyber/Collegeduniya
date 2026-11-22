@@ -7,7 +7,7 @@ import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { streamBySlug, STREAMS } from '@/lib/streams';
 import { short, timeAgo, SITE_URL } from '@/lib/format';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 const YEAR = new Date().getFullYear();
 
 async function load(slug: string) {

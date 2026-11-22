@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Calculator } from 'lucide-react';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 const YEAR = new Date().getFullYear();
 export const metadata: Metadata = {
   title: `Rank predictor ${YEAR} — marks or percentile to rank for JEE, NEET, CUET, CAT`,

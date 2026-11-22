@@ -6,7 +6,7 @@ import TranslateText from '@/components/TranslateText';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { money } from '@/lib/format';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 async function get(slug: string) {
   if (!hasSupabase) return null;
   return (await supabasePublic().from('scholarships').select('*').eq('slug', slug).eq('is_published', true).maybeSingle()).data as any;

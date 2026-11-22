@@ -10,7 +10,7 @@ import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { range, SITE_URL, timeAgo } from '@/lib/format';
 import type { Job } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 
 async function getJob(id: string) {
   if (!hasSupabase || !/^[0-9a-f-]{36}$/i.test(id)) return null;

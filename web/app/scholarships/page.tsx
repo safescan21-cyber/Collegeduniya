@@ -7,7 +7,7 @@ import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { cleanTerm } from '@/lib/data';
 import { money } from '@/lib/format';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 type SP = Record<string, string | undefined>;
 export const metadata: Metadata = {
   title: 'Scholarships for Indian & international students — study in India and abroad',

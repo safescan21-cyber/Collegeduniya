@@ -20,7 +20,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 export default async function RankingsPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   if (!hasSupabase) return null;
-  const sb = supabasePublic();
+  const sb = supabasePublic({ revalidate: 3600 });
   const { data: idx } = await sb.rpc('ranking_list_index', { p_source: 'NIRF' });
   const index = (idx || []) as { year: number; category: string; n: number }[];
   const years = Array.from(new Set(index.map((i) => i.year))).sort((a, b) => b - a);

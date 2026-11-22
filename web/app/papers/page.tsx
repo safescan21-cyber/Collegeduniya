@@ -8,7 +8,7 @@ import { DocRow, KIND_LABEL, type ExamDoc } from '@/components/ExamDocs';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { cleanTerm } from '@/lib/data';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 type SP = Record<string, string | undefined>;
 const PER = 30;
 

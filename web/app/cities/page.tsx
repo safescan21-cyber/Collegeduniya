@@ -5,7 +5,7 @@ import { Globe2 } from 'lucide-react';
 import CityInput from '@/components/CityInput';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 export const metadata: Metadata = {
   title: 'Colleges by city — every city in the world with colleges',
   description: 'Pick any city in the world to see colleges, PG & hostels, hospitals and part-time jobs for students.',
@@ -20,7 +20,7 @@ export default async function CitiesPage({ searchParams }: { searchParams: Promi
   const counts = new Map<string, { cities: number; colleges: number }>();
   const PER = 200; const page = Math.max(1, Number(sp.page) || 1); const q = (sp.q || '').trim().slice(0, 60);
   if (hasSupabase) {
-    const sb = supabasePublic();
+    const sb = supabasePublic({ revalidate: 1800 });
     const [{ data }, { data: cc }] = await Promise.all([
       sb.from('countries').select('code, name, continent').order('name'),
       sb.rpc('country_college_counts'),

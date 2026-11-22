@@ -4,7 +4,7 @@ import { Plane } from 'lucide-react';
 import { EmptyState } from '@/components/Cards';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 export const metadata: Metadata = { title: 'Student visa guides by country', description: 'Student visa steps, processing time, fees and work rights — with links to each official immigration website.' };
 
 export default async function VisaIndex() {

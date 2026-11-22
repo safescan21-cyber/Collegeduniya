@@ -23,7 +23,7 @@ import { Highlights, Admission, Rankings, Scholarships, Faqs, parseDates, parseF
 import { Download, PenLine } from 'lucide-react';
 import type { College, Course, Place, Hostel, Job, ReviewPublic, Placement, Cutoff, QuestionPublic, QuotaSeat } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
+// rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 
 async function getCollege(slug: string) {
   if (!hasSupabase) return null;
