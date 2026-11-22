@@ -11,7 +11,7 @@ export async function sitemapPlan() {
   const sb = supabasePublic();
   const [c, y] = await Promise.all([
     sb.rpc('sitemap_college_count'),
-    sb.from('cities').select('geoname_id', { count: 'exact', head: true }).eq('seo_ok', true).gte('population', CITY_MIN_POP),
+    sb.from('cities').select('geoname_id', { count: 'exact', head: true }).eq('seo_ok', true).or(`colleges_count.gt.0,population.gte.${CITY_MIN_POP}`),
   ]);
   const colleges = Number((c as any).data) || 0; const cities = y.count || 0;
   return { colleges, cities, collegeShards: Math.ceil(colleges / SHARD), cityShards: Math.ceil(cities / SHARD) };

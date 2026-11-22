@@ -28,7 +28,7 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
   if (n > plan.collegeShards) {
     const from = (n - 1 - plan.collegeShards) * SHARD;
     const rows = await readRange<{ slug: string }>((a, b) =>
-      sb.from('cities').select('slug').eq('seo_ok', true).gte('population', CITY_MIN_POP).order('geoname_id').range(a, b), from, from + SHARD);
+      sb.from('cities').select('slug').eq('seo_ok', true).or(`colleges_count.gt.0,population.gte.${CITY_MIN_POP}`).order('geoname_id').range(a, b), from, from + SHARD);
     return rows.map((r) => ({ url: `${SITE_URL}/city/${r.slug}`, priority: 0.6 }));
   }
 
