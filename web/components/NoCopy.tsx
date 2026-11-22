@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 // Discourages copying the site's content: no text selection, copy, cut, right-click menu or image dragging on public
-// pages. Typing fields, the admin panel, dashboard and chat are left alone. (A determined person can still read the page
+// pages, plus copy/save/print/view-source shortcuts. Typing fields and the admin panel are left alone. (A determined person can still read the page
 // source — this stops casual copy-paste, it is not a lock.)
-const FREE = ['/admin', '/dashboard', '/messages', '/login', '/auth', '/post', '/resume'];
+const FREE = ['/admin'];   // only the admin panel may copy (codes, data checks)
 const editable = (el: EventTarget | null) => el instanceof Element && !!el.closest('input, textarea, select, [contenteditable="true"], [data-copy-ok]');
 
 export default function NoCopy() {
@@ -21,9 +21,19 @@ export default function NoCopy() {
       e.preventDefault();
       if (e.type !== 'dragstart') { setNote(true); clearTimeout(t); t = setTimeout(() => setNote(false), 1800); }
     };
-    const evs = ['copy', 'cut', 'contextmenu', 'dragstart'] as const;
-    evs.forEach((ev) => document.addEventListener(ev, block));
-    return () => { evs.forEach((ev) => document.removeEventListener(ev, block)); clearTimeout(t); };
+    // keyboard: Ctrl/⌘ + C, X, A, S, P, U, Shift+I/J/C and F12 (save, print, view source, developer tools)
+    const keys = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase(); const mod = e.ctrlKey || e.metaKey;
+      const inField = editable(e.target) || editable(document.activeElement);
+      const copyKeys = mod && ['c', 'x', 'a'].includes(k) && !inField;
+      const pageKeys = (mod && ['s', 'p', 'u'].includes(k)) || (mod && e.shiftKey && ['i', 'j', 'c'].includes(k)) || k === 'f12';
+      if (copyKeys || pageKeys) { e.preventDefault(); e.stopPropagation(); setNote(true); clearTimeout(t); t = setTimeout(() => setNote(false), 1800); }
+    };
+    const evs = ['copy', 'cut', 'contextmenu', 'dragstart', 'selectstart'] as const;
+    const sel = (e: Event) => { if (e.type === 'selectstart') { if (!editable(e.target)) e.preventDefault(); return; } block(e); };
+    evs.forEach((ev) => document.addEventListener(ev, sel));
+    document.addEventListener('keydown', keys, true);
+    return () => { evs.forEach((ev) => document.removeEventListener(ev, sel)); document.removeEventListener('keydown', keys, true); clearTimeout(t); };
   }, [on]);
   if (!note) return null;
   return <div role="status" className="fixed bottom-6 left-1/2 z-[70] -translate-x-1/2 rounded-full bg-slate-900/90 px-4 py-2 text-sm text-white shadow-lg">Copying is turned off on Collegeolo — use Share to send a page</div>;
