@@ -59,3 +59,8 @@ body { @apply bg-slate-50 text-slate-800 antialiased; }
 }
 
 @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* content copy protection (components/NoCopy.tsx) — typing fields stay selectable */
+html.no-copy body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+html.no-copy input, html.no-copy textarea, html.no-copy select, html.no-copy [contenteditable="true"], html.no-copy [data-copy-ok] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+html.no-copy img { -webkit-user-drag: none; }
