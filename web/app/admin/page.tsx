@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Eye, Users, UserPlus, GraduationCap, Home, Briefcase, Star, FileText, Loader2, PhoneCall, FilePlus2, Clock, MessagesSquare, Mail } from 'lucide-react';
 import { api } from '@/lib/api';
 import OnlineNow from '@/components/admin/OnlineNow';
+import VisitQuality from '@/components/admin/VisitQuality';
 
 type Stats = {
   totals: Record<string, number>;
@@ -62,6 +63,7 @@ export default function AdminHome() {
     <div className="space-y-6">
       <h1 className="text-2xl font-extrabold text-slate-900">Dashboard</h1>
       <OnlineNow />
+      <VisitQuality />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Tile icon={Eye} label="Visitors today" value={s.visits.uniqueToday} sub={`${s.visits.today} page views`} />
         <Tile icon={Users} label="Visitors (30 days)" value={s.visits.unique30} sub={`${s.visits.last30} views · ${s.visits.last7} in 7 days`} />
