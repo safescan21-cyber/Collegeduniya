@@ -20,6 +20,7 @@ import type { Article, College, Hostel, Job } from '@/lib/types';
 const COUNTRIES = [
   { name: 'India', code: 'IN' }, { name: 'Canada', code: 'CA' }, { name: 'United Kingdom', code: 'GB' },
   { name: 'Australia', code: 'AU' }, { name: 'Germany', code: 'DE' }, { name: 'United States', code: 'US' },
+  { name: 'Japan', code: 'JP' },
   { name: 'France', code: 'FR' }, { name: 'Ireland', code: 'IE' }, { name: 'Netherlands', code: 'NL' },
   { name: 'Italy', code: 'IT' }, { name: 'New Zealand', code: 'NZ' }, { name: 'Singapore', code: 'SG' },
 ];
