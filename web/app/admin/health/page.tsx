@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Activity, CheckCircle2, AlertTriangle, XCircle, Loader2, RefreshCw, BellRing } from 'lucide-react';
 import { api } from '@/lib/api';
 import EmailSetup from '@/components/admin/EmailSetup';
+import ApiErrors from '@/components/admin/ApiErrors';
 import { timeAgo } from '@/lib/format';
 
 type Check = { name: string; group: string; warn: boolean; ok: boolean; detail: string; ms: number; checkedAt: string; since: string; fails: number };
@@ -38,7 +39,7 @@ export default function HealthPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">System health</h1>
-          <p className="text-sm text-slate-500">Checked automatically every {s?.every_min ?? 5} minutes. If something fails twice in a row, admins get an email{s && !s.email_alerts ? ' (once email is set up)' : ''} and a bell notification, and another when it is fixed.</p>
+          <p className="text-sm text-slate-500">Checked automatically every {s?.every_min ?? 3} minutes. If something fails twice in a row it is repaired automatically where possible (restart of that part), and admins get an email{s && !s.email_alerts ? ' (once email is set up)' : ''} and a bell notification, and another when it is fixed.</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => load(true)} disabled={!!busy} className="btn-primary">{busy === 'run' ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}Check now</button>
@@ -72,6 +73,7 @@ export default function HealthPage() {
           </div>
         </section>
       ))}
+      <ApiErrors />
     </div>
   );
 }

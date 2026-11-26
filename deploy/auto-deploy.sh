@@ -34,6 +34,7 @@ rm -f "$WAIT"
 
 echo "== $(date '+%F %T') deploying ${OLD:0:7} -> ${NEW:0:7}"
 CHANGED=$(git diff --name-only "$OLD" "$NEW")
+git checkout -q -- web/tsconfig.json 2>/dev/null   # the website build may touch it; never let that block a deploy
 git merge -q --ff-only "origin/$BRANCH" || { echo "cannot fast-forward — local changes on the server?"; exit 1; }
 
 # new/changed database migrations first (they are written to be safe to re-run), so code never runs ahead of the schema
