@@ -43,14 +43,17 @@ const CUR = { '€': 'EUR', '$': 'USD', '£': 'GBP', '¥': 'JPY', '₹': 'INR', 
 // find a college: exact id/slug → name (+ country, + city) — never guesses between two similar names
 async function makeFinder() {
   const cache = new Map();
-  return async (row, m, defCountry) => {
+  const find = async (row, m, defCountry) => {
     const ref = String(row[m.college_ref] || '').trim();
     if (ref) {
       const slug = ref.split('/college/').pop().split(/[?#/]/)[0];
       const q = /^[0-9a-f-]{36}$/i.test(slug) ? supabase.from('colleges').select('id, name, currency').eq('id', slug) : supabase.from('colleges').select('id, name, currency').eq('slug', slug);
       const { data } = await q.maybeSingle(); if (data) return data;
     }
-    const name = String(row[m.college] || '').trim(); if (!name) return null;
+    // "Technische Universität Berlin | Technical University of Berlin | TU Berlin": try each name the college goes by
+    const names = String(row[m.college] || '').split('|').map((x) => x.trim()).filter(Boolean);
+    if (names.length > 1) { for (const n of names) { const hit = await find({ ...row, [m.college]: n, [m.college_ref]: '' }, m, defCountry); if (hit) return hit; } return null; }
+    const name = names[0]; if (!name) return null;
     const country = String(row[m.country] || defCountry || '').trim(); const city = String(row[m.city] || '').trim();
     const key = `${normName(name)}|${country.toLowerCase()}|${city.toLowerCase()}`;
     if (cache.has(key)) return cache.get(key);
@@ -67,12 +70,13 @@ async function makeFinder() {
     cache.set(key, hit);
     return hit;
   };
+  return find;
 }
 
-export async function importCoursesSheet({ token, mapping: m, country = '', currency = '', dryRun = false, startedBy = null, log = () => {} }) {
+export async function importCoursesSheet({ token, mapping: m, country = '', currency = '', dryRun = false, startedBy = null, log = () => {}, bundled = null }) {
   const up = getUpload(token); if (!up) throw new Error('Upload expired — upload the file again');
   if (!m?.name || (!m.college && !m.college_ref)) throw new Error('Choose the course name column and the college column (or college id)');
-  const runId = dryRun ? null : await startRunSafe('courses_sheet', { file: up.filename, rows: up.rows.length }, startedBy);
+  const runId = dryRun ? null : await startRunSafe('courses_sheet', { file: up.filename, rows: up.rows.length, ...(bundled ? { bundled } : {}) }, startedBy);
   const finish = (patch) => runId && supabase.from('import_runs').update({ ...patch, finished_at: new Date().toISOString() }).eq('id', runId);
   try {
     const find = await makeFinder();
@@ -80,7 +84,7 @@ export async function importCoursesSheet({ token, mapping: m, country = '', curr
     for (const r of up.rows) {
       const name = String(r[m.name] || '').trim(); if (!name) { skipped++; continue; }
       const c = await find(r, m, country);
-      if (!c) { const k = String(r[m.college] || r[m.college_ref] || '?').trim(); unmatched.set(k, (unmatched.get(k) || 0) + 1); continue; }
+      if (!c) { const k = String(r[m.college] || r[m.college_ref] || '?').split('|')[0].trim(); unmatched.set(k, (unmatched.get(k) || 0) + 1); continue; }
       const level = levelOf(r[m.level], name);
       const duration = String(r[m.duration] || '').trim() || null;
       let fees = num(r[m.fees]);
