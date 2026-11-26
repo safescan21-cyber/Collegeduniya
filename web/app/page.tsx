@@ -23,6 +23,8 @@ const COUNTRIES = [
   { name: 'Japan', code: 'JP' },
   { name: 'France', code: 'FR' }, { name: 'Ireland', code: 'IE' }, { name: 'Netherlands', code: 'NL' },
   { name: 'Italy', code: 'IT' }, { name: 'New Zealand', code: 'NZ' }, { name: 'Singapore', code: 'SG' },
+  { name: 'United Arab Emirates', code: 'AE' }, { name: 'Russia', code: 'RU' }, { name: 'South Korea', code: 'KR' },
+  { name: 'Spain', code: 'ES' }, { name: 'Sweden', code: 'SE' },
 ];
 
 async function load() {

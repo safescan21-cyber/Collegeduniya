@@ -32,15 +32,16 @@ export async function countryInfo(codeOrName) {
 // The Hipolabs API is often down; the same list is published on GitHub, so that is the fallback (cached for a day)
 const HIPO_GITHUB = process.env.HIPO_GITHUB_URL || 'https://raw.githubusercontent.com/Hipo/university-domains-list/master/world_universities_and_domains.json';
 let hipoAll = null; let hipoAllAt = 0;
-async function hipoFromGithub(countryName) {
+async function hipoFromGithub(countryName, code) {
   if (!hipoAll || Date.now() - hipoAllAt > 24 * 3600e3) { hipoAll = await fetchJson(HIPO_GITHUB, { timeoutMs: 120000 }); hipoAllAt = Date.now(); }
-  const want = String(countryName).toLowerCase();
-  return (hipoAll || []).filter((r) => String(r.country || '').toLowerCase() === want);
+  const want = String(countryName).toLowerCase(); const cc = String(code || '').toUpperCase();
+  // match by country code when known (the list says "Russian Federation", "Korea, Republic of"…)
+  return (hipoAll || []).filter((r) => (cc ? r.alpha_two_code === cc : String(r.country || '').toLowerCase() === want));
 }
 
-export async function fetchHipolabs(countryName) {
+export async function fetchHipolabs(countryName, code = null) {
   let rows = await fetchJson(`${HIPOLABS}/search?country=${encodeURIComponent(countryName)}`, { timeoutMs: 30000 }).catch(() => null);
-  if (!Array.isArray(rows) || !rows.length) rows = await hipoFromGithub(countryName);
+  if (!Array.isArray(rows) || !rows.length) rows = await hipoFromGithub(countryName, code);
   return (rows || []).map((r) => ({
     name: String(r.name || '').trim(),
     website: (r.web_pages || [])[0] || null,
@@ -188,7 +189,7 @@ export async function importCountry(countryInput, { startedBy = null, dryRun = f
 
   try {
     log(`Fetching Hipolabs list for ${country.name}…`);
-    const hipo = await fetchHipolabs(country.name).catch((e) => { log(`Hipolabs failed: ${e.message}`); return []; });
+    const hipo = await fetchHipolabs(country.name, country.code).catch((e) => { log(`Hipolabs failed: ${e.message}`); return []; });
     log(`Hipolabs: ${hipo.length}. Fetching Wikidata…`);
     const wiki = country.code ? await fetchWikidata(country.code).catch((e) => { log(`Wikidata failed: ${e.message}`); return []; }) : [];
     log(`Wikidata: ${wiki.length}. Merging…`);
