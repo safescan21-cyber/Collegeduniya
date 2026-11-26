@@ -29,8 +29,18 @@ export async function countryInfo(codeOrName) {
   return { code: null, name: v };
 }
 
+// The Hipolabs API is often down; the same list is published on GitHub, so that is the fallback (cached for a day)
+const HIPO_GITHUB = process.env.HIPO_GITHUB_URL || 'https://raw.githubusercontent.com/Hipo/university-domains-list/master/world_universities_and_domains.json';
+let hipoAll = null; let hipoAllAt = 0;
+async function hipoFromGithub(countryName) {
+  if (!hipoAll || Date.now() - hipoAllAt > 24 * 3600e3) { hipoAll = await fetchJson(HIPO_GITHUB, { timeoutMs: 120000 }); hipoAllAt = Date.now(); }
+  const want = String(countryName).toLowerCase();
+  return (hipoAll || []).filter((r) => String(r.country || '').toLowerCase() === want);
+}
+
 export async function fetchHipolabs(countryName) {
-  const rows = await fetchJson(`${HIPOLABS}/search?country=${encodeURIComponent(countryName)}`, { timeoutMs: 60000 });
+  let rows = await fetchJson(`${HIPOLABS}/search?country=${encodeURIComponent(countryName)}`, { timeoutMs: 30000 }).catch(() => null);
+  if (!Array.isArray(rows) || !rows.length) rows = await hipoFromGithub(countryName);
   return (rows || []).map((r) => ({
     name: String(r.name || '').trim(),
     website: (r.web_pages || [])[0] || null,

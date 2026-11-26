@@ -50,9 +50,17 @@ export default async function CollegesPage({ searchParams }: { searchParams: Pro
     const restrictIds = async (ids: string[]) => { q = q.in('id', Array.from(new Set(ids)).slice(0, 1000).concat(['00000000-0000-0000-0000-000000000000'])); };
     if (sp.level) { const { data } = await sb.from('courses').select('college_id').eq('level', sp.level).limit(5000); await restrictIds((data || []).map((x: any) => x.college_id)); }
     if (sp.course) { const { data } = await sb.from('courses').select('college_id').eq('catalog_slug', sp.course).limit(5000); await restrictIds((data || []).map((x: any) => x.college_id)); }
-    const term = cleanTerm(sp.q);
+    let term = cleanTerm(sp.q);
+    // searching a country name ("Japan", "USA", "UK") filters by country — fast (indexed) instead of scanning every college
+    let country = sp.country || '';
+    if (term && !country) {
+      const alias: Record<string, string> = { usa: 'United States', us: 'United States', america: 'United States', uk: 'United Kingdom', britain: 'United Kingdom', england: 'United Kingdom', uae: 'United Arab Emirates', korea: 'South Korea', holland: 'Netherlands' };
+      const want = alias[term.toLowerCase()] || term;
+      const { data: c } = await sb.from('countries').select('name').ilike('name', want).limit(1);
+      if (c?.[0]?.name) { country = c[0].name; term = ''; }
+    }
     if (term) q = q.or(`name.ilike.%${term}%,short_name.ilike.%${term}%,city.ilike.%${term}%,state.ilike.%${term}%,district.ilike.%${term}%,country.ilike.%${term}%`);
-    if (sp.country) q = q.eq('country', sp.country);
+    if (country) q = q.eq('country', country);
     if (sp.state) q = q.eq('state', sp.state);
     if (sp.city) q = q.ilike('city', cleanTerm(sp.city));
     if (sp.type) q = q.eq('type', sp.type);
