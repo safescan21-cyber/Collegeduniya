@@ -18,14 +18,14 @@ const ETER_API = process.env.ETER_API_URL || 'https://eter-project.com/api/4.0/H
 const ETER_FIELDS = ['BAS.ETERID', 'BAS.REFYEAR', 'BAS.COUNTRY', 'BAS.INSTNAME', 'BAS.INSTNAMEENGL', 'BAS.WEBSITE', 'BAS.FOUNDYEAR', 'BAS.LEGALSTAT', 'BAS.INSTCATENGL',
   'GEO.CITY', 'GEO.COORDLAT', 'GEO.COORDLON', 'STUD.ISCED5_7MEN', 'STUD.ISCED5_7WOMEN', 'STUD.ISCED5_7GENUNCL', 'STUD.ISCED8MEN', 'STUD.ISCED8WOMEN'];
 
-async function fetchBuf(url, { timeoutMs = 300000, headers = {} } = {}) {
+export async function fetchBuf(url, { timeoutMs = 300000, headers = {} } = {}) {
   const r = await fetch(url, { headers: { 'User-Agent': USER_AGENT, ...headers }, redirect: 'follow', signal: AbortSignal.timeout(timeoutMs) });
   if (!r.ok) throw new Error(`${new URL(url).host}: HTTP ${r.status}`);
   return Buffer.from(await r.arrayBuffer());
 }
 
 // ---------------------------------------------------------------- shared: match / create colleges in a country
-async function collegeIndex(countryCode) {
+export async function collegeIndex(countryCode) {
   const rows = [];
   for (let from = 0; ; from += 1000) {
     const { data, error } = await supabase.from('colleges').select('id, name, short_name, website, domains, source, city, latitude, longitude, established, students_count, type, facts, is_published')
@@ -47,20 +47,20 @@ async function collegeIndex(countryCode) {
 }
 
 // Prefer the dataset's own city name (nearest_city can land on a district); fall back to coordinates
-async function cityByName(cc, name) {
+export async function cityByName(cc, name) {
   if (!name || !cc) return null;
   const { data } = await supabase.from('cities').select('geoname_id, name, admin1').eq('country_code', cc)
     .or(`name.ilike.${String(name).replace(/[,()*%]/g, ' ').trim()},ascii_name.ilike.${String(name).replace(/[,()*%]/g, ' ').trim()}`).order('population', { ascending: false, nullsFirst: false }).limit(1);
   return data?.[0] ? { geoname_id: data[0].geoname_id, name: data[0].name, admin1: data[0].admin1 } : null;
 }
-async function nearest(lat, lng) {
+export async function nearest(lat, lng) {
   if (lat == null || lng == null) return null;
   const { data } = await supabase.rpc('nearest_city', { lat, lng });
   return data?.[0] || null;
 }
 
 // Patch only empty fields; merge facts; never touch admin-created colleges' own values
-async function fillCollege(c, fields, factsKey, facts) {
+export async function fillCollege(c, fields, factsKey, facts) {
   const patch = {};
   for (const [k, v] of Object.entries(fields)) {
     if (v == null || v === '') continue;
@@ -74,7 +74,7 @@ async function fillCollege(c, fields, factsKey, facts) {
   if (error) throw new Error(error.message);
 }
 
-async function createCollege({ source, external_id, name, country, country_code, website, latitude, longitude, established, type, students_count, factsKey, facts, currency, cityName }) {
+export async function createCollege({ source, external_id, name, country, country_code, website, latitude, longitude, established, type, students_count, factsKey, facts, currency, cityName }) {
   const near = (await cityByName(country_code, cityName)) || await nearest(latitude, longitude);
   const row = {
     source, external_id, name, country, country_code, website: website || null, domains: [host(website || '')].filter(Boolean),
@@ -95,11 +95,11 @@ async function createCollege({ source, external_id, name, country, country_code,
   return data.id;
 }
 
-async function startRun(kind, params, startedBy) {
+export async function startRun(kind, params, startedBy) {
   const { data } = await supabase.from('import_runs').insert({ kind, params, started_by: startedBy }).select('id').single();
   return data?.id || null;
 }
-const finishRun = (id, patch) => id && supabase.from('import_runs').update({ ...patch, finished_at: new Date().toISOString() }).eq('id', id);
+export const finishRun = (id, patch) => id && supabase.from('import_runs').update({ ...patch, finished_at: new Date().toISOString() }).eq('id', id);
 
 // ---------------------------------------------------------------- UK: Discover Uni
 async function discoverUniZipUrl() {

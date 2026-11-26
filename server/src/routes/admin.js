@@ -9,6 +9,9 @@ import { importCountry } from '../services/universities.js';
 import { runAutofill, runReviewInvites, autofillStatus, kickAutofill } from '../services/collegeAutofill.js';
 import { collectExamNews, sendExamNewsDigests, examNewsStatus } from '../services/examNews.js';
 import { runHealthChecks, healthStatus, sendTestAlert } from '../services/health.js';
+import { importCricos } from '../services/cricos.js';
+import { spawnLeidenImport } from '../services/leiden.js';
+import { importCoursesSheet, guessCourseMapping, COURSE_TARGETS } from '../services/coursesSheet.js';
 import { errorReport, markResolved } from '../services/errorWatch.js';
 import { runFix, fixHistory, actionList } from '../services/autoFix.js';
 import { loadStatus } from '../services/loadGuard.js';
@@ -220,6 +223,34 @@ router.post('/import/nirf-sheet', wrap(async (req, res) => {
   const { importNirfSheet } = await import('../services/nirfData.js');
   const b = req.body || {};
   res.json(await importNirfSheet({ year: Number(b.year) || 2025, category: String(b.category || ''), pageUrl: b.pageUrl, row: b.row, pdfBase64: b.pdf || null }));
+}));
+// Australia — CRICOS courses with fees (newest snapshot from data.gov.au, or an uploaded .xlsx)
+const cricosFile = multer({ storage: multer.memoryStorage(), limits: { fileSize: 60 * 1024 * 1024, files: 1 } });
+router.post('/import/cricos', cricosFile.single('file'), wrap(async (req, res) => {
+  importCricos({ buffer: req.file?.buffer || null, startedBy: req.user.id, log: (m) => console.log(`[cricos] ${m}`) })
+    .then(() => kickAutofill()).catch((e) => console.error('[cricos]', e.message));
+  res.status(202).json({ ok: true, message: 'Australia import started (≈170 providers, ≈15,000 degree courses with fees; 5–15 minutes). Progress shows under “Recent imports”.' });
+}));
+// World research ranking — CWTS Leiden Ranking Open Edition (separate low-priority process; ~590 MB file)
+router.post('/import/leiden', wrap(async (req, res) => {
+  const { data: running } = await supabase.from('import_runs').select('id').eq('kind', 'leiden').eq('status', 'running').gte('created_at', new Date(Date.now() - 6 * 3600e3).toISOString()).limit(1);
+  if (running?.length) return fail(res, new Error('The world ranking import is already running'), 409);
+  const r = spawnLeidenImport({ year: Number(req.body?.year) || 2025, startedBy: req.user.id });
+  res.status(202).json({ ok: true, message: `World ranking import started in the background (downloads ~590 MB, then reads it slowly so the site stays fast — 30–90 minutes). Progress shows under “Recent imports”.`, ...r });
+}));
+// Courses for any country from a spreadsheet: 1) upload → columns guessed, 2) check (dry run), 3) import
+router.post('/import/courses-sheet/preview', sheetUpload.single('file'), wrap(async (req, res) => {
+  if (!req.file) return fail(res, new Error('Choose a .xlsx or .csv file'));
+  const { headers, rows } = await parseSheet(req.file.buffer, req.file.originalname);
+  if (!rows.length) return fail(res, new Error('No rows found in the file'));
+  const token = stashUpload({ filename: req.file.originalname, headers, rows });
+  res.json({ token, filename: req.file.originalname, headers, rowCount: rows.length, sample: rows.slice(0, 5), mapping: guessCourseMapping(headers), targets: COURSE_TARGETS });
+}));
+router.post('/import/courses-sheet/commit', wrap(async (req, res) => {
+  const { token, mapping, country, currency, dryRun } = req.body || {};
+  if (dryRun) return res.json(await importCoursesSheet({ token, mapping, country, currency, dryRun: true }));
+  importCoursesSheet({ token, mapping, country, currency, startedBy: req.user.id, log: (m) => console.log(`[courses-sheet] ${m}`) }).catch((e) => console.error('[courses-sheet]', e.message));
+  res.status(202).json({ ok: true, message: 'Courses import started — progress shows under “Recent imports”.' });
 }));
 router.post('/import/eter', wrap(async (req, res) => {
   const countries = Array.isArray(req.body?.countries) ? req.body.countries.filter((c) => /^[A-Za-z]{2}$/.test(c)) : null;

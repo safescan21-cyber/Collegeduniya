@@ -10,6 +10,7 @@ type Row = { rank: number | null; rank_band: string | null; name: string; city: 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<SP> }): Promise<Metadata> {
   const sp = await searchParams;
   const cat = sp.category || 'Overall'; const y = sp.year || '';
+  if (sp.src === 'world') return { title: 'World university ranking — research (CWTS Leiden Ranking Open Edition)', description: 'Universities worldwide ordered by scientific publications (CWTS Leiden Ranking Open Edition, open data), with links to each college’s courses and fees.', alternates: { canonical: '/rankings?src=world' } };
   return {
     title: `NIRF ${y ? `${y} ` : ''}ranking — ${cat === 'Overall' ? 'top institutions in India' : `top ${cat.toLowerCase()} institutions`}`,
     description: `Full NIRF India Rankings${y ? ` ${y}` : ''} list for ${cat}, with rank changes from the previous year and links to each college’s fees, courses and reviews.`,
@@ -21,7 +22,9 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   if (!hasSupabase) return null;
   const sb = supabasePublic({ revalidate: 3600 });
-  const { data: idx } = await sb.rpc('ranking_list_index', { p_source: 'NIRF' });
+  const world = sp.src === 'world';
+  const SRC = world ? 'Leiden' : 'NIRF';
+  const { data: idx } = await sb.rpc('ranking_list_index', { p_source: SRC });
   const index = (idx || []) as { year: number; category: string; n: number }[];
   const years = Array.from(new Set(index.map((i) => i.year))).sort((a, b) => b - a);
   const year = Number(sp.year) && years.includes(Number(sp.year)) ? Number(sp.year) : years[0];
@@ -31,8 +34,8 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
   const category = sp.category && cats.includes(sp.category) ? sp.category : cats.includes('Overall') ? 'Overall' : cats[0];
 
   const [{ data: list }, { data: prev }] = year ? await Promise.all([
-    sb.from('ranking_lists').select('rank, rank_band, name, city, state, college_id').eq('source', 'NIRF').eq('year', year).eq('category', category).order('rank', { ascending: true, nullsFirst: false }).limit(300),
-    sb.from('ranking_lists').select('rank, name, city, college_id').eq('source', 'NIRF').eq('year', year - 1).eq('category', category).limit(300),
+    sb.from('ranking_lists').select('rank, rank_band, name, city, state, college_id').eq('source', SRC).eq('year', year).eq('category', category).order('rank', { ascending: true, nullsFirst: false }).limit(world ? 500 : 300),
+    sb.from('ranking_lists').select('rank, name, city, college_id').eq('source', SRC).eq('year', year - 1).eq('category', category).limit(300),
   ]) : [{ data: [] }, { data: [] }];
   const rows = (list || []) as Row[];
   const ids = rows.map((r) => r.college_id).filter(Boolean) as string[];
@@ -47,13 +50,16 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
   const up = [...moves].sort((a, b) => b.d - a.d).filter((m) => m.d >= 3).slice(0, 5);
   const down = [...moves].sort((a, b) => a.d - b.d).filter((m) => m.d <= -3).slice(0, 5);
   const fresh = (prev || []).length ? rows.filter((r) => r.rank && !prevRank(r)).slice(0, 5) : [];
-  const href = (y: number, c: string) => `/rankings?${new URLSearchParams({ year: String(y), category: c })}`;
+  const href = (y: number, c: string) => `/rankings?${new URLSearchParams({ ...(world ? { src: 'world' } : {}), year: String(y), category: c })}`;
   const Inst = ({ r }: { r: Row }) => { const c = r.college_id ? slug.get(r.college_id) : null; return c ? <Link href={`/colleges/${c.slug}`} className="font-semibold text-slate-900 hover:text-brand-700">{r.name}</Link> : <span className="font-semibold text-slate-900">{r.name}</span>; };
 
   return (
     <div className="container-x py-10">
-      <h1 className="flex items-center gap-2 text-3xl font-extrabold text-slate-900"><Trophy className="text-amber-500" />NIRF India Rankings {year || ''}</h1>
-      <p className="mt-2 max-w-3xl text-slate-600">The Government of India’s official ranking of colleges and universities (National Institutional Ranking Framework, Ministry of Education). Pick a year and a category; rank changes are compared with the year before.</p>
+      <div className="mb-4 flex gap-2"><Link href="/rankings" className={world ? 'chip' : 'chip-brand'}>🇮🇳 India (NIRF)</Link><Link href="/rankings?src=world" className={world ? 'chip-brand' : 'chip'}>🌍 World (research)</Link></div>
+      <h1 className="flex items-center gap-2 text-3xl font-extrabold text-slate-900"><Trophy className="text-amber-500" />{world ? `World university ranking ${year || ''} — research` : `NIRF India Rankings ${year || ''}`}</h1>
+      <p className="mt-2 max-w-3xl text-slate-600">{world
+        ? 'Universities worldwide ordered by the number of scientific publications (all sciences, fractional counting) from the CWTS Leiden Ranking Open Edition. It measures research output only — not teaching quality, fees or placements.'
+        : 'The Government of India’s official ranking of colleges and universities (National Institutional Ranking Framework, Ministry of Education). Pick a year and a category; rank changes are compared with the year before.'}</p>
       {!years.length ? <p className="mt-8 text-slate-500">Rankings are being loaded — check back shortly.</p> : <>
         <div className="mt-6 flex flex-wrap gap-2">{years.map((y) => <Link key={y} href={href(y, category)} className={y === year ? 'chip-brand' : 'chip'}>{y}</Link>)}</div>
         <div className="mt-3 flex flex-wrap gap-2">{cats.map((c) => <Link key={c} href={href(year, c)} className={c === category ? 'btn-primary py-1.5 text-sm' : 'btn-ghost py-1.5 text-sm'}>{c}</Link>)}</div>
@@ -68,18 +74,19 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
 
         <div className="card mt-6 overflow-x-auto">
           <table className="w-full min-w-[640px] text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th className="px-4 py-2.5">Rank</th><th className="px-4 py-2.5">Institution</th><th className="px-4 py-2.5">City</th><th className="px-4 py-2.5">State</th><th className="px-4 py-2.5">vs {year - 1}</th></tr></thead>
+            <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th className="px-4 py-2.5">Rank</th><th className="px-4 py-2.5">Institution</th><th className="px-4 py-2.5">{world ? 'Country' : 'City'}</th>{!world && <th className="px-4 py-2.5">State</th>}<th className="px-4 py-2.5">vs {year - 1}</th></tr></thead>
             <tbody className="divide-y divide-slate-100">{rows.map((r) => { const p = prevRank(r); const d = p && r.rank ? p - r.rank : null; return (
               <tr key={`${r.name}|${r.city}`} className="hover:bg-slate-50/60">
                 <td className="px-4 py-2.5"><b className="text-base text-slate-900">{r.rank ? `#${r.rank}` : r.rank_band}</b></td>
                 <td className="px-4 py-2.5"><Inst r={r} /></td>
                 <td className="px-4 py-2.5 text-slate-600">{r.city}</td>
-                <td className="px-4 py-2.5 text-slate-600">{r.state}</td>
+                {!world && <td className="px-4 py-2.5 text-slate-600">{r.state}</td>}
                 <td className="px-4 py-2.5 text-xs">{d == null ? <span className="text-slate-400">{(prev || []).length ? 'new' : '—'}</span> : d > 0 ? <span className="font-semibold text-emerald-700">▲ {d}</span> : d < 0 ? <span className="font-semibold text-rose-700">▼ {-d}</span> : <span className="text-slate-500">=</span>}</td>
               </tr>); })}</tbody>
           </table>
         </div>
-        <p className="mt-4 text-xs text-slate-400">Source: <a href={`https://www.nirfindia.org/Rankings/${year}/Ranking.html`} target="_blank" rel="noopener noreferrer" className="underline">NIRF India Rankings {year}</a>, Ministry of Education, Government of India. Equal ranks are shared as published. Collegeolo links each institution to its profile where we have one.</p>
+        {world ? <p className="mt-4 text-xs text-slate-400">Source: <a href="https://open.leidenranking.com/" target="_blank" rel="noopener noreferrer" className="underline">CWTS Leiden Ranking Open Edition {year}</a>, Centre for Science and Technology Studies, Leiden University — open data (CC0) based on OpenAlex. Top 500 shown; ranks are by publications in the latest period. Collegeolo links each university to its profile where we have one.</p>
+        : <p className="mt-4 text-xs text-slate-400">Source: <a href={`https://www.nirfindia.org/Rankings/${year}/Ranking.html`} target="_blank" rel="noopener noreferrer" className="underline">NIRF India Rankings {year}</a>, Ministry of Education, Government of India. Equal ranks are shared as published. Collegeolo links each institution to its profile where we have one.</p>}
       </>}
     </div>
   );

@@ -214,6 +214,9 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             {(c as any).description_source === 'wikipedia' && (c as any).wikipedia_url && (
               <p className="mt-2 text-xs text-slate-400">Text from <a href={(c as any).wikipedia_url} target="_blank" rel="noopener" className="underline">Wikipedia</a>, licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener license" className="underline">CC BY-SA 4.0</a>.</p>
             )}
+            {(c as any).facts?.cricos && (
+              <p className="mt-2 text-xs text-slate-400">Courses and tuition fees: Source — <a href="https://cricos.education.gov.au/" target="_blank" rel="noopener" className="underline">CRICOS</a>, Australian Government Department of Education, licensed <a href="https://creativecommons.org/licenses/by/2.5/au/" target="_blank" rel="noopener license" className="underline">CC BY 2.5 AU</a>{(c as any).facts.cricos.snapshot ? ` (list of ${(c as any).facts.cricos.snapshot})` : ''}. Fees are for international students; per-year fees are the total course tuition divided by the course length. Check the university's website before applying.</p>
+            )}
             {(c as any).facts?.uk && (
               <p className="mt-2 text-xs text-slate-400">Courses, graduate outcomes and NSS scores: Contains HESA data — <a href="https://discoveruni.gov.uk" target="_blank" rel="noopener" className="underline">Discover Uni</a> dataset, licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener license" className="underline">CC BY 4.0</a>{(c as any).facts.uk.updated ? ` (downloaded ${(c as any).facts.uk.updated})` : ''}.</p>
             )}
@@ -221,7 +224,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
               <p className="mt-2 text-xs text-slate-400">{(c as any).facts.eter.source || 'Data source: ETER project'} (<a href="https://www.eter-project.com" target="_blank" rel="noopener" className="underline">European Tertiary Education Register</a>).</p>
             )}
             {(c as any).source && (c as any).source !== 'admin' && (
-              <p className="mt-3 text-xs text-slate-400">Profile from public data ({({ hipolabs: 'Hipolabs university list', wikidata: 'Wikidata', aishe: 'AISHE, Govt. of India', scorecard: 'U.S. College Scorecard', discover_uni: 'Discover Uni (HESA)', eter: 'ETER' } as Record<string, string>)[(c as any).source] || (c as any).source}{(c as any).wikidata_id ? ' + Wikidata' : ''}). <Link href="/counselling" className="underline">Ask us</Link> for current fees and admission details.</p>
+              <p className="mt-3 text-xs text-slate-400">Profile from public data ({({ hipolabs: 'Hipolabs university list', wikidata: 'Wikidata', aishe: 'AISHE, Govt. of India', scorecard: 'U.S. College Scorecard', discover_uni: 'Discover Uni (HESA)', eter: 'ETER', cricos: 'CRICOS, Australian Govt.' } as Record<string, string>)[(c as any).source] || (c as any).source}{(c as any).wikidata_id ? ' + Wikidata' : ''}). <Link href="/counselling" className="underline">Ask us</Link> for current fees and admission details.</p>
             )}
             <p className="mt-2 text-xs text-slate-400">
               {updatedOn((c as any).data_updated_at || (c as any).updated_at) && <>Last updated {updatedOn((c as any).data_updated_at || (c as any).updated_at)} · </>}

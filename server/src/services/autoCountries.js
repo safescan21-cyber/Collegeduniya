@@ -5,6 +5,8 @@ import { supabase } from '../supabase.js';
 import { importCountry, countryInfo } from './universities.js';
 import { kickAutofill } from './collegeAutofill.js';
 import { serverBusy } from './loadGuard.js';
+import { importCricos, cricosDue } from './cricos.js';
+import { spawnLeidenImport } from './leiden.js';
 
 // Imports the countries listed in server/data/auto-countries.json when they have (almost) no colleges yet,
 // once the server is calm. Afterwards the daily autofill adds photos, logos and details from Wikipedia/Wikimedia.
@@ -33,9 +35,27 @@ export async function runAutoCountries({ log = (m) => console.log(`[auto-countri
   return { done };
 }
 
+// Australia's official course list with fees (monthly) and the world research ranking (once; the admin panel re-runs it)
+let officialBusy = false;
+export async function runOfficialData({ log = (m) => console.log(`[official-data] ${m}`) } = {}) {
+  if (officialBusy) return; officialBusy = true;
+  try {
+    if (process.env.AUTO_CRICOS !== 'off' && await cricosDue()) {
+      log('Australia (CRICOS) is due — importing'); await importCricos({ log }).then(() => kickAutofill()).catch((e) => log(`CRICOS failed: ${e.message}`));
+    }
+    if (process.env.AUTO_LEIDEN !== 'off') {
+      const { data } = await supabase.from('import_runs').select('id').eq('kind', 'leiden').limit(1);
+      if (!data?.length && !serverBusy()) { log('World ranking (Leiden) never imported — starting it in the background'); spawnLeidenImport({}); }
+    }
+  } finally { officialBusy = false; }
+}
+
 export function startAutoCountries() {
   if (process.env.AUTO_COUNTRIES === 'off') return;
-  const tick = () => { if (serverBusy()) return; runAutoCountries().catch((e) => console.warn('[auto-countries]', e.message)); };
+  const tick = () => {
+    if (serverBusy()) return;
+    runAutoCountries().then(() => runOfficialData()).catch((e) => console.warn('[auto-countries]', e.message));
+  };
   setTimeout(tick, 4 * 60e3);
   setInterval(tick, 3600e3).unref();   // hourly: also catches a run postponed because the server was busy
 }

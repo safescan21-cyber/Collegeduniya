@@ -685,3 +685,21 @@ and now also check that the home page's scripts load.
 **Capacity, honestly:** on a 2-CPU / 8 GB server shared with the database and other apps, cached pages handle roughly
 50–150 page views per second — a few thousand people browsing at the same time. 10,000 people *at the same moment*
 needs a CDN in front (Cloudflare free plan caches the static files and absorbs bursts) and/or a 4–8 CPU server.
+
+### 5w. World data: Australia courses & fees, world research ranking, courses spreadsheet
+
+- **Australia — CRICOS** (`services/cricos.js`, Admin → Import → World): the Australian Government's register of
+  courses for international students (data.gov.au, CC BY 2.5 AU). Providers teaching degree courses are matched to
+  Australian colleges (website/name) or added; their Bachelor/Masters/Doctoral/Graduate/Associate/Diploma courses are
+  saved with duration and tuition (total ÷ years = per year; total kept in the note). Runs automatically once a month.
+  `CRICOS_URL` forces a file; an .xlsx can also be uploaded.
+- **World ranking — CWTS Leiden Ranking Open Edition** (`services/leiden.js`, `scripts/import-leiden.js`, CC0): about
+  2,800 universities ordered by publications (All sciences, latest period, fractional counting) → `/rankings?src=world`
+  and college pages ("research — not teaching or fees"). The ~590 MB results file is streamed in a separate
+  `nice -n 19` process (log: /tmp/collegeolo-leiden.log). Runs once automatically; Admin → Import refreshes it.
+  QS / THE are licensed products and are not imported.
+- **Courses spreadsheet** (`services/coursesSheet.js`): one row per course (college, country, city, course, level,
+  duration, fees per year or total, currency, eligibility, link, language). Template, column mapping, a "Check" step that
+  lists colleges not found, then import. Re-uploading updates the same courses.
+- **Auto-import of countries** (`server/data/auto-countries.json`): Japan, UAE, Russia, South Korea, Spain, Sweden are
+  imported (open Hipo list + Wikidata) when they have fewer than 20 colleges. `AUTO_COUNTRIES/AUTO_CRICOS/AUTO_LEIDEN=off`.

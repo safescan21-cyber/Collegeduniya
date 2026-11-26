@@ -126,7 +126,7 @@ export function Rankings({ name, rows, review, nirf }: { name: string; rows: Ran
               return <td key={y} className="px-4 py-2 font-semibold">{r ? (r.rank ? `#${r.rank}` : r.rank_band || '—') : <span className="font-normal text-slate-300">—</span>}</td>; })}
           </tr>); })}</tbody>
       </table></div>
-      {rows.find((r) => r.source_url) && <p className="px-6 py-2 text-xs text-slate-400">Source: <a href={rows.find((r) => r.source_url)!.source_url!} target="_blank" rel="noopener noreferrer" className="underline">official ranking</a>{rows.some((r) => r.source === 'NIRF') ? ' — NIRF India Rankings, Ministry of Education, Govt. of India. ' : ' '}<Link href="/rankings" className="underline">See full ranking lists</Link></p>}
+      {rows.find((r) => r.source_url) && <p className="px-6 py-2 text-xs text-slate-400">Source: <a href={rows.find((r) => r.source_url)!.source_url!} target="_blank" rel="noopener noreferrer" className="underline">official ranking</a>{rows.some((r) => r.source === 'NIRF') ? ' — NIRF India Rankings, Ministry of Education, Govt. of India. ' : ' '}{rows.some((r) => r.source === 'Leiden') ? <>Leiden = CWTS Leiden Ranking Open Edition (research publications, open data CC0; not teaching or fees). </> : null}<Link href={rows.some((r) => r.source === 'NIRF') ? '/rankings' : '/rankings?src=world'} className="underline">See full ranking lists</Link></p>}
     </section>
   );
 }

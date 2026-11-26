@@ -6,6 +6,7 @@ import AutofillCard from '@/components/admin/AutofillCard';
 import SheetImport from '@/components/admin/SheetImport';
 import OfficialDataImport from '@/components/admin/OfficialDataImport';
 import EuropeImport from '@/components/admin/EuropeImport';
+import WorldImport from '@/components/admin/WorldImport';
 import NirfDataImport from '@/components/admin/NirfDataImport';
 import { timeAgo } from '@/lib/format';
 
@@ -98,6 +99,7 @@ export default function AdminImport() {
         <OfficialDataImport />
         <NirfDataImport />
         <EuropeImport onStarted={loadRuns} />
+        <WorldImport onStarted={loadRuns} />
         <div className="card p-5">
           <h2 className="font-bold text-slate-900">🇮🇳 Every Indian college — AISHE list</h2>
           <p className="mt-1 text-sm text-slate-500">About 70,000 universities, colleges and standalone institutions (nursing, B.Ed, polytechnics …) from the Ministry of Education's AISHE list, with state and district. Each is placed in its district town; fees, courses and photos are filled later (automatically from Wikipedia where possible, or by your team). Colleges already on the site and your own edits are kept.</p>
