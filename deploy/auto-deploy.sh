@@ -23,6 +23,15 @@ git fetch -q origin "$BRANCH" || exit 0
 OLD=$(git rev-parse HEAD); NEW=$(git rev-parse "origin/$BRANCH")
 [ "$OLD" = "$NEW" ] && exit 0
 
+# very busy server (more than 3 jobs waiting per CPU): wait for a calmer moment, but never more than 30 minutes
+CPUS=$(nproc 2>/dev/null || echo 2); LOAD=$(cut -d' ' -f1 /proc/loadavg)
+WAIT=/tmp/collegeolo-deploy.waiting
+if awk -v l="$LOAD" -v c="$CPUS" 'BEGIN{exit !(l > 3*c)}'; then
+  [ -f "$WAIT" ] || date +%s > "$WAIT"
+  if [ $(( $(date +%s) - $(cat "$WAIT") )) -lt 1800 ]; then echo "$(date '+%F %T') server busy (load $LOAD) — deploy postponed"; exit 0; fi
+fi
+rm -f "$WAIT"
+
 echo "== $(date '+%F %T') deploying ${OLD:0:7} -> ${NEW:0:7}"
 CHANGED=$(git diff --name-only "$OLD" "$NEW")
 git merge -q --ff-only "origin/$BRANCH" || { echo "cannot fast-forward — local changes on the server?"; exit 1; }
@@ -41,10 +50,9 @@ if echo "$CHANGED" | grep -q '^server/'; then
 fi
 if echo "$CHANGED" | grep -q '^web/'; then
   echo "$CHANGED" | grep -q '^web/package' && (cd web && npm ci --no-audit --no-fund)
-  if (cd web && NODE_OPTIONS=--max-old-space-size=2048 npm run build > /root/collegeolo-build.log 2>&1); then
-    pm2 restart collegeolo-web > /dev/null && echo "web rebuilt and restarted"
-  else
-    echo "WEB BUILD FAILED — site keeps running the previous version. See /root/collegeolo-build.log"
-  fi
+  # builds next to the live site and switches over with no downtime (no more 404s for /_next/static/chunks/…)
+  bash deploy/build-web.sh
 fi
+# web server tuning for heavy traffic (deploy/nginx/) — applied only if nginx accepts it, otherwise rolled back
+if echo "$CHANGED" | grep -q '^deploy/nginx/'; then bash deploy/nginx/apply.sh; fi
 echo "== done"

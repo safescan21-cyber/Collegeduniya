@@ -1,4 +1,5 @@
 import { supabase } from '../supabase.js';
+import { whenIdle } from './loadGuard.js';
 import { llmReady } from './llm.js';
 import { draftBlueprint, generateQuestions, reviewReported, examInfo } from './mockGen.js';
 
@@ -140,7 +141,7 @@ export async function runAutopilot({ force = false, only = null } = {}) {
 export function startAutopilot() {
   if (process.env.MOCK_AUTOPILOT === 'off') return;
   const every = Math.max(10, Number(process.env.MOCK_AUTOPILOT_MINUTES || 60)) * 60_000;
-  const tick = () => runAutopilot().catch((e) => console.error('[autopilot]', e.message));
+  const tick = whenIdle('mock autopilot', () => runAutopilot().catch((e) => console.error('[autopilot]', e.message)));
   setTimeout(tick, 90_000);
   setInterval(tick, every).unref();
 }

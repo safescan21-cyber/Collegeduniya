@@ -4,6 +4,8 @@ import tls from 'node:tls';
 import { supabase } from '../supabase.js';
 import { sendMail, mailEnabled } from './mailer.js';
 import { llmReady } from './llm.js';
+import { runFix, setFixNotifier, topProcesses } from './autoFix.js';
+import { loadStatus } from './loadGuard.js';
 
 // System health: every HEALTH_EVERY_MIN (5) minutes the API checks the website, database, login service, file storage,
 // live chat, email, disk, memory, SSL certificates and background jobs. A check that fails twice in a row alerts every
@@ -44,11 +46,22 @@ function certDays(host) {
 // each check returns { ok, detail } or throws; `warn: true` means "show, but don't email"
 const CHECKS = [
   { name: 'Website', group: 'Site', run: () => http(`${SITE}/`) },
+  // the page's own JavaScript must load too — a missing file breaks buttons and login even though the page shows
+  { name: 'Website scripts', group: 'Site', run: async () => {
+    const html = await (await fetch(`${SITE}/`, { signal: AbortSignal.timeout(9000) })).text();
+    const chunks = [...new Set(html.match(/\/_next\/static\/[^"'\s]+\.js/g) || [])].slice(0, 3);
+    if (!chunks.length) return 'no scripts on the page';
+    for (const c of chunks) {
+      const r = await fetch(`${SITE}${c}`, { method: 'HEAD', signal: AbortSignal.timeout(9000) });
+      if (r.status !== 200) throw new Error(`script ${c.split('/').pop()} answers ${r.status} — pages cannot run (login, buttons)`);
+    }
+    return `${chunks.length} scripts load`;
+  } },
   { name: 'API server', group: 'Site', run: async () => `up ${Math.round(process.uptime() / 60)} min, ${Math.round(process.memoryUsage().rss / 1048576)} MB` },
   { name: 'Database', group: 'Supabase', run: async () => {
-    const { count, error } = await supabase.from('colleges').select('id', { count: 'exact', head: true });
+    const { count, error } = await supabase.from('colleges').select('id', { count: 'estimated', head: true });   // estimated: cheap even when busy
     if (error) throw new Error(error.message);
-    return `${(count || 0).toLocaleString('en-IN')} colleges`;
+    return `about ${(count || 0).toLocaleString('en-IN')} colleges`;
   } },
   { name: 'Login service', group: 'Supabase', run: () => http(`${SB}/auth/v1/health`, { headers: { apikey: KEY } }) },
   { name: 'File storage', group: 'Supabase', run: async () => {
@@ -80,7 +93,11 @@ const CHECKS = [
   { name: 'Memory', group: 'Server', run: async () => {
     const freePct = (os.freemem() / os.totalmem()) * 100;
     const load = os.loadavg()[0] / os.cpus().length;
-    if (load > 3) throw new Error(`server very busy (load ${os.loadavg()[0].toFixed(1)})`);
+    if (load > 3) {
+      const top = await topProcesses();
+      throw new Error(`server very busy (load ${os.loadavg()[0].toFixed(1)} on ${os.cpus().length} CPUs)${top.length ? ` — using CPU: ${top.slice(0, 3).join(', ')}` : ''}`);
+    }
+    if (freePct < 5) throw new Error(`memory almost full (${(os.freemem() / 1073741824).toFixed(1)} GB free)`);
     return `${(os.freemem() / 1073741824).toFixed(1)} GB free of ${(os.totalmem() / 1073741824).toFixed(0)} GB · load ${os.loadavg()[0].toFixed(1)}`;
   } },
   ...['www.collegeolo.com', 'db.collegeolo.com'].map((h) => ({ name: `SSL ${h}`, group: 'Server', run: async () => {
@@ -97,6 +114,17 @@ const CHECKS = [
     return `${(data || []).length} runs in 24h, none failed`;
   } },
 ];
+
+// which automatic repair fixes which failing check
+const HEAL = {
+  Website: 'restart-web',
+  'Website scripts': 'restart-web',
+  'Login service': 'restart-auth',
+  Database: 'restart-rest',
+  'File storage': 'restart-storage',
+  'Live chat & calls': 'restart-realtime',
+  Memory: 'pause-jobs',
+};
 
 async function adminRecipients() {
   const list = env('ALERT_EMAILS', '').split(',').map((s) => s.trim()).filter(Boolean);
@@ -142,6 +170,13 @@ export async function runHealthChecks({ notify = true } = {}) {
       state.set(c.name, cur);
     }
     lastRun = now;
+    // automatic repair for parts that failed twice in a row (cool-down and daily cap in autoFix.js)
+    for (const { c } of results) {
+      const cur = state.get(c.name);
+      if (!cur || cur.ok || cur.warn || cur.fails < 2) continue;
+      const action = HEAL[c.name];
+      if (action) runFix(action, `${c.name}: ${cur.detail}`).then((f) => { if (f && !f.skipped) cur.fix = `${f.label}: ${f.ok ? 'done' : 'failed'}`; }).catch(() => {});
+    }
     if (notify) { await alert('down', wentDown); await alert('up', cameBack); }
     if (wentDown.length) console.warn('[health] DOWN:', wentDown.map((x) => `${x.name}: ${x.detail}`).join(' | '));
     return healthStatus();
@@ -153,7 +188,17 @@ export function healthStatus() {
   const checks = CHECKS.map((c) => state.get(c.name)).filter(Boolean);
   const bad = checks.filter((c) => !c.ok && !c.warn);
   return { lastRun, overall: !checks.length ? 'unknown' : bad.length ? 'down' : checks.some((c) => !c.ok) ? 'warning' : 'ok',
-    every_min: Number(env('HEALTH_EVERY_MIN', 5)), email_alerts: mailEnabled(), alert_emails: env('ALERT_EMAILS', '') || 'all admins', checks };
+    every_min: Number(env('HEALTH_EVERY_MIN', 3)), load: loadStatus(), auto_fix: env('AUTO_FIX', 'on') !== 'off', email_alerts: mailEnabled(), alert_emails: env('ALERT_EMAILS', '') || 'all admins', checks };
+}
+
+// short message to all admins (used for automatic fixes)
+async function notifyAdmins(subject, lines) {
+  const text = `${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} (India time)\n\n${lines.join('\n')}\n\nDetails: ${SITE}/admin/health`;
+  try {
+    const { emails, ids } = await adminRecipients();
+    if (ids.length) await supabase.from('notifications').insert(ids.map((id) => ({ user_id: id, kind: 'system_alert', title: `Collegeolo: ${subject}`.slice(0, 200), body: lines.join(' ').slice(0, 500), link: '/admin/health', status: 'sent' })));
+    if (mailEnabled() && emails.length) await sendMail({ to: emails.join(','), subject: `Collegeolo: ${subject}`, text });
+  } catch (e) { console.warn('[health] notify:', e.message); }
 }
 
 export async function sendTestAlert() {
@@ -162,8 +207,9 @@ export async function sendTestAlert() {
 }
 
 export function startHealthMonitor() {
+  setFixNotifier(notifyAdmins);
   if (env('HEALTH_MONITOR', 'on') === 'off') return;
-  const every = Math.max(1, Number(env('HEALTH_EVERY_MIN', 5))) * 60e3;
+  const every = Math.max(1, Number(env('HEALTH_EVERY_MIN', 3))) * 60e3;   // a broken part is repaired within ~6 minutes
   setTimeout(() => runHealthChecks().catch((e) => console.warn('[health]', e.message)), 20e3);
   setInterval(() => runHealthChecks().catch((e) => console.warn('[health]', e.message)), every).unref();
 }

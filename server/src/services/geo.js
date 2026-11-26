@@ -1,4 +1,5 @@
 import { supabase } from '../supabase.js';
+import { serverBusy } from './loadGuard.js';
 import { fetchJson, throttle } from './http.js';
 import { cached } from './cache.js';
 
@@ -279,7 +280,7 @@ export function startNearbyPrefill() {
   const batch = Number(process.env.NEARBY_PREFILL_BATCH || 20);
   let busy = false;
   const tick = async () => {
-    if (busy) return; busy = true;
+    if (busy || serverBusy()) return; busy = true;
     try {
       const { data } = await supabase.from('colleges').select('id, latitude, longitude')
         .eq('is_published', true).not('latitude', 'is', null).is('nearby_fetched_at', null)
@@ -287,6 +288,7 @@ export function startNearbyPrefill() {
       for (const c of data || []) {
         const have = await readArea(areaKey(c.latitude, c.longitude)).catch(() => null);
         if (!have?.fresh) {
+          if (serverBusy()) break;   // visitors first
           try { await fetchArea(c.latitude, c.longitude); } catch (e) { console.warn('[nearby prefill]', e.message); break; }   // servers busy: try later
           await new Promise((r) => setTimeout(r, 5000));
         }

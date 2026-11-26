@@ -26,6 +26,7 @@ import accountRoutes from './routes/account.js';
 import { startCollegeAutofill } from './services/collegeAutofill.js';
 import { startExamNews } from './services/examNews.js';
 import { startHealthMonitor } from './services/health.js';
+import { errorWatch, startErrorWatch } from './services/errorWatch.js';
 import { supabase as sbAdmin } from './supabase.js';
 import { loadSecrets } from './services/secrets.js';
 import { startNearbyPrefill } from './services/geo.js';
@@ -36,6 +37,7 @@ const PORT = process.env.PORT || 4000;
 const origins = (process.env.CORS_ORIGIN || 'http://localhost:3000').split(',').map((s) => s.trim());
 
 app.set('trust proxy', 1); // behind Nginx on the VPS
+app.use(errorWatch());       // counts failed/slow requests, explains them and starts automatic fixes (Admin → System health)
 app.use(helmet());
 // the NIRF data import runs in an admin's browser on nirfindia.org (which refuses server downloads) and posts each sheet here
 const nirfCors = cors({ origin: ['https://www.nirfindia.org', 'https://nirfindia.org'], methods: ['POST'], allowedHeaders: ['Content-Type', 'X-Import-Code'] });
@@ -58,6 +60,11 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'collegeolo-api', time: new Date().toISOString() }));
 app.get('/api/whatsapp/status', (_req, res) => res.json({ login: otpReady(), notifications: notifyReady() }));
 
+// fair use: one address may make 600 API calls a minute (many students share one mobile-network address);
+// stops scrapers and runaway scripts from slowing the site for everyone
+app.use('/api', rateLimit({ windowMs: 60_000, limit: Number(process.env.API_RATE_PER_MIN || 600), standardHeaders: 'draft-7', legacyHeaders: false,
+  skip: (req) => req.path === '/health' || req.path.startsWith('/hooks') || req.path.startsWith('/payments/razorpay'),
+  message: { error: 'Too many requests from your network — please wait a minute and try again.' } }));
 app.use('/api', loadUser);
 app.use('/api/track', trackRoutes);
 app.use('/api', publicRoutes);       // /api/leads, /api/newsletter
@@ -77,16 +84,18 @@ app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 // eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => {
   console.error('[error]', err);
+  res.locals.errMsg = err.message;
   const status = err.status || (err.code === 'LIMIT_FILE_SIZE' ? 413 : 500);
   res.status(status).json({ error: err.message || 'Server error' });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Collegeolo API running on http://localhost:${PORT}`);
   startJobAlertScheduler();
   startCollegeAutofill();
   startExamNews();
   startHealthMonitor();
+  startErrorWatch();
   // chats (messages + call log) older than CHAT_RETENTION_MONTHS (default 6) are deleted daily; posts are kept
   if (process.env.CHAT_PURGE !== 'off') {
     const purge = async () => {
@@ -100,6 +109,8 @@ app.listen(PORT, () => {
     const seo = async () => {
       const { data, error } = await sbAdmin.rpc('refresh_seo', {});
       if (error) console.warn('[seo refresh]', error.message); else console.log('[seo refresh]', data?.[0]);
+      const { data: cities } = await sbAdmin.rpc('refresh_city_counts');   // every city with a college gets an indexed page
+      if (cities != null) console.log('[city pages]', cities, 'cities with colleges');
     };
     setTimeout(seo, 120_000); setInterval(seo, 24 * 3600e3);
   }
@@ -111,3 +122,8 @@ app.listen(PORT, () => {
   loadSecrets().then((n) => n && console.log(`[secrets] ${n} key(s) from the admin panel`)).finally(() =>
     console.log(`[ai] ${llmReady() ? `${llmProvider()} · ${llmModel()}` : 'not configured — mock-test generation and AI feedback are off (rule-based feedback still works)'}`));
 });
+
+// many visitors at once: keep connections from nginx open and don't let a slow client hold a request forever
+server.keepAliveTimeout = 65_000;
+server.headersTimeout = 66_000;
+server.requestTimeout = 180_000;

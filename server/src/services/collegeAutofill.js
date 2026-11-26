@@ -1,4 +1,5 @@
 import { supabase } from '../supabase.js';
+import { whenIdle } from './loadGuard.js';
 import { enrichMany } from './wikimedia.js';
 
 // Keeps college pages filling up on their own:
@@ -27,6 +28,7 @@ export async function runAutofill({ reason = 'schedule' } = {}) {
       .eq('enrich_status', 'error').lt('enriched_at', new Date(Date.now() - 14 * 86400e3).toISOString());
     const r = await enrichMany({ limit: Number(env('AUTOFILL_BATCH', 300)), onlyMissingPhotos: false, log: (m) => console.log(`[autofill] ${m}`) });
     const { data: seo } = await supabase.rpc('refresh_seo', {});
+    await supabase.rpc('refresh_city_counts');
     last = { at: new Date().toISOString(), reason, ...r, indexable: seo?.[0]?.colleges_indexable ?? null };
     if (r.checked) console.log('[autofill]', last);
     return last;
@@ -53,8 +55,11 @@ export const kickAutofill = () => { if (env('AUTOFILL', 'on') !== 'off') setTime
 export function startCollegeAutofill() {
   if (env('AUTOFILL', 'on') !== 'off') {
     const every = Math.max(1, Number(env('AUTOFILL_EVERY_HOURS', 6))) * 3600e3;
-    setTimeout(() => runAutofill(), 3 * 60e3);
-    setInterval(() => runAutofill(), every);
+    const tick = whenIdle('autofill', () => runAutofill());
+    setTimeout(tick, 3 * 60e3);
+    setInterval(tick, every);
+    // a run skipped because the server was busy is caught up within 30 minutes of things calming down
+    setInterval(() => { if (!running && (!last || Date.now() - Date.parse(last.at) > every)) tick(); }, 30 * 60e3).unref();
   }
   if (env('REVIEW_INVITES', 'on') !== 'off') {
     setTimeout(runReviewInvites, 10 * 60e3);

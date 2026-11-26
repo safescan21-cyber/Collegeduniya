@@ -657,3 +657,31 @@ R&D centres are skipped, colleges already on the site from other sources are not
 Admin → Mock tests → **Autopilot** tab → AI providers → **Add key** (super admin only). The key is saved in the
 server-only `app_secrets` table (migration 025), loaded at start-up and never sent back to the browser. Saving a
 working key switches the mock-test Autopilot on and starts writing questions. `deploy/set-ai-key.sh` does the same from the console.
+
+### 5v. Heavy traffic, safe deploys and automatic repairs
+
+**Safe website rebuilds** (`deploy/build-web.sh`, used by auto-deploy): the site alternates between `web/.next-a` and
+`web/.next-b`. A new version is built into the folder that is *not* live, at the lowest CPU priority, the previous
+version's scripts are copied in (pages opened before the switch keep working), then PM2 switches with a zero-downtime
+reload and checks the home page and its scripts answer — otherwise it switches back. The website runs as 2 PM2
+processes (`WEB_INSTANCES`, restarted above `WEB_MAX_MEMORY`=900M). Auto-deploy waits (max 30 min) while the server
+load is above 3 per CPU. Visitors whose page still asks for an old script reload once by themselves (`ChunkReload`).
+
+**nginx** (`deploy/nginx/`, applied by `apply.sh` whenever these files change; tested with `nginx -t` and rolled back
+if refused, backups in `/root/nginx-*.bak`): gzip, 8192 connections per worker, kept-alive connections to the website
+and API, a disk cache for `/_next/static` (1 year, immutable), and fair-use limits per address (40 req/s, burst 200).
+
+**Visitors first** (`services/loadGuard.js`): autofill, nearby places, mock-test autopilot and exam news are postponed
+while the load is above `JOB_PAUSE_LOAD` (1.5) per CPU. The API allows `API_RATE_PER_MIN` (600) calls a minute per address.
+
+**API errors and automatic repairs** (`services/errorWatch.js`, `services/autoFix.js`, migration 032): every 5xx or
+very slow (`SLOW_REQUEST_MS`, 8 s) API call is counted per route with its kind, cause and fix
+(Admin → System health → API errors). 20 errors of one kind in 5 minutes, or a health check failing twice, start the
+matching repair: restart the website / login service / PostgREST / Realtime / storage, pause background jobs, or
+restart the API. 15-minute cool-down, at most 6 per repair per day, every repair is logged and emailed to admins.
+`AUTO_FIX=off` disables automatic repairs (the buttons still work). Health checks run every `HEALTH_EVERY_MIN` (3) minutes
+and now also check that the home page's scripts load.
+
+**Capacity, honestly:** on a 2-CPU / 8 GB server shared with the database and other apps, cached pages handle roughly
+50–150 page views per second — a few thousand people browsing at the same time. 10,000 people *at the same moment*
+needs a CDN in front (Cloudflare free plan caches the static files and absorbs bursts) and/or a 4–8 CPU server.

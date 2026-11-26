@@ -9,6 +9,9 @@ import { importCountry } from '../services/universities.js';
 import { runAutofill, runReviewInvites, autofillStatus, kickAutofill } from '../services/collegeAutofill.js';
 import { collectExamNews, sendExamNewsDigests, examNewsStatus } from '../services/examNews.js';
 import { runHealthChecks, healthStatus, sendTestAlert } from '../services/health.js';
+import { errorReport, markResolved } from '../services/errorWatch.js';
+import { runFix, fixHistory, actionList } from '../services/autoFix.js';
+import { loadStatus } from '../services/loadGuard.js';
 import { parseSheet, guessMapping, stashUpload, importSheet, TARGETS } from '../services/sheetImport.js';
 import { importScorecard, scorecardEnabled } from '../services/scorecard.js';
 import { lookupCollege, applyLookup, enrichMany } from '../services/wikimedia.js';
@@ -941,7 +944,8 @@ router.get('/content_reports/:id/context', wrap(async (req, res) => {
 router.post('/seo/refresh', wrap(async (_req, res) => {
   const { data, error } = await supabase.rpc('refresh_seo', {});
   if (error) return fail(res, error);
-  res.json({ data: data?.[0] || null });
+  const { data: cities } = await supabase.rpc('refresh_city_counts');
+  res.json({ data: { ...(data?.[0] || {}), cities_with_colleges: cities } });
 }));
 
 router.get('/contact_messages/count', wrap(async (_req, res) => {
@@ -989,5 +993,14 @@ router.get('/health', wrap(async (req, res) => {
   res.json(req.query.fresh === '1' || stale ? await runHealthChecks({ notify: false }) : s);
 }));
 router.post('/health/test-alert', wrap(async (_req, res) => { res.json(await sendTestAlert()); }));
+// API errors with cause + fix, automatic repairs, and the repair buttons (services/errorWatch.js, autoFix.js)
+router.get('/errors', wrap(async (_req, res) => {
+  const [report, fixes] = await Promise.all([errorReport(), fixHistory()]);
+  res.json({ ...report, fixes, actions: actionList(), load: loadStatus(), auto_fix: process.env.AUTO_FIX !== 'off' });
+}));
+router.post('/errors/resolve', wrap(async (req, res) => { res.json(await markResolved(req.body?.key || null)); }));
+router.post('/fix/:action', requireSuperAdmin, wrap(async (req, res) => {
+  res.json(await runFix(req.params.action, `started by hand by ${req.user?.email || 'an admin'}`, { manual: true }));
+}));
 
 export default router;

@@ -1,4 +1,5 @@
 import { supabase } from '../supabase.js';
+import { whenIdle } from './loadGuard.js';
 import { sendMail, mailEnabled } from './mailer.js';
 import { USER_AGENT, throttle } from './http.js';
 import { llmReady, completeJson } from './llm.js';
@@ -251,7 +252,7 @@ export const examNewsStatus = () => ({ enabled: env('EXAM_NEWS', 'on') !== 'off'
 export function startExamNews() {
   if (env('EXAM_NEWS', 'on') === 'off') return;
   const every = Math.max(1, Number(env('EXAM_NEWS_EVERY_HOURS', 3))) * 3600e3;
-  const collect = () => collectExamNews().catch((e) => console.warn('[exam-news]', e.message));
+  const collect = whenIdle('exam news', () => collectExamNews().catch((e) => console.warn('[exam-news]', e.message)));
   setTimeout(collect, 3 * 60e3); setInterval(collect, every).unref();
   // digests go out from EXAM_NEWS_DIGEST_HOUR (India time) onward, at most once per EXAM_NEWS_MIN_GAP_HOURS per student
   const digest = () => {
