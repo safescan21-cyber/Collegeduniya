@@ -34,7 +34,7 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
     return rows.map((r) => ({ url: `${SITE_URL}/city/${r.slug}`, priority: 0.6 }));
   }
 
-  const base: MetadataRoute.Sitemap = ['', '/colleges', '/hostels', '/jobs', '/exams', '/news', '/questions', '/predictor', '/rank-predictor', '/rankings', '/streams', '/compare', '/apply', '/management-quota', '/recommend', '/career-quiz', '/roommates', '/scholarships', '/study-abroad/visa', '/counselling', '/study-abroad/calculator', '/near-me', '/cities', '/partners', '/top', '/mock-tests', '/community', '/about', '/editorial-policy', '/contact', '/privacy', '/terms', '/community-guidelines', '/papers', '/trends', '/rewards', '/ambassador', '/exams/calendar', '/education-loan', '/community/shots', '/courses/search'].map((p) => ({
+  const base: MetadataRoute.Sitemap = ['', '/colleges', '/hostels', '/jobs', '/exams', '/news', '/questions', '/predictor', '/rank-predictor', '/rankings', '/streams', '/compare', '/apply', '/management-quota', '/recommend', '/career-quiz', '/roommates', '/scholarships', '/study-abroad/visa', '/counselling', '/study-abroad/calculator', '/near-me', '/cities', '/partners', '/top', '/mock-tests', '/community', '/about', '/founder', '/editorial-policy', '/contact', '/privacy', '/terms', '/community-guidelines', '/papers', '/trends', '/rewards', '/ambassador', '/exams/calendar', '/education-loan', '/community/shots', '/courses/search'].map((p) => ({
     url: `${SITE_URL}${p}`, changeFrequency: 'daily', priority: p ? 0.8 : 1,
   }));
   const [h, j, e, a, q, qs, qc, cc] = await Promise.all([

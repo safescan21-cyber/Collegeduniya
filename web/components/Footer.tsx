@@ -57,6 +57,7 @@ export default async function Footer() {
       <div className="border-t border-white/10 py-5 text-center text-xs text-brand-200/60">
         <nav className="mb-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm text-brand-100/80">
           <Link href="/about" className="hover:text-white">About us</Link>
+          <Link href="/founder" className="hover:text-white">Founder</Link>
           <Link href="/editorial-policy" className="hover:text-white">How we work</Link>
           <Link href="/community-guidelines" className="hover:text-white">Community guidelines</Link>
           <Link href="/privacy" className="hover:text-white">Privacy</Link>

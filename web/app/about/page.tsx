@@ -21,13 +21,14 @@ export default function About() {
       <h2>Who runs it</h2>
       {ORG.founder ? (
         <p>
-          Collegeolo is built and run by <strong>{ORG.founder}</strong>{ORG.founderRole ? ` (${ORG.founderRole})` : ''}
+          Collegeolo is built and run by <Link href="/founder"><strong>{ORG.founder}</strong></Link>{ORG.founderRole ? ` (${ORG.founderRole})` : ''}
           {ORG.legalName ? <>, operated by <strong>{ORG.legalName}</strong></> : null}
           {ORG.city ? <>, from {ORG.city}</> : null}{ORG.started ? <>, since {ORG.started}</> : null}.
         </p>
       ) : (
         <p>Collegeolo is an independent website{ORG.legalName ? <> operated by <strong>{ORG.legalName}</strong></> : null}{ORG.city ? <>, run from {ORG.city}</> : null}. It is not owned by any college, coaching institute or exam body.</p>
       )}
+      {ORG.founderLinkedin && <p><Link href="/founder">Meet the founder</Link> · <a href={ORG.founderLinkedin} target="_blank" rel="noopener noreferrer">{ORG.founder} on LinkedIn</a></p>}
       {ORG.founderNote && <blockquote className="border-s-4 border-brand-200 ps-4 italic text-slate-600">{ORG.founderNote}</blockquote>}
       <p>We are not linked to any government body, university or exam conducting authority. Always confirm dates, fees and seat details on the official website before you pay or apply.</p>
 
