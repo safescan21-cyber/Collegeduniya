@@ -9,6 +9,7 @@ import CityInput from '@/components/CityInput';
 import { CollegeCard, HostelCard, JobCard } from '@/components/Cards';
 import TopCollegesTable, { type TopRow } from '@/components/home/TopCollegesTable';
 import WorldCollegesTable, { type WorldRow } from '@/components/home/WorldCollegesTable';
+import FutureCoursesTable from '@/components/home/FutureCoursesTable';
 import EnquiryForm from '@/components/EnquiryForm';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { counters, ratingsFor } from '@/lib/data';
@@ -205,6 +206,18 @@ export default async function HomePage() {
           </div>
           <WorldCollegesTable initial={world} countries={worldCountries} />
         </section>)}
+
+      {/* FUTURE TRENDING COURSES — every sector, with the colleges that teach them */}
+      <section className="container-x mt-12">
+        <div className="mb-6 flex items-end justify-between">
+          <div>
+            <h2 className="section-title">Future trending courses — every sector</h2>
+            <p className="mt-1 text-slate-500">Courses for the fastest-growing jobs to 2030, with the top colleges teaching them — rank, fees and placements</p>
+          </div>
+          <Link href="/courses/search" className="hidden items-center gap-1 text-sm font-semibold text-brand-700 hover:underline sm:flex">Search any course <ArrowRight size={16} /></Link>
+        </div>
+        <FutureCoursesTable />
+      </section>
 
       {/* TRENDING COURSES */}
       {trending.length > 0 && (
