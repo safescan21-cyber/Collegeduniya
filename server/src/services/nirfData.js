@@ -172,6 +172,18 @@ async function matcherCached() {
   return cachedMatch;
 }
 
+// While a migration is applied the database API reloads its schema for a few seconds ("Could not query the database for
+// the schema cache"). Wait and try again instead of losing that institution's data.
+async function retryReload(op, tries = 4) {
+  let r;
+  for (let i = 0; i < tries; i++) {
+    r = await op();
+    if (!r.error || !/schema cache|PGRST002/i.test(`${r.error.code || ''} ${r.error.message || ''}`)) return r;
+    await new Promise((ok) => setTimeout(ok, 3000 * (i + 1)));
+  }
+  return r;
+}
+
 export async function importNirfSheet({ year, category, pageUrl, row, pdfBase64 }) {
   const r = row || {};
   if (!/^IR-[A-Z]-[A-Z]-\d+$/.test(String(r.id || ''))) throw Object.assign(new Error('Bad institute id'), { status: 400 });
@@ -200,11 +212,11 @@ export async function importNirfSheet({ year, category, pageUrl, row, pdfBase64 
   const src = `NIRF ${year} — data submitted by the institution (${r.id})`;
   const courseRows = [...keys].map((k) => ({ college_id: c.id, source: 'nirf', external_id: `${isDiscipline ? category : 'all'}|${k}`, name: programmeName(isDiscipline ? category : null, k),
     level: k.startsWith('PG') ? 'PG' : 'UG', duration: yearsOf(k), seats: parsed.intake[k] || null, currency: 'INR', url: null }));
-  if (courseRows.length) { const { error } = await supabase.from('courses').upsert(courseRows, { onConflict: 'college_id,source,external_id' }); if (error) throw new Error(`courses: ${error.message}`); }
+  if (courseRows.length) { const { error } = await retryReload(() => supabase.from('courses').upsert(courseRows, { onConflict: 'college_id,source,external_id' })); if (error) throw new Error(`courses: ${error.message}`); }
   const pl = parsed.placements.filter((x) => x.year).map((x) => ({ college_id: c.id, year: x.year, course: programmeName(isDiscipline ? category : null, x.prog),
     median_package: x.median, currency: 'INR', package_unit: 'year', students_placed: x.placed,
     placement_rate: x.graduating ? Math.round((1000 * (x.placed || 0)) / x.graduating) / 10 : null, source: src }));
   const dedup = [...new Map(pl.map((x) => [`${x.year}|${x.course}`, x])).values()];
-  if (dedup.length) { const { error } = await supabase.from('college_placements').upsert(dedup, { onConflict: 'college_id,year,course' }); if (error) throw new Error(`placements: ${error.message}`); }
+  if (dedup.length) { const { error } = await retryReload(() => supabase.from('college_placements').upsert(dedup, { onConflict: 'college_id,year,course' })); if (error) throw new Error(`placements: ${error.message}`); }
   return { matched: true, college: c.name, courses: courseRows.length, placements: dedup.length };
 }
