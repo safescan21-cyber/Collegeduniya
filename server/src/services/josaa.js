@@ -73,6 +73,17 @@ const CITY = { trichy: 'tiruchirappalli', allahabad: 'prayagraj', calicut: 'kozh
   calcutta: 'kolkata', pondicherry: 'puducherry', trivandrum: 'thiruvananthapuram', mysore: 'mysuru', baroda: 'vadodara', gurgaon: 'gurugram',
   benares: 'varanasi', banaras: 'varanasi', cochin: 'kochi', vizag: 'visakhapatnam', poona: 'pune', mangalore: 'mangaluru', belgaum: 'belagavi',
   hubli: 'hubballi', simla: 'shimla', jullundur: 'jalandhar', nitk: 'karnataka' };
+// one-letter spelling differences in long words ("Tiruchirapalli" / "Tiruchirappalli")
+function near(a, b) {
+  if (a.length < 7 || b.length < 7 || Math.abs(a.length - b.length) > 1) return false;
+  let i = 0, j = 0, edits = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) { i++; j++; continue; }
+    if (++edits > 1) return false;
+    if (a.length > b.length) i++; else if (b.length > a.length) j++; else { i++; j++; }
+  }
+  return edits + (a.length - i) + (b.length - j) <= 1;
+}
 export function matcher(rows) {
   const stop = new Set(['of', 'the', 'and', 'for', 'in', 'at']);
   const words = (s) => new Set(normName(String(s).replace(/[()]/g, ' ')).split(' ').filter((w) => w && !stop.has(w)).map((w) => CITY[w] || w));
@@ -81,7 +92,8 @@ export function matcher(rows) {
     const noAbbr = inst.replace(/\(([A-Z.]{2,6})\)/g, ' ');   // "(BHU)" "(ISM)" — our names spell these out
     for (const src of [inst, noAbbr]) {
       const need = [...words(src)]; if (need.length < 3) continue;
-      const hits = list.filter((x) => need.every((w) => x.w.has(w))).map((x) => ({ c: x.c, extra: x.w.size - need.length }))
+      const has = (x, w) => x.w.has(w) || (w.length >= 7 && [...x.w].some((v) => near(v, w)));
+      const hits = list.filter((x) => need.filter((w) => !x.w.has(w)).length <= 1 && need.every((w) => has(x, w))).map((x) => ({ c: x.c, extra: x.w.size - need.length }))
         .sort((a, b) => Number(a.c.source === 'josaa') - Number(b.c.source === 'josaa') || a.extra - b.extra);
       const own = hits.filter((h) => h.c.source !== 'josaa');
       if (own.length === 1 || (own.length > 1 && own[0].extra < own[1].extra)) return own[0].c;
