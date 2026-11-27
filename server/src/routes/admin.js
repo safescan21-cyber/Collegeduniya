@@ -639,7 +639,8 @@ router.get('/official-fees', wrap(async (req, res) => {
     .select('id, course, level, fee, currency, period, fee_per_year, duration, quote, source_url, review_status, found_at, college:colleges(id, name, slug, city, country)', { count: 'exact' })
     .eq('review_status', status).order('found_at', { ascending: false }).range(Number(req.query.offset) || 0, (Number(req.query.offset) || 0) + 49);
   if (error) return fail(res, error);
-  res.json({ data, count });
+  const { data: progress } = await supabase.rpc('fee_progress');
+  res.json({ data, count, progress: progress || [] });
 }));
 router.post('/official-fees/:id/review', wrap(async (req, res) => {
   const status = req.body?.status === 'rejected' ? 'rejected' : 'approved';

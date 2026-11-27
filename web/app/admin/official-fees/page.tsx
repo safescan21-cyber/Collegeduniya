@@ -14,7 +14,8 @@ export default function OfficialFees() {
   const [tab, setTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [rows, setRows] = useState<F[] | null>(null); const [count, setCount] = useState(0);
   const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
-  const load = useCallback(async () => { setRows(null); const r = await api(`/api/admin/official-fees?status=${tab}`); setRows(r.data || []); setCount(r.count || 0); }, [tab]);
+  const [progress, setProgress] = useState<{ list: string; colleges: number; with_website: number; read: number; with_fees: number }[]>([]);
+  const load = useCallback(async () => { setRows(null); const r = await api(`/api/admin/official-fees?status=${tab}`); setRows(r.data || []); setCount(r.count || 0); setProgress(r.progress || []); }, [tab]);
   useEffect(() => { load(); }, [load]);
   const review = async (f: F, status: 'approved' | 'rejected') => {
     setBusy(f.id); await api(`/api/admin/official-fees/${f.id}/review`, { method: 'POST', body: JSON.stringify({ status }) }).catch((e) => alert(e.message));
@@ -30,13 +31,21 @@ export default function OfficialFees() {
     <div className="space-y-4">
       <div className="card p-5">
         <h1 className="text-xl font-bold text-slate-900">Official fees</h1>
-        <p className="mt-1 text-sm text-slate-600">The server reads each college’s <b>own website</b> (fee structure pages and PDF notices) every 2 hours, a few colleges at a time — India and UK first.
+        <p className="mt-1 text-sm text-slate-600">The server reads each college’s <b>own website</b> (fee structure pages and PDF notices) every hour, 12 colleges at a time — <b>NIRF-ranked colleges first</b> (best rank first), then <b>world-ranked universities</b>, then the rest.
           A fee is kept only when the sentence with that amount is on the official page; it shows on the site straight away. Check the ones below: ✓ keep, ✗ remove for good.</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {(['pending', 'approved', 'rejected'] as const).map((t) => <button key={t} onClick={() => setTab(t)} className={`${tab === t ? 'btn-primary' : 'btn-ghost'} py-1.5 text-sm`}>{t === 'pending' ? 'Needs review' : t === 'approved' ? 'Approved' : 'Rejected'}</button>)}
           <button onClick={runNow} disabled={!!busy} className="btn-ghost ms-auto py-1.5 text-sm">{busy === 'run' ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}Read 3 colleges now</button>
         </div>
         {msg && <p className="mt-2 text-xs text-slate-500">{msg}</p>}
+        {progress.length > 0 && <div className="mt-4 grid gap-3 sm:grid-cols-2">{progress.map((p) => {
+          const pct = p.with_website ? Math.min(100, Math.round((100 * p.read) / p.with_website)) : 0;
+          return <div key={p.list} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+            <div className="flex items-baseline justify-between"><b className="text-sm text-slate-900">{p.list === 'NIRF ranked' ? '1 · NIRF-ranked colleges' : '2 · World-ranked universities'}</b><span className="text-xs text-slate-500">{pct}% read</span></div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-brand-600" style={{ width: `${pct}%` }} /></div>
+            <p className="mt-2 text-xs text-slate-600">{p.read.toLocaleString('en-IN')} of {p.with_website.toLocaleString('en-IN')} websites read · <b>{p.with_fees.toLocaleString('en-IN')}</b> colleges with fees
+              {p.colleges > p.with_website ? <> · <span className="text-amber-700">{(p.colleges - p.with_website).toLocaleString('en-IN')} have no website on file</span></> : null}</p>
+          </div>; })}</div>}
       </div>
       <div className="card overflow-x-auto">
         {rows === null ? <Loader2 className="m-6 animate-spin text-slate-300" /> : rows.length === 0 ? <p className="p-8 text-center text-sm text-slate-500">{tab === 'pending' ? 'Nothing to review right now.' : 'None yet.'}</p> : (

@@ -1,7 +1,7 @@
 // Course fees from each college's OFFICIAL website — automatic, admins only review.
 //
-// Every few hours (when the server is idle) it takes the colleges checked longest ago that have a website — India and the UK
-// first, ranked colleges before others — and for each:
+// Every hour (when the server is idle) it takes the next colleges with a website — NIRF-ranked first (best rank first), then
+// world-ranked universities, then the rest (India and the UK), oldest-checked first — and for each:
 //   1. reads robots.txt and skips anything it disallows; honest User-Agent; a pause between pages
 //   2. opens the home page and up to 5 same-site pages / PDFs whose link looks like fees ("fee structure", "tuition",
 //      "fees", "prospectus", "admission")
@@ -117,7 +117,7 @@ async function saveFindings(college, page, found) {
   return added;
 }
 
-export async function collectOfficialFees({ limit = Number(env('FEES_PER_RUN', 10)), collegeId = null } = {}) {
+export async function collectOfficialFees({ limit = Number(env('FEES_PER_RUN', 12)), collegeId = null } = {}) {
   if (!llmReady()) return { skipped: 'no AI key' };
   let q = supabase.from('colleges').select('id, name, city, country, website').eq('is_published', true).not('website', 'is', null);
   if (collegeId) q = q.eq('id', collegeId);
@@ -126,14 +126,13 @@ export async function collectOfficialFees({ limit = Number(env('FEES_PER_RUN', 1
     if (countries.length && env('FEES_ALL_COUNTRIES', 'off') !== 'on') q = q.in('country', countries);
     q = q.order('fees_checked_at', { ascending: true, nullsFirst: true }).order('ranking', { ascending: true, nullsFirst: false });
   }
-  // IITs, NITs, IIITs, IISc, IISERs, AIIMS, IIMs and other national institutes first (until each was read once in 60 days)
+  // Order: every NIRF-ranked college (best rank first), then every world-ranked university (CWTS Leiden, best rank first)
+  // — each until it was read once in FEES_RECHECK_DAYS — then the rest, oldest-checked first.
   let colleges = [];
   if (!collegeId) {
-    const { data: top } = await supabase.from('colleges').select('id, name, city, country, website').eq('is_published', true).not('website', 'is', null).eq('country', 'India')
-      .or('name.ilike.%Indian Institute of Technology%,name.ilike.%National Institute of Technology%,name.ilike.%Indian Institute of Information Technology%,name.ilike.%Indian Institute of Science%,name.ilike.%All India Institute of Medical Sciences%,name.ilike.%Indian Institute of Management%,name.ilike.%Birla Institute of Technology%')
-      .or(`fees_checked_at.is.null,fees_checked_at.lt.${new Date(Date.now() - 60 * 864e5).toISOString()}`)
-      .order('fees_checked_at', { ascending: true, nullsFirst: true }).limit(limit);
-    colleges = top || [];
+    const { data: top, error } = await supabase.rpc('fee_queue', { p_lim: limit, p_recheck_days: Number(env('FEES_RECHECK_DAYS', 60)) });
+    if (error) console.warn('[official-fees] queue:', error.message);
+    colleges = (top || []).map(({ id, name, city, country, website }) => ({ id, name, city, country, website }));
   }
   if (colleges.length < limit) {
     const { data } = await q.limit(limit - colleges.length);
@@ -167,5 +166,5 @@ export function startOfficialFees() {
   if (env('FEES_AUTO', 'on') === 'off') return;
   const run = whenIdle('official fees', () => collectOfficialFees().catch((e) => console.warn('[official-fees]', e.message)));
   setTimeout(run, 20 * 60e3);
-  setInterval(run, Math.max(1, Number(env('FEES_EVERY_HOURS', 2))) * 3600e3).unref();
+  setInterval(run, Math.max(1, Number(env('FEES_EVERY_HOURS', 1))) * 3600e3).unref();
 }
