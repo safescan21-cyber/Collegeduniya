@@ -3,7 +3,7 @@ import SoundToggle from '@/components/SoundToggle';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Send, Ban, ArrowLeft, MessagesSquare, Loader2, Phone, Video, Users, Inbox, Search, Smile, Check, X, UserPlus, Clock, School } from 'lucide-react';
+import { Send, Ban, ArrowLeft, MessagesSquare, Loader2, Phone, Video, Users, Inbox, Search, Smile, Check, X, UserPlus, Clock, School, UsersRound } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { api } from '@/lib/api';
@@ -12,17 +12,14 @@ import { useCalls } from '@/components/calls/CallProvider';
 import Verified from '@/components/campus/Verified';
 import ReportButton from '@/components/community/ReportButton';
 import SharedPost from '@/components/chat/SharedPost';
+import { EMOJI, REACTIONS, POST_LINK, onlyEmoji } from '@/components/chat/chatUtils';
+import { GroupList, GroupRoom, JoinGroup, type MyGroup } from '@/components/chat/Groups';
 
 type Conv = { id: string; status: 'active' | 'pending' | 'declined'; i_requested: boolean; request_note: string | null; context_type: string; context_label: string | null;
   other_id: string; other_name: string; other_username: string | null; other_verified: boolean; other_last_seen: string | null; other_calls: boolean;
   last_message: string | null; last_message_at: string; unread: number };
 type Msg = { id: string; sender_id: string; body: string; created_at: string; read_at: string | null; reactions: Record<string, string> | null };
 type Person = { id: string; name: string; username: string | null; verified: boolean; course: string | null; batch_year: number | null; relation: string; mode: 'direct' | 'request'; last_seen: string | null; has_chat: string | null };
-const EMOJI = ['😀', '😂', '🤣', '😊', '😍', '🥰', '😘', '😎', '🤩', '🥳', '😇', '🤔', '🙄', '😴', '😭', '😢', '😡', '🤯', '😱', '🤗',
-  '👍', '👎', '👏', '🙌', '🙏', '💪', '🤝', '✌️', '👋', '🫶', '❤️', '💔', '🔥', '💯', '✨', '🎉', '🎂', '🎁', '📚', '✍️', '🎓', '💻', '☕', '🍕', '🏏', '⚽', '🎶', '🎮', '🚌', '🏠'];
-const REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥', '🎉', '🙏'];
-const POST_LINK = /\/community\/post\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
-const onlyEmoji = (t: string) => t.length <= 16 && /^(?:\p{Extended_Pictographic}|\p{Emoji_Modifier}|\uFE0F|\u200D|\s)+$/u.test(t.trim());
 
 const seen = (iso: string | null) => {
   if (!iso) return null;
@@ -36,7 +33,10 @@ export default function Messages() {
   const router = useRouter();
   const params = useSearchParams();
   const active = params.get('c');
-  const [tab, setTab] = useState<'chats' | 'requests' | 'people'>((params.get('tab') as any) || 'chats');
+  const groupId = params.get('g'); const joinCode = params.get('join');
+  const opened = active || groupId || joinCode;
+  const [tab, setTab] = useState<'chats' | 'groups' | 'requests' | 'people'>((params.get('tab') as any) || (params.get('g') || params.get('join') ? 'groups' : 'chats'));
+  const [groups, setGroups] = useState<MyGroup[] | null>(null);
   const [convs, setConvs] = useState<Conv[]>([]);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [people, setPeople] = useState<Person[] | null>(null); const [q, setQ] = useState('');
@@ -54,9 +54,11 @@ export default function Messages() {
     const unread = (data || []).filter((m: Msg) => m.sender_id !== user.id && !m.read_at).map((m: Msg) => m.id);
     if (unread.length) { await sb.from('messages').update({ read_at: new Date().toISOString() }).in('id', unread); loadConvs(); }
   }, [active, sb, user, loadConvs]);
+  const loadGroups = useCallback(async () => { const { data } = await sb.rpc('my_groups'); setGroups((data || []) as MyGroup[]); }, [sb]);
   const loadPeople = useCallback(async () => { const { data } = await sb.rpc('campus_people', { p_q: q.trim() || null, p_lim: 60 }); setPeople((data || []) as Person[]); }, [sb, q]);
 
-  useEffect(() => { if (user) loadConvs(); }, [user, loadConvs]);
+  useEffect(() => { if (user) { loadConvs(); loadGroups(); } }, [user, loadConvs, loadGroups]);
+  useEffect(() => { if (!user) return; const t = setInterval(loadGroups, 20000); return () => clearInterval(t); }, [user, loadGroups]);
   useEffect(() => { setMsgs([]); loadMsgs(); const t = setInterval(() => { loadMsgs(); loadConvs(); }, 10000); return () => clearInterval(t); }, [loadMsgs, loadConvs]);
   useEffect(() => {   // new messages instantly
     if (!active || !user) return;
@@ -67,7 +69,7 @@ export default function Messages() {
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs.length]);
 
   if (loading) return <div className="card h-96 animate-pulse" />;
-  if (!user || (user as any).is_anonymous) return <div className="py-20 text-center"><Link href="/login?next=/messages" className="btn-primary">Log in to see your messages</Link></div>;
+  if (!user || (user as any).is_anonymous) return <div className="py-20 text-center"><Link href={`/login?next=${encodeURIComponent(joinCode ? `/messages?join=${joinCode}` : '/messages')}`} className="btn-primary">{joinCode ? 'Log in to join the group' : 'Log in to see your messages'}</Link></div>;
 
   const conv = convs.find((c) => c.id === active);
   const requests = convs.filter((c) => c.status === 'pending' && !c.i_requested);
@@ -119,15 +121,16 @@ export default function Messages() {
 
   return (
     <div className="card grid h-[78vh] overflow-hidden md:grid-cols-[320px_1fr]">
-      <aside className={`${active ? 'hidden md:flex' : 'flex'} min-h-0 flex-col border-e border-slate-100`}>
+      <aside className={`${opened ? 'hidden md:flex' : 'flex'} min-h-0 flex-col border-e border-slate-100`}>
         <p className="flex items-center gap-2 border-b border-slate-100 p-4 font-bold text-slate-900"><MessagesSquare size={18} />Messages<SoundToggle /></p>
         <div className="flex gap-1 border-b border-slate-100 p-2 text-sm">
-          {([['chats', 'Chats', MessagesSquare, 0], ['requests', 'Requests', Inbox, requests.length], ['people', 'My college', Users, 0]] as const).map(([k, l, I, n]) => (
-            <button key={k} onClick={() => setTab(k)} className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 ${tab === k ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>
+          {([['chats', 'Chats', MessagesSquare, 0], ['groups', 'Groups', UsersRound, (groups || []).reduce((a, g) => a + g.unread, 0)], ['requests', 'Requests', Inbox, requests.length], ['people', 'College', Users, 0]] as const).map(([k, l, I, n]) => (
+            <button key={k} onClick={() => setTab(k)} className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-xs sm:text-sm ${tab === k ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>
               <I size={14} />{l}{n > 0 && <span className="rounded-full bg-rose-500 px-1.5 text-[10px] text-white">{n}</span>}</button>))}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           {tab === 'chats' && (chats.length ? chats.map((c) => <Item key={c.id} c={c} />) : <p className="p-6 text-sm text-slate-500">No chats yet. Find students of your college under <button onClick={() => setTab('people')} className="font-semibold text-brand-700">My college</button>.</p>)}
+          {tab === 'groups' && <GroupList groups={groups} active={groupId} reload={loadGroups} />}
           {tab === 'requests' && (requests.length ? requests.map((c) => <Item key={c.id} c={c} />) : <p className="p-6 text-sm text-slate-500">No chat requests.</p>)}
           {tab === 'people' && (!profile?.college_id ? (
             <div className="p-6 text-center text-sm text-slate-600"><School className="mx-auto mb-2 text-brand-600" />Add your college to your profile to see and chat with students of your college.
@@ -158,8 +161,8 @@ export default function Messages() {
         </div>
       </aside>
 
-      <section className={`${active ? 'flex' : 'hidden md:flex'} min-h-0 flex-col`}>
-        {conv ? (
+      <section className={`${opened ? 'flex' : 'hidden md:flex'} min-h-0 flex-col`}>
+        {joinCode ? <JoinGroup code={joinCode} onJoined={loadGroups} /> : groupId ? <GroupRoom id={groupId} reloadList={loadGroups} /> : conv ? (
           <>
             <div className="flex items-center justify-between gap-2 border-b border-slate-100 p-3">
               <div className="flex min-w-0 items-center gap-2">
@@ -241,7 +244,7 @@ export default function Messages() {
             )}
             {err && <p className="px-4 pb-2 text-sm text-rose-600">{err}</p>}
           </>
-        ) : <div className="m-auto p-8 text-center text-slate-400">Choose a chat, answer a request, or find students from your college</div>}
+        ) : <div className="m-auto p-8 text-center text-slate-400">Choose a chat or group, answer a request, or find students from your college</div>}
       </section>
     </div>
   );

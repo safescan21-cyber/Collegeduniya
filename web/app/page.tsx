@@ -1,8 +1,9 @@
 import { Flag } from '@/components/Flag';
 import Link from 'next/link';
 import {
-  GraduationCap, Home, Briefcase, Users, Globe2, Star, MapPin, ArrowRight, ShieldCheck, Target, Scale, FilePlus2, Calculator, PlusCircle,
+  GraduationCap, Home, Briefcase, Users, Globe2, Star, MapPin, ArrowRight, ShieldCheck, Target, Scale, FilePlus2, Calculator, PlusCircle, Flame, Play, Clapperboard, Heart,
 } from 'lucide-react';
+import { mediaUrl } from '@/lib/mediaUrl';
 import HeroSearch from '@/components/HeroSearch';
 import CityInput from '@/components/CityInput';
 import { CollegeCard, HostelCard, JobCard } from '@/components/Cards';
@@ -28,9 +29,9 @@ const COUNTRIES = [
 ];
 
 async function load() {
-  if (!hasSupabase) return { colleges: [], hostels: [], jobs: [], articles: [], top: [], exams: [], courses: [], cities: [], streams: {} as Record<string, any> };
+  if (!hasSupabase) return { colleges: [], hostels: [], jobs: [], articles: [], top: [], exams: [], courses: [], cities: [], streams: {} as Record<string, any>, trending: [] as any[], shots: [] as any[] };
   const sb = supabasePublic();
-  const [c, h, j, a, top, ex, cat, cnt, cities, sov] = await Promise.all([
+  const [c, h, j, a, top, ex, cat, cnt, cities, sov, tr, sh] = await Promise.all([
     sb.from('colleges_public').select('*').eq('is_published', true).order('is_featured', { ascending: false }).order('ranking', { ascending: true, nullsFirst: false }).limit(8),
     sb.from('hostels').select('*, colleges(name, slug)').eq('is_published', true).order('created_at', { ascending: false }).limit(4),
     sb.from('jobs').select('*').eq('is_published', true).eq('status', 'open').order('created_at', { ascending: false }).limit(6),
@@ -41,6 +42,8 @@ async function load() {
     sb.rpc('course_catalog_counts'),
     sb.rpc('top_study_cities', { p_country: 'India', p_lim: 12 }),
     sb.rpc('stream_overview'),
+    sb.rpc('trending_courses', { p_lim: 8 }),
+    sb.rpc('feed', { p_kind: 'shot', p_sort: 'trending', p_lim: 10 }),
   ]);
   const counts = Object.fromEntries(((cnt.data || []) as any[]).map((r) => [r.slug, Number(r.colleges)]));
   return {
@@ -49,12 +52,14 @@ async function load() {
     top: (top.data || []) as TopRow[], exams: (ex.data || []) as any[],
     courses: ((cat.data || []) as any[]).map((k) => ({ ...k, colleges: counts[k.slug] || 0 })),
     cities: (cities.data || []) as { city: string; state: string | null; colleges: number }[],
+    trending: (tr.data || []) as { slug: string; name: string; full_name: string; level: string; stream: string; visitors: number; colleges: number }[],
+    shots: (sh.data || []) as any[],
     streams: Object.fromEntries(((sov.data || []) as any[]).map((r) => [r.stream, r])) as Record<string, { colleges: number; exams: number; courses: number }>,
   };
 }
 
 export default async function HomePage() {
-  const [{ colleges, hostels, jobs, articles, top, exams, courses, cities, streams }, stats, { t }] = await Promise.all([load(), counters(), getT()]);
+  const [{ colleges, hostels, jobs, articles, top, exams, courses, cities, streams, trending, shots }, stats, { t }] = await Promise.all([load(), counters(), getT()]);
   const examNames: Record<string, string> = Object.fromEntries(exams.map((e: any) => [e.slug, e.short_name]));
   const POPULAR_EXAMS = ['jee-main', 'neet-ug', 'cuet-ug', 'cat', 'gate', 'jee-advanced', 'clat', 'mht-cet', 'xat', 'upsc-cse-prelims', 'ssc-cgl', 'ibps-po'];
   const popularExams = POPULAR_EXAMS.map((s) => exams.find((e: any) => e.slug === s)).filter(Boolean) as any[];
@@ -127,6 +132,39 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* TRENDING SHOTS */}
+      {shots.length > 0 && (
+        <section className="mt-14 bg-slate-950 py-8 text-white">
+          <div className="container-x">
+            <div className="mb-4 flex items-end justify-between">
+              <div><h2 className="flex items-center gap-2 text-2xl font-extrabold"><Clapperboard size={24} className="text-fuchsia-400" />Trending shots</h2><p className="mt-1 text-sm text-slate-400">Short campus videos by students — fests, hostels, campus tours</p></div>
+              <Link href="/community/shots" className="flex items-center gap-1 text-sm font-semibold text-fuchsia-300 hover:underline">Watch all <ArrowRight size={16} /></Link>
+            </div>
+            <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:thin]">
+              {shots.map((s: any) => {
+                const m = s.media?.[0];
+                return (
+                  <Link key={s.id} href={`/community/shots?start=${s.id}`} className="group relative aspect-[9/16] w-36 shrink-0 snap-start overflow-hidden rounded-2xl bg-slate-800 sm:w-44">
+                    {m?.type === 'video'
+                      ? <video src={`${mediaUrl(m.path)}#t=0.5`} preload="metadata" muted playsInline className="h-full w-full object-cover transition group-hover:scale-105" />
+                      // eslint-disable-next-line @next/next/no-img-element
+                      : m && <img src={mediaUrl(m.path)} alt="" loading="lazy" draggable={false} className="h-full w-full object-cover transition group-hover:scale-105" />}
+                    <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+                    {m?.type === 'video' && <Play size={30} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 fill-white/90 text-white/90 drop-shadow" />}
+                    <span className="absolute inset-x-0 bottom-0 p-2.5 text-xs">
+                      <b className="block truncate">@{s.author_username || s.author_name}</b>
+                      {s.body && <span className="line-clamp-2 text-white/80">{s.body}</span>}
+                      <span className="mt-1 flex items-center gap-1 text-white/80"><Heart size={11} className="fill-rose-500 text-rose-500" />{s.likes}</span>
+                    </span>
+                  </Link>);
+              })}
+              <Link href="/community/shots?new=1" className="grid aspect-[9/16] w-36 shrink-0 snap-start place-items-center rounded-2xl border-2 border-dashed border-white/20 text-center text-sm text-slate-300 hover:border-fuchsia-400 hover:text-white sm:w-44">
+                <span><PlusCircle size={28} className="mx-auto mb-1" />Post your shot</span>
+              </Link>
+            </div>
+          </div>
+        </section>)}
+
       {/* TOP COLLEGES */}
       <section className="container-x mt-16">
         <div className="mb-6 flex items-end justify-between">
@@ -143,6 +181,29 @@ export default async function HomePage() {
           </div>
         ) : <SetupNotice />}
       </section>
+
+      {/* TRENDING COURSES */}
+      {trending.length > 0 && (
+        <section className="container-x mt-16">
+          <div className="mb-6 flex items-end justify-between">
+            <div><h2 className="section-title flex items-center gap-2"><Flame size={24} className="text-orange-500" />{trending.some((k) => Number(k.visitors) > 0) ? 'Trending courses this week' : 'Popular courses'}</h2>
+              <p className="mt-1 text-slate-500">What students are checking out most right now</p></div>
+            <Link href="/courses" className="hidden items-center gap-1 text-sm font-semibold text-brand-700 hover:underline sm:flex">All courses <ArrowRight size={16} /></Link>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {trending.map((k, i) => (
+              <Link key={k.slug} href={`/courses/${k.slug}`} className="card group flex items-center gap-3 p-4 transition hover:-translate-y-0.5 hover:border-orange-300 hover:shadow-md">
+                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl text-lg font-extrabold ${i < 3 ? 'bg-orange-500 text-white' : 'bg-orange-50 text-orange-600'}`}>{i + 1}</span>
+                <span className="min-w-0">
+                  <b className="block truncate text-slate-900 group-hover:text-orange-700">{k.name}</b>
+                  <span className="block truncate text-xs text-slate-500">{k.full_name}</span>
+                  <span className="mt-0.5 block text-xs font-semibold text-orange-600">
+                    {Number(k.visitors) > 0 ? `🔥 ${Number(k.visitors).toLocaleString('en-IN')} student${Number(k.visitors) > 1 ? 's' : ''} this week` : `${Number(k.colleges).toLocaleString('en-IN')} colleges`}
+                  </span>
+                </span>
+              </Link>))}
+          </div>
+        </section>)}
 
       {/* COURSES */}
       {courses.length > 0 && (

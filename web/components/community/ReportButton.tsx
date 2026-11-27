@@ -6,7 +6,7 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 
 const REASONS = ['Spam or scam', 'Harassment or bullying', 'Fake account', 'Nudity or sexual content', 'Hate or violence', 'Asking for money', 'Other'];
 
-export default function ReportButton({ type, id, label = 'Report', className = '' }: { type: 'post' | 'comment' | 'user' | 'conversation'; id: string; label?: string; className?: string }) {
+export default function ReportButton({ type, id, label = 'Report', className = '' }: { type: 'post' | 'comment' | 'user' | 'conversation' | 'group' | 'group_message'; id: string; label?: string; className?: string }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false); const [reason, setReason] = useState(REASONS[0]); const [note, setNote] = useState(''); const [done, setDone] = useState('');
   if (!user || (user as any).is_anonymous) return null;
