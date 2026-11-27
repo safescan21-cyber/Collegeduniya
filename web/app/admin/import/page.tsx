@@ -1,4 +1,5 @@
 'use client';
+import JobsApiKeys from '@/components/admin/JobsApiKeys';
 import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, XCircle, Loader2, Download, RefreshCw, Search } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -84,14 +85,15 @@ export default function AdminImport() {
               <Status ok label="Cities & places — GeoNames + OpenStreetMap (free)" />
               <Status ok label="Hospitals, PGs, transport near colleges — OpenStreetMap Overpass (free)" />
               <Status ok label="College data — Hipolabs + Wikidata (free)" />
-              <Status ok={integ.jobs?.adzuna} label="Local jobs — Adzuna" hint="Set ADZUNA_APP_ID and ADZUNA_APP_KEY in server/.env (free key at developer.adzuna.com)" />
-              <Status ok={integ.jobs?.jooble} label="Local jobs — Jooble" hint="Set JOOBLE_API_KEY in server/.env (request a free key at jooble.org/api/about)" />
+              <Status ok={integ.jobs?.adzuna} label="Local jobs — Adzuna" hint="Paste the keys in “Job search keys” below" />
+              <Status ok={integ.jobs?.jooble} label="Local jobs — Jooble" hint="Paste the key in “Job search keys” below" />
               <Status ok={!!integ.translate} label={`Translation — ${integ.translate || 'not configured'}`} hint="Set GOOGLE_TRANSLATE_API_KEY (or LIBRETRANSLATE_URL) in server/.env for 30+ languages" />
               <Status ok={integ.scorecard} label="U.S. colleges with tuition — College Scorecard" hint="Set COLLEGE_SCORECARD_API_KEY in server/.env (free at api.data.gov/signup)" />
               <Status ok={integ.ai_chat} label="AI assistant — Anthropic" hint="Set ANTHROPIC_API_KEY in server/.env" />
             </ul>
           )}
         </div>
+        <JobsApiKeys />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

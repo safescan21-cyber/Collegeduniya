@@ -11,6 +11,13 @@ const ADZUNA_COUNTRIES = new Set(['gb', 'us', 'at', 'au', 'be', 'br', 'ca', 'ch'
 const HOURS = Number(process.env.JOBS_CACHE_HOURS || 12);
 const strip = (s) => String(s || '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 
+// one small real search to check a key right after it is saved in the admin panel
+export async function testJobsProvider(name) {
+  const args = { city: 'Delhi', countryName: 'India', what: 'engineer' };
+  const list = name === 'jooble' ? await jooble(args) : await adzuna({ ...args, country: 'in' });
+  return { ok: true, sample: list.length };
+}
+
 export function providersStatus() {
   return {
     adzuna: Boolean(process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY),

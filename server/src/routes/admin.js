@@ -448,6 +448,29 @@ router.post('/ai/providers/:id/key', requireSuperAdmin, wrap(async (req, res) =>
   }
   res.json({ ok: true, test, autopilot });
 }));
+// Job-search API keys (Jooble, Adzuna) saved from Admin → Import & APIs. Super admin; the key is never sent back.
+router.get('/integrations/jobs-keys', wrap(async (_req, res) => {
+  const { savedSecretNames } = await import('../services/secrets.js');
+  const { providersStatus } = await import('../services/jobs.js');
+  const saved = await savedSecretNames();
+  res.json({ status: providersStatus(), saved: { JOOBLE_API_KEY: saved.JOOBLE_API_KEY || null, ADZUNA_APP_ID: saved.ADZUNA_APP_ID || null, ADZUNA_APP_KEY: saved.ADZUNA_APP_KEY || null } });
+}));
+router.post('/integrations/jobs-keys', requireSuperAdmin, wrap(async (req, res) => {
+  const { saveSecret, deleteSecret } = await import('../services/secrets.js');
+  const { testJobsProvider } = await import('../services/jobs.js');
+  const provider = req.body?.provider === 'adzuna' ? 'adzuna' : 'jooble';
+  const keys = provider === 'jooble' ? { JOOBLE_API_KEY: req.body?.key } : { ADZUNA_APP_ID: req.body?.app_id, ADZUNA_APP_KEY: req.body?.key };
+  for (const [n, v] of Object.entries(keys)) await saveSecret(n, v, req.user.id);
+  const test = await testJobsProvider(provider).catch((e) => ({ ok: false, error: e.message }));
+  if (!test.ok) for (const n of Object.keys(keys)) await deleteSecret(n).catch(() => {});   // a key that doesn't work isn't kept
+  res.json({ ok: test.ok, test });
+}));
+router.delete('/integrations/jobs-keys/:provider', requireSuperAdmin, wrap(async (req, res) => {
+  const { deleteSecret } = await import('../services/secrets.js');
+  const names = req.params.provider === 'adzuna' ? ['ADZUNA_APP_ID', 'ADZUNA_APP_KEY'] : ['JOOBLE_API_KEY'];
+  for (const n of names) await deleteSecret(n).catch(() => {});
+  res.json({ ok: true });
+}));
 // Connect the email account that sends login codes and site emails (super admin only)
 router.get('/email/status', wrap(async (_req, res) => {
   const { mailEnabled } = await import('../services/mailer.js');
