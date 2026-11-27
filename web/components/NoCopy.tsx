@@ -28,6 +28,11 @@ export default function NoCopy() {
     // focus moved to another app / screenshot tool (but not into an embedded video on the page)
     const onBlur = () => setTimeout(() => { if (document.activeElement?.tagName !== 'IFRAME') shield(); }, 0);
     const onVis = () => (document.hidden ? shield() : unshield());
+    // the page is still in view but another window has focus (second monitor, side-by-side, in-app browser panes):
+    // any pointer movement, touch or scroll over the page brings it back — a screenshot tool freezes the screen
+    // before that can happen, so the snapshot stays blurred
+    const back = () => { if (root.classList.contains('shield') && !document.hidden) unshield(); };
+    const backEvents = ['pointermove', 'pointerdown', 'wheel', 'touchstart'] as const;   // not keys: PrintScreen must keep the blur
     const shotKeys = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
       const macShot = e.metaKey && e.shiftKey && ['3', '4', '5', '6'].includes(k);
@@ -55,6 +60,7 @@ export default function NoCopy() {
     document.addEventListener('keydown', keys, true);
     document.addEventListener('keydown', shotKeys, true); document.addEventListener('keyup', shotKeys, true);
     window.addEventListener('blur', onBlur); window.addEventListener('focus', unshield); document.addEventListener('visibilitychange', onVis);
+    backEvents.forEach((ev) => window.addEventListener(ev, back, { passive: true }));
     // videos: no download button, no picture-in-picture (also for videos added later)
     const lock = () => document.querySelectorAll('video').forEach((v) => { v.setAttribute('controlsList', 'nodownload noremoteplayback'); v.disablePictureInPicture = true; });
     lock(); const mo = new MutationObserver(lock); mo.observe(document.body, { childList: true, subtree: true });
@@ -62,6 +68,7 @@ export default function NoCopy() {
       evs.forEach((ev) => document.removeEventListener(ev, sel)); document.removeEventListener('keydown', keys, true);
       document.removeEventListener('keydown', shotKeys, true); document.removeEventListener('keyup', shotKeys, true);
       window.removeEventListener('blur', onBlur); window.removeEventListener('focus', unshield); document.removeEventListener('visibilitychange', onVis);
+      backEvents.forEach((ev) => window.removeEventListener(ev, back));
       mo.disconnect(); unshield(); clearTimeout(t);
     };
   }, [on]);

@@ -20,7 +20,7 @@ const MAX_SECONDS = 60;
 const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : n ? String(n) : '');
 
 export default function Shots() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const params = useSearchParams();
   const start = params.get('start');
   const [tab, setTab] = useState<'trending' | 'new' | 'following'>('trending');
@@ -29,6 +29,9 @@ export default function Shots() {
   const [upload, setUpload] = useState(params.get('new') === '1');
   const loading = useRef(false);
   const loggedIn = !!user && !(user as any).is_anonymous;
+  const toLogin = () => location.assign(`/login?mode=register&next=${encodeURIComponent('/community/shots?new=1')}`);
+  // ?new=1 (home page "Post your shot") — guests log in / sign up first, then come straight back to the upload screen
+  useEffect(() => { if (upload && !authLoading && !loggedIn) { setUpload(false); toLogin(); } }, [upload, authLoading, loggedIn]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = useCallback(async (offset = 0) => {
     if (loading.current) return; loading.current = true;
@@ -53,7 +56,7 @@ export default function Shots() {
           {([['trending', 'Trending'], ['new', 'Latest'], ['following', 'Following']] as const).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} className={tab === k ? 'border-b-2 border-white pb-0.5' : 'text-white/60'}>{l}</button>))}
         </div>
-        <button onClick={() => (loggedIn ? setUpload(true) : location.assign('/login?mode=register&next=/community/shots'))} className="flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-900"><Plus size={14} />Shot</button>
+        <button onClick={() => (loggedIn ? setUpload(true) : toLogin())} className="flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-900"><Plus size={14} />Shot</button>
       </div>
 
       <div className="h-full snap-y snap-mandatory overflow-y-scroll [scrollbar-width:none]">
@@ -67,7 +70,7 @@ export default function Shots() {
           : rows.map((s, i) => <Shot key={s.id} shot={s} muted={muted} setMuted={setMuted} onNear={i === rows.length - 3 && more ? () => load(rows.length) : undefined}
               onDeleted={() => setRows((r) => (r || []).filter((x) => x.id !== s.id))} />)}
       </div>
-      {upload && <UploadShot onClose={() => setUpload(false)} onDone={() => { setUpload(false); setTab('new'); setRows(null); load(0); }} />}
+      {upload && loggedIn && <UploadShot onClose={() => setUpload(false)} onDone={() => { setUpload(false); setTab('new'); setRows(null); load(0); }} />}
     </div>
   );
 }
