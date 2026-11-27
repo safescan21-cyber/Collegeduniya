@@ -135,7 +135,7 @@ export default async function HomePage() {
       </section>
 
       {/* TRENDING SHOTS */}
-      {shots.length > 0 && (
+      {(
         <section className="mt-14 bg-slate-950 py-8 text-white">
           <div className="container-x">
             <div className="mb-4 flex items-end justify-between">
@@ -161,8 +161,13 @@ export default async function HomePage() {
                   </Link>);
               })}
               <Link href="/community/shots?new=1" className="grid aspect-[9/16] w-36 shrink-0 snap-start place-items-center rounded-2xl border-2 border-dashed border-white/20 text-center text-sm text-slate-300 hover:border-fuchsia-400 hover:text-white sm:w-44">
-                <span><PlusCircle size={28} className="mx-auto mb-1" />Post your shot</span>
+                <span><PlusCircle size={28} className="mx-auto mb-1" />{shots.length ? 'Post your shot' : 'Post the first shot'}</span>
               </Link>
+              {shots.length === 0 && ['🎓 Campus tour', '🎉 Fest moments', '🏠 Hostel room', '🍜 Canteen food', '📚 Exam-day vibes'].map((idea) => (
+                <Link key={idea} href="/community/shots?new=1" className="relative grid aspect-[9/16] w-36 shrink-0 snap-start place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-fuchsia-700/60 via-slate-800 to-brand-800/60 p-3 text-center sm:w-44">
+                  <span className="text-sm font-semibold">{idea}<span className="mt-1 block text-[11px] font-normal text-white/60">Film it in 60 s and post it here</span></span>
+                  <Play size={22} className="absolute bottom-3 end-3 fill-white/40 text-white/40" />
+                </Link>))}
             </div>
           </div>
         </section>)}
