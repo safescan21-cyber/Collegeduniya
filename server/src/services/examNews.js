@@ -136,13 +136,14 @@ export async function fromOfficialSite(e) {
   if (!/^https?:\/\//i.test(e.website || '')) return [];
   const page = await grab(e.website); if (!page) return [];
   const site = host(page.url);
-  const yr = new Date().getFullYear(); const thisOrNext = new RegExp(`\\b(${yr}|${yr + 1})\\b`);
+  // an undated notice counts only when it is about the coming session: next year's from July on, else this year's
+  const now = new Date(); const yr = now.getFullYear(); const upcoming = new RegExp(`\\b${now.getMonth() >= 6 ? yr + 1 : yr}\\b`);
   const out = [];
   for (const l of noticeLinks(page, { max: 15 })) {
     const title = l.label.replace(/\s+/g, ' ').replace(/\s*[-–]\s*Reg\.?$/i, '').trim();
     if (title.length < 15 || title.length > 300) continue;
     const date = l.date || dateInText(title);
-    if (!date && !thisOrNext.test(title)) continue;                                 // undated and not about this/next year: skip
+    if (!date && !upcoming.test(title)) continue;                                    // undated and not about the coming session: skip
     if (date && Date.parse(date) < Date.now() - 120 * 864e5) continue;               // old notice
     out.push({ title, url: l.url, source: `${site} (official)`, official: true, provider: 'official_site', language: 'english', source_country: null,
       published_at: date ? `${date}T00:00:00Z` : new Date().toISOString(), date_known: !!date, score: 12 });

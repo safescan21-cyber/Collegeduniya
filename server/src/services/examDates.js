@@ -46,6 +46,23 @@ const MAX_BYTES = 5 * 1024 * 1024;
 // compare text ignoring punctuation and spacing (PDF/HTML tables collapse differently), but the words must match in order
 const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
+// "Admit Card for CUET(UG) &#8211; 2026" → "Admit Card for CUET(UG) – 2026"
+export const decodeEntities = (t) => String(t || '').replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+  .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"')
+  .replace(/&#?39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&ndash;/g, '–').replace(/&mdash;/g, '—');
+
+// What the server sees on an official site (Admin → Exam news → Test website): status, links, notices found
+export async function probeSite(url) {
+  const t0 = Date.now(); let status = 0; let error = null;
+  try {
+    const r = await fetch(url, { headers: { 'User-Agent': USER_AGENT, Accept: 'text/html' }, redirect: 'follow', signal: AbortSignal.timeout(25000) });
+    status = r.status; await r.arrayBuffer();
+  } catch (e) { error = e.cause?.code || e.message; }
+  const page = status >= 200 && status < 400 ? await grab(url) : null;
+  return { url, status, error, ms: Date.now() - t0, read: !!page, links: page?.links.length || 0,
+    notices: page ? noticeLinks(page, { max: 15 }).map((l) => ({ title: l.label.slice(0, 160), url: l.url, date: l.date })) : [] };
+}
+
 export async function grab(url) {
   const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 25000);
   try {
@@ -63,7 +80,7 @@ export async function grab(url) {
       return { url: res.url || url, text: String(text || ''), links: [] };
     }
     const html = buf.toString('utf8');
-    const links = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi)].map((m) => ({ href: m[1], label: m[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() }));
+    const links = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi)].map((m) => ({ href: m[1].replace(/&amp;/g, '&'), label: decodeEntities(m[2].replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim() }));
     const text = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<noscript[\s\S]*?<\/noscript>/gi, ' ')
       .replace(/<br\s*\/?>|<\/(p|div|li|tr|h\d)>/gi, '\n').replace(/<[^>]+>/g, ' ')
       .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&#\d+;/g, ' ').replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n');

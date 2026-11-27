@@ -1153,6 +1153,12 @@ router.post('/exam-news/collect', wrap(async (req, res) => {
   collectExamNews().catch((e) => console.warn('[exam-news]', e.message));
   res.status(202).json({ ok: true, message: 'Collecting news in the background (about 6 seconds per exam).' });
 }));
+router.get('/exam-news/probe', wrap(async (req, res) => {
+  const { data: e } = await supabase.from('exams').select('short_name, website').eq('id', String(req.query.exam || '')).maybeSingle();
+  if (!e?.website) return res.json({ error: 'This exam has no official website set (Admin → Exams).' });
+  const { probeSite } = await import('../services/examDates.js');
+  res.json({ exam: e.short_name, ...(await probeSite(e.website)) });
+}));
 router.post('/exam-news/digest', wrap(async (_req, res) => { res.json(await sendExamNewsDigests()); }));
 
 // ---------------------------------------------------------------- system health (services/health.js)

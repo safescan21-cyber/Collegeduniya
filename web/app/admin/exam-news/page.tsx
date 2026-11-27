@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import { EyeOff, Eye, Loader2, Play, Send, ExternalLink } from 'lucide-react';
+import { EyeOff, Eye, Loader2, Play, Send, ExternalLink, Globe } from 'lucide-react';
 import { api } from '@/lib/api';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { timeAgo } from '@/lib/format';
@@ -23,11 +23,14 @@ export default function AdminExamNews() {
     try {
       const r = await api<any>(`/api/admin/exam-news/${what}`, { method: 'POST', body: JSON.stringify(exam ? { exam_id: exam } : {}) });
       setMsg(what === 'digest' ? `Emails: ${r.sent} sent to ${r.users} students${r.failed ? `, ${r.failed} failed` : ''}`
+        : r.skipped ? 'A collection is already running — wait a few minutes and try again.'
         : r.message || `Checked ${r.exams} exam(s), added ${r.added} headline(s)${r.errors ? `, ${r.errors} error(s)` : ''}`);
       load();
     } catch (e: any) { setMsg(e.message); }
     setBusy('');
   };
+  const [pr, setPr] = useState<any>(null);
+  const probe = async () => { setBusy('probe'); setPr(null); setPr(await api<any>(`/api/admin/exam-news/probe?exam=${exam}`).catch((e) => ({ error: e.message }))); setBusy(''); };
   const hide = async (r: any) => { await sb.from('exam_news').update({ is_hidden: !r.is_hidden }).eq('id', r.id); load(); };
 
   return (
@@ -49,9 +52,17 @@ export default function AdminExamNews() {
           <option value="">All exams</option>{exams.map((x) => <option key={x.id} value={x.id}>{x.short_name}</option>)}
         </select>
         <button onClick={() => run('collect')} disabled={!!busy} className="btn-primary">{busy === 'collect' ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}{exam ? 'Collect for this exam' : 'Collect now'}</button>
+        {exam && <button onClick={probe} disabled={!!busy} className="btn-ghost">{busy === 'probe' ? <Loader2 size={16} className="animate-spin" /> : <Globe size={16} />}Test website</button>}
         <button onClick={() => run('digest')} disabled={!!busy} className="btn-ghost">{busy === 'digest' ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}Send due emails now</button>
       </div>
       {msg && <p className="text-sm text-slate-700">{msg}</p>}
+      {pr && <div className="card p-4 text-sm">
+        {pr.error && !pr.status ? <p className="text-rose-700"><b>{pr.exam || 'Website'}:</b> the server could not open {pr.url || 'it'} — {pr.error}. The site may block servers or be down; news and dates come only from news headlines until it opens.</p>
+        : <><p><b>{pr.exam}</b> · <a href={pr.url} target="_blank" rel="noopener noreferrer" className="text-brand-700 underline">{pr.url}</a> · answered <b>{pr.status}</b> in {(pr.ms / 1000).toFixed(1)} s · {pr.links} links · <b>{pr.notices.length}</b> notices found</p>
+          {pr.status >= 400 && <p className="mt-1 text-rose-700">The site refused the server (HTTP {pr.status}). Check the website address in Admin → Exams.</p>}
+          {pr.read && pr.notices.length === 0 && <p className="mt-1 text-amber-700">The page opened but has no notice links the server can read — it may load them with JavaScript. Try setting the exam’s website to its notices page.</p>}
+          <ul className="mt-2 space-y-1">{pr.notices.map((n: any) => <li key={n.url} className="text-xs"><a href={n.url} target="_blank" rel="noopener noreferrer" className="text-slate-800 hover:text-brand-700">{n.title}</a>{n.date && <span className="text-slate-500"> · {n.date}</span>}</li>)}</ul></>}
+      </div>}
       <div className="card divide-y divide-slate-100">
         {!rows ? <Loader2 className="m-5 animate-spin text-slate-300" /> : !rows.length ? <p className="p-5 text-sm text-slate-500">No headlines yet.</p> : rows.map((r) => (
           <div key={r.id} className={`flex items-start justify-between gap-3 p-4 ${r.is_hidden ? 'opacity-50' : ''}`}>
