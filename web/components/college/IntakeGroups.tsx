@@ -32,10 +32,10 @@ export default function IntakeGroups({ collegeId, collegeName }: { collegeId: st
   const join = async (which: string) => {
     if (!loggedIn) return router.push(`/login?next=${encodeURIComponent(location.pathname)}`);
     setBusy(true); setErr('');
-    const { error } = await sb.rpc('join_intake_group', { p_college: collegeId, p_intake: which });
+    const { data, error } = await sb.rpc('join_intake_group', { p_college: collegeId, p_intake: which });
     setBusy(false);
     if (error) return setErr(error.message);
-    router.push('/messages?tab=groups');
+    router.push(`/messages?tab=groups&g=${data}`);
   };
 
   return (
@@ -46,7 +46,7 @@ export default function IntakeGroups({ collegeId, collegeName }: { collegeId: st
         <ul className="mt-3 divide-y divide-slate-100">{groups.map((g) => (
           <li key={g.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
             <span className="font-medium text-slate-800">{g.intake} <span className="ml-1 inline-flex items-center gap-1 text-xs text-slate-500"><UsersRound size={12} />{g.member_count}</span></span>
-            {g.joined ? <Link href="/messages?tab=groups" className="btn-ghost py-1.5 text-sm">Open chat</Link>
+            {g.joined ? <Link href={`/messages?tab=groups&g=${g.id}`} className="btn-ghost py-1.5 text-sm">Open chat</Link>
               : <button disabled={busy} onClick={() => join(g.intake)} className="btn-primary py-1.5 text-sm">Join</button>}
           </li>))}</ul>
       )}
