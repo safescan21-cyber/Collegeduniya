@@ -5,7 +5,7 @@ import { ORG } from '@/lib/org';
 
 export const metadata: Metadata = {
   title: `${ORG.founder} — Founder of Collegeolo`,
-  description: `${ORG.founder} is the founder of Collegeolo, a free platform that helps students choose a college, find a PG or hostel near campus and get part-time work.`,
+  description: `${ORG.founder} founded Collegeolo after money stopped him from studying abroad — so every student can find the right college, scholarships, loans, part-time jobs and a place to stay, free.`,
   alternates: { canonical: '/founder' },
   openGraph: { type: 'profile', title: `${ORG.founder} — Founder of Collegeolo`, url: '/founder', ...(ORG.founderPhoto ? { images: [{ url: ORG.founderPhoto, width: 480, height: 480, alt: ORG.founder }] } : {}) },
 };
@@ -36,12 +36,24 @@ export default function Founder() {
             </div>
           </div>
 
-          <div className="prose prose-slate mt-8 max-w-none">
+          <blockquote className="mt-8 rounded-2xl border-s-4 border-brand-500 bg-brand-50/60 p-5">
+            <p className="text-xs font-bold uppercase tracking-wide text-brand-700">Why I started Collegeolo</p>
+            <p className="mt-2 text-lg font-medium leading-relaxed text-slate-800">“When I graduated from college, I wanted to go abroad and do research at a foreign university — but my finances didn’t allow it. I built Collegeolo so that every student can study: with free help to find the right college, scholarships, education loans, part-time jobs and an affordable place to stay.”</p>
+            <p className="mt-2 text-sm font-semibold text-slate-600">— {ORG.founder}</p>
+          </blockquote>
+
+          <div className="prose prose-slate mt-6 max-w-none">
             {ORG.founderNote ? <p className="text-lg">{ORG.founderNote}</p> : <>
               <p className="text-lg">Hi, I’m {ORG.founder.split(' ')[0]} — a full-stack developer and the person who builds and runs Collegeolo.</p>
               <p>Picking a college is only one part of the decision. Students also need a safe place to stay near campus and, very often, a part-time job to pay for it. That information is usually spread across dozens of websites. I started Collegeolo to put it in one place — and to keep it honest: fees and dates from official sources, ranks from published rankings, and reviews only from students.</p>
             </>}
           </div>
+
+          <p className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <Link href="/scholarships" className="font-semibold text-brand-700 hover:underline">Find scholarships →</Link>
+            <Link href="/education-loan" className="font-semibold text-brand-700 hover:underline">Education loan calculator →</Link>
+            <Link href="/study-abroad/visa" className="font-semibold text-brand-700 hover:underline">Study abroad & visas →</Link>
+          </p>
 
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
             {[
