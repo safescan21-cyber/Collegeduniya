@@ -50,7 +50,9 @@ export async function importAisheList({ dryRun = false, publish = true, startedB
       if (!kind) { rnd++; continue; }
       if (!code || seen.has(code)) continue;
       seen.add(code);
-      const name = titleCase(clean(r.name)).replace(/\s+,/g, ',');
+      // drop list codes glued to the front ("100001-…"), wrapping quotes, and fix "College'S" → "College's"
+      const name = titleCase(clean(r.name).replace(/^[^\p{L}\p{N}]*\d{2,}\s*[-–.:)]\s*/u, '').replace(/^['"‘’“”\s]+(.*[^'"‘’“”\s])['"‘’“”\s]+$/, '$1'))
+        .replace(/(\p{L})['’]S\b/gu, "$1's").replace(/\s+,/g, ',');
       if (name.length < 3) continue;
       const state = clean(r.state) || null; const district = clean(r.district) || null;
       if (existing.has(`${normName(name)}|${String(state || '').toLowerCase()}`) || (!state && existing.has(`${normName(name)}|`))) { dup++; continue; }

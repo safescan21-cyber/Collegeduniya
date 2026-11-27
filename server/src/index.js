@@ -1,3 +1,4 @@
+import { whenIdle } from './services/loadGuard.js';
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -125,6 +126,12 @@ setInterval(async () => {
     for (const q of data || []) console.warn(`[db-watchdog] stopped query after ${q.seconds}s: ${q.query}`);
   } catch { /* database busy or function not deployed yet */ }
 }, 120_000).unref();
+// clean imported college names a little at a time (list codes, wrapping quotes, "College'S"), only when the server is calm
+const fixNames = whenIdle('name cleanup', async () => {
+  const { data, error } = await sbAdmin.rpc('fix_college_names', { p_lim: 300 });
+  if (!error && data) console.log(`[names] cleaned ${data} college names`);
+});
+setInterval(() => fixNames().catch(() => {}), 5 * 60_000).unref();
   startHealthMonitor();
   startErrorWatch();
   // chats (messages + call log) older than CHAT_RETENTION_MONTHS (default 6) are deleted daily; posts are kept
