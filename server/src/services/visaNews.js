@@ -36,7 +36,7 @@ export const COUNTRIES = [
 
 const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const wordRe = (w, cs) => new RegExp(`(^|[^\\p{L}\\p{N}])${reEsc(w)}(?=$|[^\\p{L}\\p{N}])`, cs ? 'u' : 'iu');
-const has = (list, text) => list.some((w) => wordRe(w, /^[A-Z.]{2,5}$/.test(w)).test(text));   // "US", "UK" in capitals only
+export const has = (list, text) => list.some((w) => wordRe(w, /^[A-Z.]{2,5}$/.test(w)).test(text));   // "US", "UK" in capitals only
 
 // what makes an item about student visas
 const STUDENT = ['student visa', 'student visas', 'study visa', 'study permit', 'study permits', 'international student', 'international students',
@@ -78,14 +78,19 @@ export function parseFeed(xml) {
   return out;
 }
 
-async function getText(url, accept) {
-  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 25000);
-  try {
-    const r = await fetch(url, { headers: { 'User-Agent': USER_AGENT, Accept: accept }, signal: ctl.signal, redirect: 'follow' });
-    const body = await r.text();
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return body.slice(0, 3_000_000);
-  } finally { clearTimeout(t); }
+export async function getText(url, accept, tries = 3) {
+  for (let i = 0; ; i++) {
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 25000);
+    try {
+      const r = await fetch(url, { headers: { 'User-Agent': USER_AGENT, Accept: accept }, signal: ctl.signal, redirect: 'follow' });
+      const body = await r.text();
+      // GDELT asks for one request every 5 s and answers 429 (or a plain-text "please limit" note) when busy: wait and retry
+      const busy = r.status === 429 || (/gdeltproject/.test(url) && /limit requests|one every 5 seconds/i.test(body.slice(0, 300)));
+      if (busy && i < tries - 1) { await new Promise((ok) => setTimeout(ok, 15000 * (i + 1))); continue; }
+      if (!r.ok || busy) throw new Error(busy ? 'rate limited' : `HTTP ${r.status}`);
+      return body.slice(0, 3_000_000);
+    } finally { clearTimeout(t); }
+  }
 }
 
 export function keepOfficial(item) {
@@ -108,7 +113,7 @@ async function fromFeeds(c) {
 }
 
 // ---------------------------------------------------------------- GDELT news headlines
-const gdeltDate = (s) => { const m = /^(\d{4})(\d\d)(\d\d)T(\d\d)(\d\d)(\d\d)Z$/.exec(s || ''); return m ? `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z` : new Date().toISOString(); };
+export const gdeltDate = (s) => { const m = /^(\d{4})(\d\d)(\d\d)T(\d\d)(\d\d)(\d\d)Z$/.exec(s || ''); return m ? `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z` : new Date().toISOString(); };
 export function gdeltVisaQuery(c) {
   const phrases = ['"student visa"', '"student visas"', '"study permit"', '"international students"', '"post-study work"', '"graduate route"', '"F-1 visa"'];
   const place = c.terms.filter((t) => t.length >= 3 && !/[.]/.test(t)).slice(0, 4).map((t) => (t.includes(' ') ? `"${t}"` : t));
@@ -120,7 +125,7 @@ export function keepNews(c, title) {
 }
 async function fromGdelt(c) {
   await throttle('api.gdeltproject.org', Number(env('GDELT_GAP_MS', 6000)));
-  const url = `https://api.gdeltproject.org/api/v2/doc/doc?${new URLSearchParams({ query: gdeltVisaQuery(c), mode: 'artlist', format: 'json', maxrecords: '75', sort: 'datedesc', timespan: `${Number(env('VISA_NEWS_HOURS', 72))}h` })}`;
+  const url = `https://api.gdeltproject.org/api/v2/doc/doc?${new URLSearchParams({ query: gdeltVisaQuery(c), mode: 'artlist', format: 'json', maxrecords: '75', sort: 'datedesc', timespan: `${Number(env('VISA_NEWS_HOURS', 168))}h` })}`;
   const body = await getText(url, 'application/json');
   let j; try { j = JSON.parse(body); } catch { throw new Error(`GDELT: ${body.slice(0, 120)}`); }
   return (j.articles || []).filter((a) => keepNews(c, a.title))

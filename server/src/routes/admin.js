@@ -684,6 +684,26 @@ router.post('/visa-news/collect', wrap(async (req, res) => {
   res.json({ started: true });
 }));
 
+// ---- study news (services/studyNews.js): admissions, scholarships, colleges, policy, study abroad, skills
+router.get('/study-news', wrap(async (req, res) => {
+  let q = supabase.from('study_news').select('id, category, region, title, url, source, published_at, is_hidden', { count: 'exact' })
+    .order('published_at', { ascending: false }).limit(150);
+  if (req.query.category) q = q.eq('category', String(req.query.category).slice(0, 20));
+  const { data, count, error } = await q;
+  if (error) return fail(res, error);
+  res.json({ data, count });
+}));
+router.post('/study-news/:id/hide', wrap(async (req, res) => {
+  const { error } = await supabase.from('study_news').update({ is_hidden: req.body?.hidden !== false }).eq('id', req.params.id);
+  if (error) return fail(res, error);
+  res.json({ ok: true });
+}));
+router.post('/study-news/collect', wrap(async (_req, res) => {
+  const { collectStudyNews } = await import('../services/studyNews.js');
+  collectStudyNews().then((st) => console.log('[study-news] admin run', st)).catch((e) => console.warn('[study-news]', e.message));
+  res.json({ started: true });
+}));
+
 router.post('/exam-dates/collect', wrap(async (req, res) => {
   const { collectExamDates } = await import('../services/examDates.js');
   res.json(await collectExamDates({ limit: Math.min(Number(req.query.limit) || 5, 30) }));

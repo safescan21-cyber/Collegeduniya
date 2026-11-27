@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/Cards';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { FALLBACK_IMG, timeAgo } from '@/lib/format';
 import type { Article } from '@/lib/types';
+import LiveStudyNews from '@/components/news/LiveStudyNews';
 
 // rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 export const metadata: Metadata = {
@@ -33,7 +34,9 @@ export default async function NewsPage({ searchParams }: { searchParams: Promise
   return (
     <div className="container-x py-10">
       <h1 className="flex items-center gap-2 text-3xl font-extrabold text-slate-900"><Newspaper className="text-brand-600" />News & guides</h1>
-      <div className="mt-5 flex flex-wrap gap-2">
+      {page === 1 && !sp.category && <LiveStudyNews live={sp.live} />}
+      <h2 className="mt-10 text-xl font-bold text-slate-900">Guides & articles</h2>
+      <div className="mt-3 flex flex-wrap gap-2">
         {CATS.map((c) => <Link key={c.key} href={c.key ? `/news?category=${c.key}` : '/news'} className={(sp.category || '') === c.key ? 'btn-primary py-1.5' : 'btn-ghost py-1.5'}>{c.label}</Link>)}
       </div>
       {items.length ? (
