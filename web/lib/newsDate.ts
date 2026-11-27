@@ -9,3 +9,5 @@ export function newsDate(iso: string) {
 }
 // a readable source: "gov.uk — UK Visas and Immigration", "timesofindia.indiatimes.com" → "timesofindia.indiatimes.com"
 export const sourceName = (s: string | null | undefined) => (s || 'news website').replace(/^www\./, '');
+// the website a link points to, for "Source: nta.ac.in"
+export const hostOf = (u: string | null | undefined) => { try { return new URL(String(u)).hostname.replace(/^www\./, ''); } catch { return 'official website'; } };

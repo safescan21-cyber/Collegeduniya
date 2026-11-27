@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { CalendarDays, ExternalLink } from 'lucide-react';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
+import { hostOf } from '@/lib/newsDate';
 
 const NAMES: Record<string, string> = { registration_start: 'Registration opens', registration_end: 'Last date to apply', correction_window: 'Form correction',
   admit_card: 'Admit card', exam: 'Exam', answer_key: 'Answer key', result: 'Result', counselling: 'Counselling' };
@@ -20,7 +21,7 @@ export default async function ExamDates({ slug, name }: { slug: string; name: st
           <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
             <span className="font-medium text-slate-800">{NAMES[r.event] || r.event}{r.title ? ` · ${r.title}` : ''}</span>
             <span className="flex items-center gap-2 text-slate-600">{fmt(r.date_start)}{r.date_end ? ` – ${fmt(r.date_end)}` : ''}{r.tentative && <span className="text-xs text-amber-600">tentative</span>}
-              <a href={r.source_url} target="_blank" rel="noopener noreferrer" className="text-brand-700" title="Official notice"><ExternalLink size={13} /></a></span>
+              <a href={r.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-brand-700 hover:underline" title="Official notice">Source: {hostOf(r.source_url)}<ExternalLink size={11} /></a></span>
           </li>))}
       </ul>
       <p className="mt-2 text-xs text-slate-500">Follow {name} below to get a reminder before each date · <Link href="/exams/calendar" className="text-brand-700 hover:underline">All exam dates</Link></p>

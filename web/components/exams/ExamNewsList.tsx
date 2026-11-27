@@ -1,5 +1,5 @@
 import { ExternalLink } from 'lucide-react';
-import { timeAgo } from '@/lib/format';
+import { newsDate, sourceName } from '@/lib/newsDate';
 
 export type ExamNewsItem = { id: string; title: string; url: string; source: string | null; published_at: string; official: boolean };
 
@@ -16,7 +16,7 @@ export default function ExamNewsList({ items, name }: { items: ExamNewsItem[]; n
               </a>
               <p className="mt-0.5 text-xs text-slate-500">
                 {n.official && <span className="mr-1.5 rounded-full bg-emerald-50 px-1.5 py-0.5 font-semibold text-emerald-700">Official</span>}
-                {n.source} · {timeAgo(n.published_at)}
+                Source: <b className="font-medium text-slate-600">{sourceName(n.source)}</b> · <time dateTime={n.published_at} className="text-slate-600">{newsDate(n.published_at)}</time>
               </p>
             </li>
           ))}

@@ -6,6 +6,7 @@ import TopCollegesTable, { type TopRow } from '@/components/home/TopCollegesTabl
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { streamBySlug, STREAMS } from '@/lib/streams';
 import { short, timeAgo, SITE_URL } from '@/lib/format';
+import { newsDate, sourceName } from '@/lib/newsDate';
 
 // rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 const YEAR = new Date().getFullYear();
@@ -156,7 +157,7 @@ export default async function StreamPage({ params }: { params: Promise<{ stream:
                 {news.map((n) => (
                   <li key={n.id} className="p-3">
                     <a href={n.url} target="_blank" rel="noopener noreferrer nofollow" className="font-medium text-slate-900 hover:text-brand-700">{n.title}</a>
-                    <p className="text-xs text-slate-500">{n.exams?.short_name} · {n.source} · {timeAgo(n.published_at)}{n.official ? ' · Official' : ''}</p>
+                    <p className="text-xs text-slate-500">{n.exams?.short_name}{n.official ? ' · Official' : ''} · Source: <b className="font-medium text-slate-600">{sourceName(n.source)}</b> · <time dateTime={n.published_at}>{newsDate(n.published_at)}</time></p>
                   </li>
                 ))}
               </ul>

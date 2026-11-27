@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { hostOf } from '@/lib/newsDate';
 import { Bell, CalendarDays, ExternalLink } from 'lucide-react';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 
@@ -74,7 +75,7 @@ export default async function ExamCalendar({ searchParams }: { searchParams: Pro
                   </div>
                   <div className="shrink-0 text-end">
                     <p className={`text-xs font-semibold ${days <= 3 && days >= 0 ? 'text-rose-600' : 'text-slate-500'}`}>{days > 0 ? `in ${days} day${days > 1 ? 's' : ''}` : days === 0 ? 'today' : 'on now'}</p>
-                    <a href={r.source_url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs text-brand-700 hover:underline">Official notice<ExternalLink size={11} /></a>
+                    <a href={r.source_url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs text-brand-700 hover:underline">Source: {hostOf(r.source_url)} (official notice)<ExternalLink size={11} /></a>
                   </div>
                 </li>);
             })}
