@@ -97,6 +97,14 @@ app.use((err, _req, res, _next) => {
 
 const server = app.listen(PORT, () => {
   console.log(`Collegeolo API running on http://localhost:${PORT}`);
+  // An import still marked "running" when the API starts was cut off by the restart (one API process): mark it failed,
+  // so the admin page tells the truth and the automatic importers try it again instead of waiting hours for it.
+  sbAdmin.from('import_runs').update({ status: 'failed', message: 'Stopped — the server restarted during the import. It will run again automatically.', finished_at: new Date().toISOString() })
+    .eq('status', 'running').select('id')
+    .then(({ data, error }) => {
+      if (error) console.warn('[imports] could not tidy interrupted imports:', error.message);
+      else if (data?.length) console.log(`[imports] ${data.length} interrupted import(s) marked as stopped`);
+    }, () => {});
   startJobAlertScheduler();
   startCollegeAutofill();
   startExamNews();

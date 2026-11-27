@@ -46,7 +46,8 @@ export async function runOfficialData({ log = (m) => console.log(`[official-data
     if (process.env.AUTO_US !== 'off' && process.env.COLLEGE_SCORECARD_API_KEY) {   // U.S. tuition + programmes (College Scorecard)
       const { data } = await supabase.from('import_runs').select('created_at, status, message').eq('kind', 'scorecard').order('created_at', { ascending: false }).limit(1);
       const last = data?.[0]; const age = last ? Date.now() - new Date(last.created_at).getTime() : Infinity;
-      const busy = last && ((last.status === 'running' && age < 3 * 3600e3) || (last.status === 'failed' && age < 6 * 3600e3));
+      const restarted = last?.status === 'failed' && /server restarted/.test(last.message || '');   // cut off by a deploy: retry now
+      const busy = last && ((last.status === 'running' && age < 3 * 3600e3) || (last.status === 'failed' && !restarted && age < 6 * 3600e3));
       const due = !last || !/programmes/.test(last.message || '') || age > 330 * 864e5;   // first time, the older version without courses, or yearly
       if (!busy && due && !serverBusy()) {
         log('U.S. College Scorecard is due — tuition into existing colleges + programmes as courses');
@@ -55,9 +56,9 @@ export async function runOfficialData({ log = (m) => console.log(`[official-data
       }
     }
     if (process.env.AUTO_JOSAA !== 'off') {   // IIT / NIT / IIIT / GFTI programmes + seats (JoSAA): first time, after a failure (6 h), yearly
-      const { data } = await supabase.from('import_runs').select('created_at, status').eq('kind', 'josaa').order('created_at', { ascending: false }).limit(1);
+      const { data } = await supabase.from('import_runs').select('created_at, status, message').eq('kind', 'josaa').order('created_at', { ascending: false }).limit(1);
       const last = data?.[0]; const age = last ? Date.now() - new Date(last.created_at).getTime() : Infinity;
-      const due = !last || (last.status === 'failed' && age > 6 * 3600e3) || (last.status === 'done' && age > 300 * 864e5);
+      const due = !last || (last.status === 'failed' && (age > 6 * 3600e3 || /server restarted/.test(last.message || ''))) || (last.status === 'done' && age > 300 * 864e5);
       if (due && !serverBusy()) {
         log('JoSAA seat matrix is due — IIT / NIT / IIIT programmes');
         const { importJosaa } = await import('./josaa.js');
