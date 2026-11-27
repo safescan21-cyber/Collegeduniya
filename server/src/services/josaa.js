@@ -68,15 +68,23 @@ export function programRow(p) {
 }
 
 // institute name → our college: every meaningful word of the JoSAA name must be in the college's name; the closest wins
+// old and new city names, short forms — JoSAA and our lists often use different ones
+const CITY = { trichy: 'tiruchirappalli', allahabad: 'prayagraj', calicut: 'kozhikode', bangalore: 'bengaluru', bombay: 'mumbai', madras: 'chennai',
+  calcutta: 'kolkata', pondicherry: 'puducherry', trivandrum: 'thiruvananthapuram', mysore: 'mysuru', baroda: 'vadodara', gurgaon: 'gurugram',
+  benares: 'varanasi', banaras: 'varanasi', cochin: 'kochi', vizag: 'visakhapatnam', poona: 'pune', mangalore: 'mangaluru', belgaum: 'belagavi',
+  hubli: 'hubballi', simla: 'shimla', jullundur: 'jalandhar', nitk: 'karnataka' };
 export function matcher(rows) {
   const stop = new Set(['of', 'the', 'and', 'for', 'in', 'at']);
-  const words = (s) => new Set(normName(String(s).replace(/[()]/g, ' ')).split(' ').filter((w) => w && !stop.has(w)));
+  const words = (s) => new Set(normName(String(s).replace(/[()]/g, ' ')).split(' ').filter((w) => w && !stop.has(w)).map((w) => CITY[w] || w));
   const list = rows.map((c) => ({ c, w: new Set([...words(c.name), ...(c.short_name ? words(c.short_name) : [])]) }));
   return (inst) => {
     const noAbbr = inst.replace(/\(([A-Z.]{2,6})\)/g, ' ');   // "(BHU)" "(ISM)" — our names spell these out
     for (const src of [inst, noAbbr]) {
       const need = [...words(src)]; if (need.length < 3) continue;
-      const hits = list.filter((x) => need.every((w) => x.w.has(w))).map((x) => ({ c: x.c, extra: x.w.size - need.length })).sort((a, b) => a.extra - b.extra);
+      const hits = list.filter((x) => need.every((w) => x.w.has(w))).map((x) => ({ c: x.c, extra: x.w.size - need.length }))
+        .sort((a, b) => Number(a.c.source === 'josaa') - Number(b.c.source === 'josaa') || a.extra - b.extra);
+      const own = hits.filter((h) => h.c.source !== 'josaa');
+      if (own.length === 1 || (own.length > 1 && own[0].extra < own[1].extra)) return own[0].c;
       if (hits.length && (hits.length === 1 || hits[0].extra < hits[1].extra)) return hits[0].c;
     }
     return null;
@@ -92,10 +100,19 @@ export async function importJosaa({ startedBy = null, log = () => {}, html = nul
     const idx = await collegeIndex('IN');
     const find = matcher(idx.rows);
     const byInst = new Map(); programs.forEach((p) => (byInst.get(p.institute) || byInst.set(p.institute, []).get(p.institute)).push(p));
-    let matched = 0, created = 0, courses = 0; const unmatched = [];
+    let matched = 0, created = 0, courses = 0, merged = 0; const unmatched = [];
     for (const [inst, list] of byInst) {
       let id = find(inst)?.id;
-      if (id) matched++;
+      if (id) {
+        matched++;
+        const ext = normName(inst).slice(0, 120);
+        const { data: dup } = await supabase.from('colleges').select('id').eq('source', 'josaa').eq('external_id', ext).neq('id', id).maybeSingle();
+        if (dup) {   // an earlier run added this institute as new: move nothing, just hide that copy and its JoSAA courses
+          await supabase.from('courses').delete().eq('college_id', dup.id).eq('source', 'josaa');
+          await supabase.from('colleges').update({ is_published: false }).eq('id', dup.id);
+          merged++;
+        }
+      }
       else {
         const city = (inst.includes(',') ? inst.split(',').pop() : inst.split(' ').pop()).trim();
         id = await createCollege({ source: 'josaa', external_id: normName(inst).slice(0, 120), name: inst, country: 'India', country_code: 'IN', type: 'Public', factsKey: 'josaa', facts: { counselling: 'JoSAA' }, cityName: city });
@@ -110,7 +127,7 @@ export async function importJosaa({ startedBy = null, log = () => {}, html = nul
       const exams = /Indian Institute of Technology|Indian Institute of Science/i.test(inst) ? ['jee-advanced'] : ['jee-main'];
       await supabase.from('colleges').update({ exams_accepted: exams }).eq('id', id).is('exams_accepted', null);
     }
-    const message = `JoSAA seat matrix: ${byInst.size} institutes (${matched} matched, ${created} added) · ${courses} programmes${unmatched.length ? ` · not placed: ${unmatched.slice(0, 5).join('; ')}` : ''}`;
+    const message = `JoSAA seat matrix: ${byInst.size} institutes (${matched} matched, ${created} added${merged ? `, ${merged} duplicates merged` : ''}) · ${courses} programmes${unmatched.length ? ` · not placed: ${unmatched.slice(0, 5).join('; ')}` : ''}`;
     await finishRun(run, { status: 'done', inserted: created, updated: matched, skipped: unmatched.length, message });
     return { institutes: byInst.size, matched, created, courses, unmatched };
   } catch (e) {
