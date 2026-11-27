@@ -85,10 +85,10 @@ export default function AdminImport() {
               <Status ok label="Cities & places — GeoNames + OpenStreetMap (free)" />
               <Status ok label="Hospitals, PGs, transport near colleges — OpenStreetMap Overpass (free)" />
               <Status ok label="College data — Hipolabs + Wikidata (free)" />
-              <Status ok={integ.jobs?.adzuna} label="Local jobs — Adzuna" hint="Paste the keys in “Job search keys” below" />
-              <Status ok={integ.jobs?.jooble} label="Local jobs — Jooble" hint="Paste the key in “Job search keys” below" />
+              <Status ok={integ.jobs?.adzuna} label="Local jobs — Adzuna" hint="Paste the keys in “API keys” below" />
+              <Status ok={integ.jobs?.jooble} label="Local jobs — Jooble" hint="Paste the key in “API keys” below" />
               <Status ok={!!integ.translate} label={`Translation — ${integ.translate || 'not configured'}`} hint="Set GOOGLE_TRANSLATE_API_KEY (or LIBRETRANSLATE_URL) in server/.env for 30+ languages" />
-              <Status ok={integ.scorecard} label="U.S. colleges with tuition — College Scorecard" hint="Set COLLEGE_SCORECARD_API_KEY in server/.env (free at api.data.gov/signup)" />
+              <Status ok={integ.scorecard} label="U.S. colleges with tuition — College Scorecard" hint="Paste the key in “API keys” below" />
               <Status ok={integ.ai_chat} label="AI assistant — Anthropic" hint="Set ANTHROPIC_API_KEY in server/.env" />
             </ul>
           )}

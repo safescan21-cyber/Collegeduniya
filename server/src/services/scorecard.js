@@ -18,6 +18,15 @@ const STATES = { AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'Califor
 
 export const scorecardEnabled = () => Boolean(process.env.COLLEGE_SCORECARD_API_KEY);
 
+// one tiny request to check a key right after it is saved in the admin panel
+export async function testScorecardKey() {
+  const p = new URLSearchParams({ api_key: process.env.COLLEGE_SCORECARD_API_KEY || '', fields: 'id,school.name', per_page: '1' });
+  const res = await fetch(`${BASE}?${p}`, { signal: AbortSignal.timeout(20000) });
+  if (!res.ok) throw new Error(res.status === 403 ? 'api.data.gov says the key is not valid' : `HTTP ${res.status}`);
+  const j = await res.json();
+  return { ok: true, sample: Number(j?.metadata?.total || 0) };
+}
+
 export async function fetchScorecard({ degreesOnly = true, log = () => {} } = {}) {
   const out = [];
   for (let page = 0; page < 200; page++) {

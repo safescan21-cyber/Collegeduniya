@@ -453,21 +453,28 @@ router.get('/integrations/jobs-keys', wrap(async (_req, res) => {
   const { savedSecretNames } = await import('../services/secrets.js');
   const { providersStatus } = await import('../services/jobs.js');
   const saved = await savedSecretNames();
-  res.json({ status: providersStatus(), saved: { JOOBLE_API_KEY: saved.JOOBLE_API_KEY || null, ADZUNA_APP_ID: saved.ADZUNA_APP_ID || null, ADZUNA_APP_KEY: saved.ADZUNA_APP_KEY || null } });
+  res.json({ status: { ...providersStatus(), scorecard: scorecardEnabled() }, saved: { JOOBLE_API_KEY: saved.JOOBLE_API_KEY || null, ADZUNA_APP_ID: saved.ADZUNA_APP_ID || null, ADZUNA_APP_KEY: saved.ADZUNA_APP_KEY || null, COLLEGE_SCORECARD_API_KEY: saved.COLLEGE_SCORECARD_API_KEY || null } });
 }));
 router.post('/integrations/jobs-keys', requireSuperAdmin, wrap(async (req, res) => {
   const { saveSecret, deleteSecret } = await import('../services/secrets.js');
   const { testJobsProvider } = await import('../services/jobs.js');
-  const provider = req.body?.provider === 'adzuna' ? 'adzuna' : 'jooble';
-  const keys = provider === 'jooble' ? { JOOBLE_API_KEY: req.body?.key } : { ADZUNA_APP_ID: req.body?.app_id, ADZUNA_APP_KEY: req.body?.key };
+  const provider = ['adzuna', 'scorecard'].includes(req.body?.provider) ? req.body.provider : 'jooble';
+  const keys = provider === 'jooble' ? { JOOBLE_API_KEY: req.body?.key } : provider === 'scorecard' ? { COLLEGE_SCORECARD_API_KEY: req.body?.key }
+    : { ADZUNA_APP_ID: req.body?.app_id, ADZUNA_APP_KEY: req.body?.key };
   for (const [n, v] of Object.entries(keys)) await saveSecret(n, v, req.user.id);
-  const test = await testJobsProvider(provider).catch((e) => ({ ok: false, error: e.message }));
+  const test = await (provider === 'scorecard' ? import('../services/scorecard.js').then((m) => m.testScorecardKey()) : testJobsProvider(provider))
+    .catch((e) => ({ ok: false, error: e.message }));
   if (!test.ok) for (const n of Object.keys(keys)) await deleteSecret(n).catch(() => {});   // a key that doesn't work isn't kept
-  res.json({ ok: test.ok, test });
+  let started = false;
+  if (test.ok && provider === 'scorecard') {   // start the U.S. import straight away
+    importScorecard({ startedBy: req.user.id, log: (m) => console.log(`[scorecard] ${m}`) }).then(() => kickAutofill()).catch((e) => console.error('[scorecard]', e.message));
+    started = true;
+  }
+  res.json({ ok: test.ok, test, started });
 }));
 router.delete('/integrations/jobs-keys/:provider', requireSuperAdmin, wrap(async (req, res) => {
   const { deleteSecret } = await import('../services/secrets.js');
-  const names = req.params.provider === 'adzuna' ? ['ADZUNA_APP_ID', 'ADZUNA_APP_KEY'] : ['JOOBLE_API_KEY'];
+  const names = req.params.provider === 'adzuna' ? ['ADZUNA_APP_ID', 'ADZUNA_APP_KEY'] : req.params.provider === 'scorecard' ? ['COLLEGE_SCORECARD_API_KEY'] : ['JOOBLE_API_KEY'];
   for (const n of names) await deleteSecret(n).catch(() => {});
   res.json({ ok: true });
 }));

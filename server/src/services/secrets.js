@@ -4,7 +4,7 @@ import { supabase } from '../supabase.js';
 // services read them exactly like keys from server/.env. A key saved in the panel wins over the .env value.
 export const ALLOWED = new Set(['ANTHROPIC_API_KEY', 'GEMINI_API_KEY', 'GROQ_API_KEY', 'SAMBANOVA_API_KEY', 'OPENROUTER_API_KEY',
   'NVIDIA_API_KEY', 'MISTRAL_API_KEY', 'CEREBRAS_API_KEY', 'COHERE_API_KEY', 'CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID', 'SMTP_URL', 'MAIL_FROM',
-  'JOOBLE_API_KEY', 'ADZUNA_APP_ID', 'ADZUNA_APP_KEY']);
+  'JOOBLE_API_KEY', 'ADZUNA_APP_ID', 'ADZUNA_APP_KEY', 'COLLEGE_SCORECARD_API_KEY']);
 const MIN_LEN = { ADZUNA_APP_ID: 6, CLOUDFLARE_ACCOUNT_ID: 16 };
 
 const isModel = (n) => /^(GEMINI|GROQ|SAMBANOVA|OPENROUTER|NVIDIA|MISTRAL|CEREBRAS|COHERE|CLOUDFLARE|LLM_ANTHROPIC)_MODEL$/.test(n);

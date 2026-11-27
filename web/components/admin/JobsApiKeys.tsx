@@ -7,17 +7,19 @@ import { api } from '@/lib/api';
 // real search and keeps it only if it works. Keys are stored server-side (app_secrets) and never shown again.
 export default function JobsApiKeys() {
   const [st, setSt] = useState<any>(null);
-  const [jooble, setJooble] = useState(''); const [adzId, setAdzId] = useState(''); const [adzKey, setAdzKey] = useState('');
+  const [jooble, setJooble] = useState(''); const [adzId, setAdzId] = useState(''); const [adzKey, setAdzKey] = useState(''); const [sc, setSc] = useState('');
   const [busy, setBusy] = useState(''); const [msg, setMsg] = useState<Record<string, string>>({});
   const load = () => api('/api/admin/integrations/jobs-keys').then(setSt).catch(() => setSt({ status: {}, saved: {} }));
   useEffect(() => { load(); }, []);
 
-  const save = async (provider: 'jooble' | 'adzuna') => {
+  const save = async (provider: 'jooble' | 'adzuna' | 'scorecard') => {
     setBusy(provider); setMsg((m) => ({ ...m, [provider]: '' }));
     try {
-      const r = await api('/api/admin/integrations/jobs-keys', { method: 'POST', body: JSON.stringify(provider === 'jooble' ? { provider, key: jooble } : { provider, app_id: adzId, key: adzKey }) });
-      setMsg((m) => ({ ...m, [provider]: r.ok ? `Working ✓ — test search found ${r.test.sample} job${r.test.sample === 1 ? '' : 's'} in Delhi` : `Not saved — the key didn't work: ${r.test?.error || 'no answer'}` }));
-      if (r.ok) { setJooble(''); setAdzId(''); setAdzKey(''); }
+      const r = await api('/api/admin/integrations/jobs-keys', { method: 'POST', body: JSON.stringify(provider === 'jooble' ? { provider, key: jooble } : provider === 'scorecard' ? { provider, key: sc } : { provider, app_id: adzId, key: adzKey }) });
+      setMsg((m) => ({ ...m, [provider]: !r.ok ? `Not saved — the key didn't work: ${r.test?.error || 'no answer'}`
+        : provider === 'scorecard' ? `Working ✓ — ${Number(r.test.sample).toLocaleString('en-IN')} U.S. colleges available. Import started — see Recent imports.`
+        : `Working ✓ — test search found ${r.test.sample} job${r.test.sample === 1 ? '' : 's'} in Delhi` }));
+      if (r.ok) { setJooble(''); setAdzId(''); setAdzKey(''); setSc(''); }
     } catch (e: any) { setMsg((m) => ({ ...m, [provider]: e.message })); }
     setBusy(''); load();
   };
@@ -37,7 +39,7 @@ export default function JobsApiKeys() {
   const input = 'input flex-1 py-1.5 text-sm min-w-[12rem]';
   return (
     <div className="card p-5">
-      <h2 className="flex items-center gap-2 font-bold text-slate-900"><KeyRound size={17} className="text-brand-600" />Job search keys</h2>
+      <h2 className="flex items-center gap-2 font-bold text-slate-900"><KeyRound size={17} className="text-brand-600" />API keys — jobs & U.S. colleges</h2>
       <p className="mt-1 text-xs text-slate-500">Local jobs near colleges come from these services. Paste the key — it’s tested with one search and kept only if it works. Saved keys are never shown again.</p>
       {!st ? <Loader2 className="mt-3 animate-spin text-slate-300" /> : (
         <div className="mt-3 space-y-3">
@@ -48,7 +50,9 @@ export default function JobsApiKeys() {
               <input autoComplete="off" spellCheck={false} value={adzId} onChange={(e) => setAdzId(e.target.value)} className={input} placeholder="Adzuna app ID" aria-label="Adzuna app ID" />
               <input type="password" autoComplete="off" spellCheck={false} value={adzKey} onChange={(e) => setAdzKey(e.target.value)} className={input} placeholder="Adzuna app key" aria-label="Adzuna app key" />
             </> })}
-          <p className="text-[11px] text-slate-400">Free keys: jooble.org/api/about · developer.adzuna.com. Only a super admin can save keys.</p>
+          {row({ id: 'scorecard', name: 'U.S. College Scorecard (US colleges with tuition)', on: !!st.status?.scorecard, onSave: () => save('scorecard'), canSave: sc.trim().length >= 16,
+            children: <input type="password" autoComplete="off" spellCheck={false} value={sc} onChange={(e) => setSc(e.target.value)} className={input} placeholder="api.data.gov key" aria-label="College Scorecard API key" /> })}
+          <p className="text-[11px] text-slate-400">Free keys: jooble.org/api/about · developer.adzuna.com · api.data.gov/signup. Only a super admin can save keys.</p>
         </div>)}
     </div>
   );
