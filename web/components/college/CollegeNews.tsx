@@ -1,11 +1,8 @@
 import { ExternalLink, Newspaper } from 'lucide-react';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
+import { newsDate, sourceName } from '@/lib/newsDate';
 
 // "In the news" on a college page — headlines that name this college (server/src/services/collegeNews.js).
-const when = (iso: string) => {
-  const d = (Date.now() - new Date(iso).getTime()) / 864e5;
-  return d < 1 ? 'today' : d < 2 ? 'yesterday' : d < 30 ? `${Math.floor(d)} days ago` : new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-};
 export default async function CollegeNews({ collegeId, name }: { collegeId: string; name: string }) {
   if (!hasSupabase) return null;
   const { data } = await supabasePublic().from('college_news').select('id, title, url, source, published_at')
@@ -18,7 +15,7 @@ export default async function CollegeNews({ collegeId, name }: { collegeId: stri
       <ul className="card divide-y divide-slate-100">{data.map((n: any) => (
         <li key={n.id} className="p-4"><a href={n.url} target="_blank" rel="noopener noreferrer nofollow" className="group block">
           <p className="font-semibold text-slate-900 group-hover:text-brand-700">{n.title} <ExternalLink size={11} className="inline text-slate-400" /></p>
-          <p className="mt-1 text-xs text-slate-500">{n.source} · <time dateTime={n.published_at}>{when(n.published_at)}</time></p></a></li>))}
+          <p className="mt-1 text-xs text-slate-500">Source: <b className="font-medium text-slate-600">{sourceName(n.source)}</b> · <time dateTime={n.published_at} className="text-slate-600">{newsDate(n.published_at)}</time></p></a></li>))}
       </ul>
       <p className="mt-2 text-xs text-slate-400">Headlines from news websites, found automatically — each opens the original article. Collegeolo doesn’t write or check these stories.</p>
     </section>

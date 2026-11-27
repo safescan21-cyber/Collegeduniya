@@ -65,7 +65,7 @@ export default function AdminVisaNews() {
                 <td className="px-3 py-2"><a href={n.url} target="_blank" rel="noopener noreferrer" className="font-medium text-slate-900 hover:text-brand-700">{n.title} <ExternalLink size={11} className="inline" /></a>
                   <p className="flex items-center gap-1 text-xs text-slate-500">{n.official && <span className="flex items-center gap-0.5 rounded bg-emerald-50 px-1.5 font-semibold text-emerald-700"><Landmark size={10} />Official</span>}{n.source}</p></td>
                 <td className="px-3 py-2 text-xs">{TOPIC[n.topic] || n.topic}</td>
-                <td className="px-3 py-2 whitespace-nowrap text-xs text-slate-500">{new Date(n.published_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</td>
+                <td className="px-3 py-2 whitespace-nowrap text-xs text-slate-500">{new Date(n.published_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                 <td className="px-3 py-2"><button onClick={() => hide(n)} disabled={busy === n.id} className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900">{n.is_hidden ? <><Eye size={13} />Show</> : <><EyeOff size={13} />Hide</>}</button></td>
               </tr>))}</tbody>
           </table>}

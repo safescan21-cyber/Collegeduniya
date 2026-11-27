@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ExternalLink, Landmark, Radio } from 'lucide-react';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
+import { newsDate, sourceName } from '@/lib/newsDate';
 
 // Live study news on /news: education headlines (services/studyNews.js) + student visa news (services/visaNews.js),
 // collected every few hours. Each item opens the original publisher; only headline, source and link are stored.
@@ -11,10 +12,6 @@ const CATS = [
 ];
 type Item = { id: string; cat: string; title: string; url: string; source: string | null; published_at: string; official?: boolean; cc?: string; college?: { name: string; slug: string } };
 const flag = (cc: string) => String.fromCodePoint(...[...cc.toUpperCase()].map((c) => 0x1f1a5 + c.charCodeAt(0)));
-const when = (iso: string) => {
-  const h = (Date.now() - new Date(iso).getTime()) / 3600e3;
-  return h < 1 ? 'just now' : h < 24 ? `${Math.floor(h)} h ago` : h < 48 ? 'yesterday' : `${Math.floor(h / 24)} days ago`;
-};
 
 export default async function LiveStudyNews({ live, limit = 12 }: { live?: string; limit?: number }) {
   if (!hasSupabase) return null;
@@ -61,7 +58,7 @@ export default async function LiveStudyNews({ live, limit = 12 }: { live?: strin
                 <p className="line-clamp-2 font-semibold text-slate-900 group-hover:text-brand-700">{n.cc && <span className="me-1">{flag(n.cc)}</span>}{n.title} <ExternalLink size={11} className="inline text-slate-400" /></p>
                 <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
                   {n.official && <span className="flex items-center gap-0.5 rounded-full bg-emerald-50 px-1.5 font-semibold text-emerald-700"><Landmark size={10} />Official</span>}
-                  <span className="rounded-full bg-slate-100 px-1.5 font-medium text-slate-600">{label(n.cat)}</span><span>{n.source}</span><span>·</span><time dateTime={n.published_at}>{when(n.published_at)}</time>
+                  <span className="rounded-full bg-slate-100 px-1.5 font-medium text-slate-600">{label(n.cat)}</span><span className="text-slate-600">Source: <b className="font-medium">{sourceName(n.source)}</b></span><span>·</span><time dateTime={n.published_at} className="text-slate-600">{newsDate(n.published_at)}</time>
                 </p>
               </a>
             </li>))}

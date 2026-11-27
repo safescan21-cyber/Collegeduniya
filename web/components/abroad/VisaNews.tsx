@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ExternalLink, Landmark, Newspaper } from 'lucide-react';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
+import { newsDate, sourceName } from '@/lib/newsDate';
 
 type N = { id: string; country_code: string; title: string; url: string; source: string | null; official: boolean; topic: string; published_at: string };
 const TOPIC: Record<string, [string, string]> = {
@@ -9,10 +10,6 @@ const TOPIC: Record<string, [string, string]> = {
 };
 const NAME: Record<string, string> = { GB: 'UK', US: 'USA', CA: 'Canada', AU: 'Australia', IE: 'Ireland', NZ: 'New Zealand', DE: 'Germany', FR: 'France', NL: 'Netherlands', SG: 'Singapore', AE: 'UAE', JP: 'Japan' };
 const flag = (cc: string) => String.fromCodePoint(...[...cc.toUpperCase()].map((c) => 0x1f1a5 + c.charCodeAt(0)));
-const when = (iso: string) => {
-  const d = (Date.now() - new Date(iso).getTime()) / 864e5;
-  return d < 1 ? 'today' : d < 2 ? 'yesterday' : d < 7 ? `${Math.floor(d)} days ago` : new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-};
 
 // Latest student-visa news — collected every 6 hours from governments' own news feeds and news headlines
 // (server/src/services/visaNews.js). Official government items first within the last 30 days; each opens the original page.
@@ -39,7 +36,7 @@ export default async function VisaNews({ country, limit = 8, title }: { country?
               <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                 {n.official && <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-700"><Landmark size={11} />Official</span>}
                 <span className={`rounded-full px-2 py-0.5 font-medium ${c}`}>{t}</span>
-                <span>{n.source}</span><span>·</span><time dateTime={n.published_at}>{when(n.published_at)}</time>
+                <span className="text-slate-600">Source: <b className="font-medium">{sourceName(n.source)}</b></span><span>·</span><time dateTime={n.published_at} className="text-slate-600">{newsDate(n.published_at)}</time>
               </p>
             </a>
           </li>); })}
