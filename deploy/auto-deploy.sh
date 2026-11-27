@@ -19,6 +19,20 @@ exec 9>"$LOCK"; flock -n 9 || exit 0
 export PATH=/usr/local/bin:/usr/bin:/bin:$PATH
 export HOME=/root
 cd "$APP" || exit 1
+# self-healing (runs every 3 minutes, also right after a reboot because cron starts with the server):
+#  • start PM2 at boot from now on, and Docker (database) too
+#  • if the website or API is not running (after a reboot or a crash), bring back the saved list of programs
+[ -f /etc/systemd/system/pm2-root.service ] || pm2 startup systemd -u root --hp /root > /dev/null 2>&1
+command -v systemctl > /dev/null && ! systemctl is-enabled docker > /dev/null 2>&1 && systemctl enable docker > /dev/null 2>&1
+if ! pm2 jlist 2>/dev/null | grep -q '"name":"collegeolo-api"'; then
+  pm2 resurrect > /dev/null 2>&1 && echo "$(date '+%F %T') programs were not running — restored with pm2 resurrect"
+fi
+for app in collegeolo-api collegeolo-web; do
+  if pm2 jlist 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const p=JSON.parse(s||"[]").filter(x=>x.name===process.argv[1]);process.exit(p.length&&p.every(x=>x.pm2_env.status!=="online")?0:1)})' "$app"; then
+    pm2 restart "$app" > /dev/null 2>&1 && echo "$(date '+%F %T') $app was stopped — restarted"
+  fi
+done
+
 git fetch -q origin "$BRANCH" || exit 0
 OLD=$(git rev-parse HEAD); NEW=$(git rev-parse "origin/$BRANCH")
 [ "$OLD" = "$NEW" ] && exit 0
