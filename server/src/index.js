@@ -30,6 +30,7 @@ import { startVisaNews } from './services/visaNews.js';
 import { startStudyNews } from './services/studyNews.js';
 import { startCollegeNews } from './services/collegeNews.js';
 import { startWebsiteCheck } from './services/websiteCheck.js';
+import { startGermanCourses } from './services/germanCourses.js';
 import { startHealthMonitor } from './services/health.js';
 import { errorWatch, startErrorWatch } from './services/errorWatch.js';
 import { supabase as sbAdmin } from './supabase.js';
@@ -119,6 +120,7 @@ const server = app.listen(PORT, () => {
   startStudyNews();
   startCollegeNews();
   startWebsiteCheck();
+startGermanCourses();   // degree programmes of German universities, from their own websites
 // database watchdog: every 2 minutes stop any app query that has run for more than 5 minutes (they pile up and freeze the site)
 setInterval(async () => {
   try {
