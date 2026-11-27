@@ -1,5 +1,6 @@
 'use client';
 import { BadgeCheck } from 'lucide-react';
+import { extUrl, urlLabel } from '@/lib/extUrl';
 import ModerationList from '@/components/admin/ModerationList';
 import { timeAgo } from '@/lib/format';
 
@@ -20,7 +21,7 @@ export default function AdminCompanies() {
           </div>) },
         { key: 'contact', label: 'Contact', render: (r) => <div className="text-xs"><p>{r.profiles?.full_name}</p><p>{r.contact_email || r.profiles?.email}</p><p>{r.contact_phone || r.profiles?.phone}</p></div> },
         { key: 'reg', label: 'Reg. / GST', render: (r) => <span className="text-xs">{r.registration_no || '—'}</span> },
-        { key: 'web', label: 'Website', render: (r) => (r.website ? <a href={r.website} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-700">{r.website.replace(/^https?:\/\//, '').slice(0, 30)}</a> : '—') },
+        { key: 'web', label: 'Website', render: (r) => (extUrl(r.website) ? <a href={extUrl(r.website)!} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-700">{r.website.replace(/^https?:\/\//, '').slice(0, 30)}</a> : '—') },
         { key: 'when', label: 'Joined', render: (r) => <span className="text-xs text-slate-500">{timeAgo(r.created_at)}</span> },
       ]} />
   );

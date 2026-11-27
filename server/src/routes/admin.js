@@ -725,6 +725,38 @@ router.post('/college-news/collect', wrap(async (_req, res) => {
   res.json({ started: true });
 }));
 
+// ---- college website check (services/websiteCheck.js)
+router.get('/website-check', wrap(async (req, res) => {
+  const status = ['moved', 'dead', 'bad', 'blocked', 'ok'].includes(req.query.status) ? req.query.status : null;
+  let q = supabase.from('colleges').select('id, name, slug, city, country, website, website_status, website_final, website_note, website_checked_at', { count: 'exact' })
+    .order('website_checked_at', { ascending: false, nullsFirst: false }).limit(200);
+  q = status ? q.eq('website_status', status) : q.in('website_status', ['moved', 'dead', 'bad']);
+  if (req.query.q) q = q.ilike('name', `%${String(req.query.q).slice(0, 60)}%`);
+  const counts = {};
+  await Promise.all(['ok', 'moved', 'blocked', 'dead', 'bad'].map(async (k) => {
+    const { count } = await supabase.from('colleges').select('id', { count: 'exact', head: true }).eq('website_status', k); counts[k] = count || 0; }));
+  const { count: unchecked } = await supabase.from('colleges').select('id', { count: 'exact', head: true }).not('website', 'is', null).is('website_checked_at', null);
+  const { data, count, error } = await q;
+  if (error) return fail(res, error);
+  res.json({ data, count, counts: { ...counts, unchecked: unchecked || 0 } });
+}));
+router.post('/website-check/run', wrap(async (_req, res) => {
+  const { runWebsiteCheck } = await import('../services/websiteCheck.js');
+  runWebsiteCheck().then((st) => console.log('[website-check] admin run', st)).catch((e) => console.warn('[website-check]', e.message));
+  res.json({ started: true });
+}));
+router.post('/website-check/:id', wrap(async (req, res) => {
+  const action = req.body?.action;
+  const { data: c } = await supabase.from('colleges').select('website_final').eq('id', req.params.id).maybeSingle();
+  const patch = action === 'use_new' && c?.website_final ? { website: c.website_final, website_status: 'ok', website_final: null, website_note: null, website_fails: 0 }
+    : action === 'remove' ? { website: null, website_status: null, website_final: null, website_note: 'Removed by admin', website_fails: 0 }
+    : action === 'fine' ? { website_status: 'ok', website_note: null, website_fails: 0 } : null;
+  if (!patch) return res.status(400).json({ error: 'Unknown action' });
+  const { error } = await supabase.from('colleges').update(patch).eq('id', req.params.id);
+  if (error) return fail(res, error);
+  res.json({ ok: true });
+}));
+
 router.post('/exam-dates/collect', wrap(async (req, res) => {
   const { collectExamDates } = await import('../services/examDates.js');
   res.json(await collectExamDates({ limit: Math.min(Number(req.query.limit) || 5, 30) }));

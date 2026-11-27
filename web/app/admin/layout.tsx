@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  BarChart3, GraduationCap, Home, Briefcase, Star, FileText, Users, ShieldAlert, PhoneCall, FilePlus2, MessagesSquare, Newspaper, BookOpen, Mail,
+  Globe2, BarChart3, GraduationCap, Home, Briefcase, Star, FileText, Users, ShieldAlert, PhoneCall, FilePlus2, MessagesSquare, Newspaper, BookOpen, Mail,
   MessageSquareHeart, Building2, DatabaseZap, Armchair, ClipboardList, ChartColumn, Trophy, Award, Plane, Handshake, Rocket, CreditCard, Flag, UsersRound,
   CalendarCheck, FileStack, Gift, Megaphone, ClipboardCheck, Radio, BadgeCheck, Rss, Inbox, Activity, Search, ChevronDown, ChevronsLeft, ChevronsRight,
   Menu, X, ExternalLink, LayoutDashboard, School, PenSquare, ShieldCheck, Settings, Sparkles, type LucideIcon,
@@ -31,6 +31,7 @@ const GROUPS: Group[] = [
   { id: 'colleges', label: 'Colleges & courses', icon: School, items: [
     { href: '/admin/colleges', label: 'Colleges', icon: GraduationCap, keywords: 'university fees photos' },
     { href: '/admin/official-fees', label: 'Official fees', icon: CreditCard, badge: 'fees', keywords: 'fees scraper website review' },
+    { href: '/admin/website-check', label: 'Website check', icon: Globe2, keywords: 'college websites broken links redirect parked spam' },
     { href: '/admin/management-quota', label: 'Management quota', icon: Armchair },
     { href: '/admin/course-catalog', label: 'Course pages', icon: GraduationCap },
     { href: '/admin/rankings', label: 'Rankings', icon: Trophy, keywords: 'nirf world leiden' },

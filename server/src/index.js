@@ -28,6 +28,7 @@ import { startExamNews } from './services/examNews.js';
 import { startVisaNews } from './services/visaNews.js';
 import { startStudyNews } from './services/studyNews.js';
 import { startCollegeNews } from './services/collegeNews.js';
+import { startWebsiteCheck } from './services/websiteCheck.js';
 import { startHealthMonitor } from './services/health.js';
 import { errorWatch, startErrorWatch } from './services/errorWatch.js';
 import { supabase as sbAdmin } from './supabase.js';
@@ -116,6 +117,7 @@ const server = app.listen(PORT, () => {
   startVisaNews();
   startStudyNews();
   startCollegeNews();
+  startWebsiteCheck();
   startHealthMonitor();
   startErrorWatch();
   // chats (messages + call log) older than CHAT_RETENTION_MONTHS (default 6) are deleted daily; posts are kept

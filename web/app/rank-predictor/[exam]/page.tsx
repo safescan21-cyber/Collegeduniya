@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { extUrl, urlLabel } from '@/lib/extUrl';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowRight, ExternalLink } from 'lucide-react';
@@ -79,7 +80,7 @@ export default async function RankPredictorPage({ params }: { params: Promise<{ 
             {sources.length ? <ul className="mt-1 list-disc space-y-0.5 ps-4">{sources.slice(0, 8).map((s) => <li key={s}>{s}</li>)}</ul> : <p className="mt-1">No official figures added yet.</p>}
             {reports.length > 0 && <p className="mt-1">Plus {reports.length} results shared by students.</p>}
             <p className="mt-2">This is an estimate. Your real rank depends on this year's paper, number of candidates, ties and normalisation.</p>
-            {exam.website && <a href={exam.website} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-brand-700 hover:underline">Official website <ExternalLink size={12} /></a>}
+            {extUrl(exam.website) && <a href={extUrl(exam.website)!} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-brand-700 hover:underline">Official website <ExternalLink size={12} /></a>}
           </div>
         </aside>
       </div>

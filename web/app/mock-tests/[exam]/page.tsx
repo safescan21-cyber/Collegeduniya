@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { extUrl, urlLabel } from '@/lib/extUrl';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Clock, ListChecks, ShieldCheck, ExternalLink, FileStack } from 'lucide-react';
@@ -65,7 +66,7 @@ export default async function MockExam({ params }: { params: Promise<{ exam: str
         {bp.instructions && <div className="card mt-6 p-5"><h2 className="font-bold text-slate-900">Instructions</h2><p className="mt-2 whitespace-pre-line text-sm text-slate-600">{bp.instructions}</p></div>}
         <p className="mt-6 flex flex-wrap gap-4 text-sm">
           <Link href={`/papers?exam=${exam.slug}`} className="flex items-center gap-1 text-brand-700 underline"><FileStack size={14} />Official previous-year papers</Link>
-          {exam.website && <a href={exam.website} target="_blank" rel="noopener" className="flex items-center gap-1 text-brand-700 underline"><ExternalLink size={14} />Official website</a>}
+          {extUrl(exam.website) && <a href={extUrl(exam.website)!} target="_blank" rel="noopener" className="flex items-center gap-1 text-brand-700 underline"><ExternalLink size={14} />Official website</a>}
         </p>
       </div>
       <aside className="space-y-5"><div className="space-y-5 lg:sticky lg:top-24"><DailyQuestion exam={exam.slug} /><StartTest slug={exam.slug} ready={d.ready} needed={total} attempts={d.attempts} /></div></aside>

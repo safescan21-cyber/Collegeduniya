@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { extUrl, urlLabel } from '@/lib/extUrl';
 import ReportCard from '@/components/college/ReportCard';
 import { Flag, flagSrc, isForeign } from '@/components/Flag';
 import Link from 'next/link';
@@ -69,6 +70,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
   const c = await getCollege(slug);
   if (!c) notFound();
   const hidden = new Set(c.hidden_sections || []);
+  const site = extUrl(c.website);   // never a relative link (that opened a Collegeolo page instead of the college's site)
   const show = (s: string) => !hidden.has(s);
 
   const sb = supabasePublic();
@@ -121,7 +123,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
   const jsonLd = {
     '@context': 'https://schema.org', '@type': 'CollegeOrUniversity', name: c.name, url: `${SITE_URL}/colleges/${c.slug}`,
     address: { '@type': 'PostalAddress', addressLocality: c.city, addressRegion: c.state, addressCountry: c.country, streetAddress: c.address },
-    ...(c.website ? { sameAs: [c.website] } : {}),
+    ...(site ? { sameAs: [site] } : {}),
     ...(count ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: avg, reviewCount: count, bestRating: 5 } } : {}),
   };
 
@@ -278,7 +280,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             ['Rank', rf.rank_value ? `#${rf.rank_value} ${rf.rank_source || ''} ${rf.rank_year || ''}`.trim() : c.ranking ? `#${c.ranking}` : null],
             ['Students', c.students_count ? `~${c.students_count.toLocaleString('en-IN')}` : null],
             ['Student rating', count ? `${avg}/5 from ${count} review${count > 1 ? 's' : ''}` : null],
-            ['Official website', c.website ? <a href={c.website} target="_blank" rel="noopener noreferrer" className="text-brand-700 underline">{c.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}</a> : null],
+            ['Official website', site ? <a href={site} target="_blank" rel="noopener noreferrer" className="text-brand-700 underline">{urlLabel(site)}</a> : null],
           ]} />
           {show('quota') && quotaList.length ? (
             <section id="quota" className="scroll-mt-32">
@@ -461,7 +463,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             )}
             <div className="mt-4 flex gap-2"><CompareButton item={listItem} variant="button" /><SaveButton type="college" id={c.id} variant="button" /></div>
             <div className="mt-5 space-y-3 text-sm">
-              {c.website && <a href={c.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-brand-700 hover:underline"><Globe size={16} />Official website</a>}
+              {site && <a href={site} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-brand-700 hover:underline"><Globe size={16} />Official website</a>}
               {c.phone && <a href={`tel:${c.phone}`} className="flex items-center gap-2 text-slate-700"><Phone size={16} />{c.phone}</a>}
               {c.email && <a href={`mailto:${c.email}`} className="flex items-center gap-2 text-slate-700"><Mail size={16} />{c.email}</a>}
               {c.address && <p className="flex items-start gap-2 text-slate-700"><MapPin size={16} className="mt-0.5 shrink-0" />{c.address}</p>}
@@ -492,7 +494,7 @@ function PlaceList({ title, items }: { title: string; items: Place[] }) {
             <li key={p.id} className="flex items-start gap-3 py-3">
               <span className="mt-0.5 text-brand-600">{PLACE_ICON[p.kind] || PLACE_ICON.other}</span>
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-slate-800">{p.website ? <a href={p.website} target="_blank" rel="noopener noreferrer" className="hover:underline">{p.name}</a> : p.name}</p>
+                <p className="font-medium text-slate-800">{extUrl(p.website) ? <a href={extUrl(p.website)!} target="_blank" rel="noopener noreferrer" className="hover:underline">{p.name}</a> : p.name}</p>
                 {p.address && <p className="text-xs text-slate-500">{p.address}</p>}
                 {p.phone && <a href={`tel:${p.phone}`} className="text-xs text-brand-700">{p.phone}</a>}
               </div>

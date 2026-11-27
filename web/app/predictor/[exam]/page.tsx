@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { extUrl, urlLabel } from '@/lib/extUrl';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
@@ -63,7 +64,7 @@ export default async function ExamPredictor({ params }: { params: Promise<{ exam
       <Link href="/predictor" className="text-sm text-slate-500 hover:text-slate-800">← All predictors</Link>
       <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">{exam.short_name} College Predictor {YEAR}</h1>
       <p className="mt-1 text-slate-500">{exam.full_name}{exam.conducting_body ? ` · conducted by ${exam.conducting_body}` : ''}
-        {exam.website && <> · <a href={exam.website} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-brand-700 underline">official site<ExternalLink size={12} /></a></>}</p>
+        {extUrl(exam.website) && <> · <a href={extUrl(exam.website)!} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-brand-700 underline">official site<ExternalLink size={12} /></a></>}</p>
 
       {(d.bands > 0 || d.stats.length > 0) && (
         <div className="mt-6 grid max-w-4xl gap-4 md:grid-cols-2">

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { extUrl, urlLabel } from '@/lib/extUrl';
 import { notFound } from 'next/navigation';
 import { BadgeCheck, Building2, Globe, MapPin, Users } from 'lucide-react';
 import { JobCard, EmptyState } from '@/components/Cards';
@@ -37,7 +38,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
             {c.industry && <span>{c.industry}</span>}
             {(c.city || c.country) && <span className="flex items-center gap-1"><MapPin size={14} />{[c.city, c.country].filter(Boolean).join(', ')}</span>}
             {c.size && <span className="flex items-center gap-1"><Users size={14} />{c.size} people</span>}
-            {c.website && <a href={c.website} target="_blank" rel="noopener noreferrer nofollow" className="flex items-center gap-1 text-brand-700 hover:underline"><Globe size={14} />Website</a>}
+            {extUrl(c.website) && <a href={extUrl(c.website)!} target="_blank" rel="noopener noreferrer nofollow" className="flex items-center gap-1 text-brand-700 hover:underline"><Globe size={14} />Website</a>}
           </p>
         </div>
       </div>
