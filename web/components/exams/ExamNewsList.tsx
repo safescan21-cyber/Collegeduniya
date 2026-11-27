@@ -1,7 +1,7 @@
 import { ExternalLink } from 'lucide-react';
-import { newsDate, sourceName } from '@/lib/newsDate';
+import { newsDate, sourceName, seenDate } from '@/lib/newsDate';
 
-export type ExamNewsItem = { id: string; title: string; url: string; source: string | null; published_at: string; official: boolean };
+export type ExamNewsItem = { id: string; title: string; url: string; source: string | null; published_at: string; official: boolean; date_known?: boolean };
 
 export default function ExamNewsList({ items, name }: { items: ExamNewsItem[]; name: string }) {
   return (
@@ -16,13 +16,13 @@ export default function ExamNewsList({ items, name }: { items: ExamNewsItem[]; n
               </a>
               <p className="mt-0.5 text-xs text-slate-500">
                 {n.official && <span className="mr-1.5 rounded-full bg-emerald-50 px-1.5 py-0.5 font-semibold text-emerald-700">Official</span>}
-                Source: <b className="font-medium text-slate-600">{sourceName(n.source)}</b> · <time dateTime={n.published_at} className="text-slate-600">{newsDate(n.published_at)}</time>
+                Source: <b className="font-medium text-slate-600">{sourceName(n.source)}</b> · <time dateTime={n.published_at} className="text-slate-600">{n.date_known === false ? seenDate(n.published_at) : newsDate(n.published_at)}</time>
               </p>
             </li>
           ))}
         </ul>
       ) : <p className="mt-2 text-sm text-slate-500">No news in the last few days. Follow the exam to get an email when there is.</p>}
-      <p className="mt-3 text-xs text-slate-400">Headlines found with the <a href="https://www.gdeltproject.org/" target="_blank" rel="noopener noreferrer" className="underline">GDELT Project</a>. Each link opens the original publisher. Always confirm dates on the official website.</p>
+      <p className="mt-3 text-xs text-slate-400">Official notices from the exam’s own website, and headlines found with the <a href="https://www.gdeltproject.org/" target="_blank" rel="noopener noreferrer" className="underline">GDELT Project</a>. Each link opens the original publisher. Always confirm dates on the official website.</p>
     </section>
   );
 }

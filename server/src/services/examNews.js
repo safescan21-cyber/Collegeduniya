@@ -3,6 +3,7 @@ import { whenIdle } from './loadGuard.js';
 import { sendMail, mailEnabled } from './mailer.js';
 import { USER_AGENT, throttle } from './http.js';
 import { llmReady, completeJson } from './llm.js';
+import { grab, noticeLinks } from './examDates.js';
 
 // Exam news alerts (migration 021)
 //  1. collect: every EXAM_NEWS_EVERY_HOURS (3) the server searches worldwide news for each exam.
@@ -119,10 +120,51 @@ async function aiFilter(e, items) {
   } catch { return items; }
 }
 
+// Official notices on the exam's own website ("Latest news", "Public notices" — often PDFs on a gov.in file server).
+// Date: written in the notice's address (/uploads/2026/11/20261127…) or its title; otherwise the day we first saw it
+// (date_known = false → shown as "Seen on …"), and then only if the title names this or next year.
+const TEXT_DATE = /\b(\d{1,2})[./-](\d{1,2})[./-](20\d\d)\b|\b(\d{1,2})(?:st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?,?\s+(20\d\d)\b/i;
+const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+function dateInText(t) {
+  const m = String(t).match(TEXT_DATE); if (!m) return null;
+  const [d, mo, y] = m[1] ? [Number(m[1]), Number(m[2]), Number(m[3])] : [Number(m[4]), MON[m[5].toLowerCase()], Number(m[6])];
+  if (!(d >= 1 && d <= 31 && mo >= 1 && mo <= 12)) return null;
+  const iso = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  return Date.parse(iso) <= Date.now() + 864e5 ? iso : null;   // a future date in a title is an event date, not the notice date
+}
+export async function fromOfficialSite(e) {
+  if (!/^https?:\/\//i.test(e.website || '')) return [];
+  const page = await grab(e.website); if (!page) return [];
+  const site = host(page.url);
+  const yr = new Date().getFullYear(); const thisOrNext = new RegExp(`\\b(${yr}|${yr + 1})\\b`);
+  const out = [];
+  for (const l of noticeLinks(page, { max: 15 })) {
+    const title = l.label.replace(/\s+/g, ' ').replace(/\s*[-–]\s*Reg\.?$/i, '').trim();
+    if (title.length < 15 || title.length > 300) continue;
+    const date = l.date || dateInText(title);
+    if (!date && !thisOrNext.test(title)) continue;                                 // undated and not about this/next year: skip
+    if (date && Date.parse(date) < Date.now() - 120 * 864e5) continue;               // old notice
+    out.push({ title, url: l.url, source: `${site} (official)`, official: true, provider: 'official_site', language: 'english', source_country: null,
+      published_at: date ? `${date}T00:00:00Z` : new Date().toISOString(), date_known: !!date, score: 12 });
+  }
+  return out;
+}
+
 export async function collectForExam(e) {
   const hours = e.news_fetched_at ? Math.ceil((Date.now() - Date.parse(e.news_fetched_at)) / 3600e3) + 6 : 72;
-  const [a, b] = await Promise.all([fromGdelt(e, { hours }), fromNewsData(e).catch((x) => { console.warn('[exam-news] newsdata', x.message); return []; })]);
+  // each source on its own: GDELT is often busy or down, which must not block the official notices
+  const [a, b, off] = await Promise.all([
+    fromGdelt(e, { hours }).catch((x) => { console.warn(`[exam-news] ${e.short_name} gdelt:`, x.message); return []; }),
+    fromNewsData(e).catch((x) => { console.warn('[exam-news] newsdata', x.message); return []; }),
+    fromOfficialSite(e).catch((x) => { console.warn(`[exam-news] ${e.short_name} official:`, x.message); return []; }),
+  ]);
   const seen = new Set(); let items = [];
+  for (const it of off) {   // from the exam's own website: no headline scoring or AI check needed
+    const k = titleKey(it.title);
+    if (seen.has(k) || seen.has(it.url)) continue;
+    seen.add(k); seen.add(it.url);
+    items.push({ ...it, title: it.title.slice(0, 400), title_key: k });
+  }
   for (const it of [...a, ...b]) {
     if (!it.title || !/^https?:\/\//.test(it.url || '')) continue;
     const k = titleKey(it.title);
@@ -139,11 +181,13 @@ export async function collectForExam(e) {
   ]);
   const old = new Set([...(haveUrl || []).map((x) => x.url), ...(haveKey || []).map((x) => x.title_key)]);
   items = items.filter((x) => !old.has(x.url) && !old.has(x.title_key));
-  items = await aiFilter(e, items.slice(0, 40));
+  const offItems = items.filter((x) => x.provider === 'official_site');
+  items = [...offItems, ...(await aiFilter(e, items.filter((x) => x.provider !== 'official_site').slice(0, 40)))];
   let added = 0;
   for (const x of items) {   // one by one: a duplicate headline from another site must not fail the rest
     const { error } = await supabase.from('exam_news').insert({ exam_id: e.id, title: x.title, url: x.url, source: x.source, source_country: x.source_country,
-      language: x.language, published_at: x.published_at, provider: x.provider, score: x.score, official: x.official, title_key: x.title_key });
+      language: x.language, published_at: x.published_at, provider: x.provider, score: x.score, official: x.official, title_key: x.title_key,
+      date_known: x.date_known !== false });
     if (!error) added++; else if (error.code !== '23505') console.warn('[exam-news] insert', error.message);
   }
   return added;

@@ -6,7 +6,7 @@ import TopCollegesTable, { type TopRow } from '@/components/home/TopCollegesTabl
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { streamBySlug, STREAMS } from '@/lib/streams';
 import { short, timeAgo, SITE_URL } from '@/lib/format';
-import { newsDate, sourceName } from '@/lib/newsDate';
+import { newsDate, sourceName, seenDate } from '@/lib/newsDate';
 
 // rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 const YEAR = new Date().getFullYear();
@@ -25,7 +25,7 @@ async function load(slug: string) {
     sb.rpc('stream_overview'),
   ]);
   const exams = (ex.data || []) as any[];
-  const { data: news } = exams.length ? await sb.from('exam_news').select('id, title, url, source, published_at, official, exams(short_name)')
+  const { data: news } = exams.length ? await sb.from('exam_news').select('id, title, url, source, published_at, official, date_known, exams(short_name)')
     .in('exam_id', exams.map((e) => e.id)).eq('is_hidden', false).order('published_at', { ascending: false }).limit(8) : { data: [] as any[] };
   const counts = Object.fromEntries(((cnt.data || []) as any[]).map((r) => [r.slug, { n: Number(r.colleges), fee: r.fee_min }]));
   return {
@@ -157,7 +157,7 @@ export default async function StreamPage({ params }: { params: Promise<{ stream:
                 {news.map((n) => (
                   <li key={n.id} className="p-3">
                     <a href={n.url} target="_blank" rel="noopener noreferrer nofollow" className="font-medium text-slate-900 hover:text-brand-700">{n.title}</a>
-                    <p className="text-xs text-slate-500">{n.exams?.short_name}{n.official ? ' · Official' : ''} · Source: <b className="font-medium text-slate-600">{sourceName(n.source)}</b> · <time dateTime={n.published_at}>{newsDate(n.published_at)}</time></p>
+                    <p className="text-xs text-slate-500">{n.exams?.short_name}{n.official ? ' · Official' : ''} · Source: <b className="font-medium text-slate-600">{sourceName(n.source)}</b> · <time dateTime={n.published_at}>{n.date_known === false ? seenDate(n.published_at) : newsDate(n.published_at)}</time></p>
                   </li>
                 ))}
               </ul>

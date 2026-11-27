@@ -39,7 +39,7 @@ export default async function ExamPage({ params }: { params: Promise<{ slug: str
     sb.from('cutoffs').select('college_id, colleges(name, slug, city)').eq('exam_slug', e.slug).limit(500),
     sb.from('articles').select('slug, title, published_at').eq('exam_id', e.id).eq('is_published', true).order('published_at', { ascending: false }).limit(6),
     sb.from('exam_resources').select('*').eq('exam_slug', e.slug).eq('is_published', true).order('year', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false }).limit(8),
-    sb.from('exam_news').select('id, title, url, source, published_at, official').eq('exam_id', e.id).eq('is_hidden', false)
+    sb.from('exam_news').select('id, title, url, source, published_at, official, date_known').eq('exam_id', e.id).eq('is_hidden', false)
       .gte('published_at', new Date(Date.now() - 30 * 86400e3).toISOString()).order('published_at', { ascending: false }).limit(10),
   ]);
   const colleges = Array.from(new Map((cut || []).filter((x: any) => x.colleges).map((x: any) => [x.college_id, x.colleges])).values()) as { name: string; slug: string; city: string }[];

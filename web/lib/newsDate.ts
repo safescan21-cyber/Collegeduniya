@@ -11,3 +11,5 @@ export function newsDate(iso: string) {
 export const sourceName = (s: string | null | undefined) => (s || 'news website').replace(/^www\./, '');
 // the website a link points to, for "Source: nta.ac.in"
 export const hostOf = (u: string | null | undefined) => { try { return new URL(String(u)).hostname.replace(/^www\./, ''); } catch { return 'official website'; } };
+// a notice with no date of its own: say when we first saw it, not that it was published then
+export const seenDate = (iso: string) => `Seen on ${new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}`;

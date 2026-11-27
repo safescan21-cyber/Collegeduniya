@@ -1,8 +1,8 @@
 // Exam dates, collected automatically from each exam's OFFICIAL website — admins only review.
 //
 // Once a day (when the server is idle) it takes the exams checked longest ago that have an official website, and for each:
-//   1. opens the website, plus up to 4 pages / PDFs it links to that look like a schedule ("important dates", "information
-//      bulletin", "public notice", "schedule", "calendar"), on the same site only
+//   1. opens the website, plus up to 6 pages / PDFs it links to that look like a schedule ("inviting applications", "information
+//      bulletin", "public notice", "schedule", "calendar"), on the same site or a government file server (gov.in / nic.in)
 //   2. asks the AI pool (services/llm.js) to list the dates that are written there, each with the exact sentence it came from
 //   3. keeps a date ONLY if that sentence really is on the page and contains that day and month — so nothing invented gets in
 //   4. saves it as live (origin 'auto', review 'pending'); admins approve or reject in Admin → Exam dates → Needs review
@@ -14,7 +14,32 @@ import { whenIdle } from './loadGuard.js';
 
 const env = (k, d) => (process.env[k] ?? d);
 const EVENTS = ['registration_start', 'registration_end', 'correction_window', 'admit_card', 'exam', 'answer_key', 'result', 'counselling'];
-const KEYWORDS = /important\s*date|schedule|calendar|information\s*bulletin|brochure|public\s*notice|notification|press\s*release|date\s*sheet|admit\s*card|time\s*table|timetable/i;
+const KEYWORDS = /important\s*date|schedule|calendar|information\s*bulletin|brochure|public\s*notice|notification|press\s*release|date\s*sheet|admit\s*card|time\s*table|timetable|inviting|online\s*application|application\s*form|advertisement|exam\s*city|correction|answer\s*key|result|notice/i;
+// strongest hints that a notice holds the schedule (opened first)
+const SCHEDULE = /inviting|information\s*bulletin|important\s*date|schedule|calendar|time\s*table|timetable|date\s*sheet|notification|advertisement|brochure/i;
+
+// Indian exam bodies put their notices (PDFs) on government file servers, e.g. NTA → cdnbbsr.s3waas.gov.in — a different
+// address from the exam site. Those count as official too.
+export const officialHost = (u, site) => { try { const h = new URL(u).hostname.toLowerCase(); return sameSite(u, site) || /(^|\.)(gov\.in|nic\.in|s3waas\.gov\.in)$/.test(h); } catch { return false; } };
+// date written into a government upload path: /uploads/2026/11/20261127653356155.pdf → 2026-11-27
+export function dateFromUrl(u) {
+  const m = String(u).match(/\/uploads\/(20\d\d)\/(\d\d)\/(20\d\d)(\d\d)(\d\d)\d*/i) || String(u).match(/[/_-](20\d\d)(\d\d)(\d\d)(?:\d{6,})?\.pdf$/i);
+  if (!m) return null;
+  const [y, mo, d] = m.length === 6 ? [m[3], m[4], m[5]] : [m[1], m[2], m[3]];
+  const iso = `${y}-${mo}-${d}`; const t = Date.parse(`${iso}T00:00:00Z`);
+  return Number.isFinite(t) && t <= Date.now() + 864e5 && t > Date.now() - 3 * 365 * 864e5 ? iso : null;
+}
+// links on the official site that look like notices / schedules: own site or government file servers, newest first, schedules first
+export function noticeLinks(page, { max = 6 } = {}) {
+  const seen = new Map();
+  for (const l of page.links || []) {
+    if (!KEYWORDS.test(`${l.label} ${l.href}`) || /question\s*paper|syllabus|mock\s*test|login|sign\s*in|contact\s*us/i.test(l.label)) continue;
+    let u; try { u = new URL(l.href, page.url).toString(); } catch { continue; }
+    if (!/^https?:/i.test(u) || !officialHost(u, page.url) || seen.has(u)) continue;
+    seen.set(u, { url: u, label: l.label, date: dateFromUrl(u), schedule: SCHEDULE.test(l.label), pdf: /\.pdf($|\?)/i.test(u) });
+  }
+  return [...seen.values()].sort((a, b) => (Number(b.schedule) - Number(a.schedule)) || String(b.date || '').localeCompare(String(a.date || '')) || (Number(b.pdf) - Number(a.pdf))).slice(0, max);
+}
 const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
 const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -120,9 +145,7 @@ export async function collectExamDates({ limit = Number(env('EXAM_DATES_PER_RUN'
     const first = await grab(home); if (!first) continue;
     checked++;
     const pages = [first];
-    const extra = [...new Map(first.links.filter((l) => KEYWORDS.test(`${l.label} ${l.href}`))
-      .map((l) => { try { return new URL(l.href, first.url).toString(); } catch { return null; } })
-      .filter((u) => u && sameSite(u, first.url)).map((u) => [u, u])).keys()].slice(0, 4);
+    const extra = noticeLinks(first, { max: Number(env('EXAM_DATES_PAGES', 6)) }).map((l) => l.url);   // incl. notice PDFs on gov file servers
     for (const u of extra) { const p = await grab(u); if (p) pages.push(p); await new Promise((r) => setTimeout(r, 1500)); }
     for (const page of pages) {
       const found = await extract(exam, page);
