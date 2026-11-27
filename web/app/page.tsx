@@ -8,6 +8,7 @@ import HeroSearch from '@/components/HeroSearch';
 import CityInput from '@/components/CityInput';
 import { CollegeCard, HostelCard, JobCard } from '@/components/Cards';
 import TopCollegesTable, { type TopRow } from '@/components/home/TopCollegesTable';
+import WorldCollegesTable, { type WorldRow } from '@/components/home/WorldCollegesTable';
 import EnquiryForm from '@/components/EnquiryForm';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { counters, ratingsFor } from '@/lib/data';
@@ -29,9 +30,9 @@ const COUNTRIES = [
 ];
 
 async function load() {
-  if (!hasSupabase) return { colleges: [], hostels: [], jobs: [], articles: [], top: [], exams: [], courses: [], cities: [], streams: {} as Record<string, any>, trending: [] as any[], shots: [] as any[] };
+  if (!hasSupabase) return { colleges: [], hostels: [], jobs: [], articles: [], top: [], exams: [], courses: [], cities: [], streams: {} as Record<string, any>, trending: [] as any[], shots: [] as any[], world: [] as WorldRow[], worldCountries: [] as string[] };
   const sb = supabasePublic();
-  const [c, h, j, a, top, ex, cat, cnt, cities, sov, tr, sh] = await Promise.all([
+  const [c, h, j, a, top, ex, cat, cnt, cities, sov, tr, sh, wt, wc] = await Promise.all([
     sb.from('colleges_public').select('*').eq('is_published', true).order('is_featured', { ascending: false }).order('ranking', { ascending: true, nullsFirst: false }).limit(8),
     sb.from('hostels').select('*, colleges(name, slug)').eq('is_published', true).order('created_at', { ascending: false }).limit(4),
     sb.from('jobs').select('*').eq('is_published', true).eq('status', 'open').order('created_at', { ascending: false }).limit(6),
@@ -44,6 +45,8 @@ async function load() {
     sb.rpc('stream_overview'),
     sb.rpc('trending_courses', { p_lim: 8 }),
     sb.rpc('feed', { p_kind: 'shot', p_sort: 'trending', p_lim: 10 }),
+    sb.rpc('world_top_table', { p_country: null, p_lim: 10 }),
+    sb.rpc('world_top_countries', { p_lim: 10 }),
   ]);
   const counts = Object.fromEntries(((cnt.data || []) as any[]).map((r) => [r.slug, Number(r.colleges)]));
   return {
@@ -54,12 +57,13 @@ async function load() {
     cities: (cities.data || []) as { city: string; state: string | null; colleges: number }[],
     trending: (tr.data || []) as { slug: string; name: string; full_name: string; level: string; stream: string; visitors: number; colleges: number }[],
     shots: (sh.data || []) as any[],
+    world: (wt.data || []) as WorldRow[], worldCountries: ((wc.data || []) as { country: string }[]).map((r) => r.country),
     streams: Object.fromEntries(((sov.data || []) as any[]).map((r) => [r.stream, r])) as Record<string, { colleges: number; exams: number; courses: number }>,
   };
 }
 
 export default async function HomePage() {
-  const [{ colleges, hostels, jobs, articles, top, exams, courses, cities, streams, trending, shots }, stats, { t }] = await Promise.all([load(), counters(), getT()]);
+  const [{ colleges, hostels, jobs, articles, top, exams, courses, cities, streams, trending, shots, world, worldCountries }, stats, { t }] = await Promise.all([load(), counters(), getT()]);
   const examNames: Record<string, string> = Object.fromEntries(exams.map((e: any) => [e.slug, e.short_name]));
   const POPULAR_EXAMS = ['jee-main', 'neet-ug', 'cuet-ug', 'cat', 'gate', 'jee-advanced', 'clat', 'mht-cet', 'xat', 'upsc-cse-prelims', 'ssc-cgl', 'ibps-po'];
   const popularExams = POPULAR_EXAMS.map((s) => exams.find((e: any) => e.slug === s)).filter(Boolean) as any[];
@@ -188,6 +192,19 @@ export default async function HomePage() {
           </div>
         ) : <SetupNotice />}
       </section>
+
+      {/* TOP UNIVERSITIES IN THE WORLD — same table, under the NIRF one */}
+      {world.length > 0 && (
+        <section className="container-x mt-12">
+          <div className="mb-6 flex items-end justify-between">
+            <div>
+              <h2 className="section-title">Top universities in the world</h2>
+              <p className="mt-1 text-slate-500">By world research rank {(world[0] as any)?.rank_year || ''} — with courses, fees and graduate outcomes where published</p>
+            </div>
+            <Link href="/rankings?src=world" className="hidden items-center gap-1 text-sm font-semibold text-brand-700 hover:underline sm:flex">{t('home.viewAll')} <ArrowRight size={16} /></Link>
+          </div>
+          <WorldCollegesTable initial={world} countries={worldCountries} />
+        </section>)}
 
       {/* TRENDING COURSES */}
       {trending.length > 0 && (

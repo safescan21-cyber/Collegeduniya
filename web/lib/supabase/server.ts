@@ -9,7 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 const READ_RPCS = new Set(['college_search', 'course_rank_lists', 'course_search', 'college_countries', 'college_states', 'trending_courses', 'exam_calendar', 'college_report_card', 'feed', 'stream_place_counts', 'stream_overview', 'stream_cities', 'course_catalog_counts', 'top_colleges_table_v2', 'top_colleges_table',
   'paper_leaderboard', 'rank_predictor_exams', 'quota_countries', 'nearby_hostels', 'nearby_colleges', 'nearby_jobs', 'mock_catalog_v2', 'mock_catalog', 'exam_papers',
   'college_rows', 'city_local_name', 'top_study_cities', 'top_placements', 'sitemap_colleges', 'sitemap_college_count', 'site_counters', 'resolve_top',
-  'referral_leaderboard', 'recommend_colleges', 'ranking_list_index', 'rank_card_facts', 'rank_from_reports', 'public_profile_v2', 'predict_rank', 'predict_colleges',
+  'referral_leaderboard', 'recommend_colleges', 'ranking_list_index', 'rank_card_facts', 'world_top_table', 'world_top_countries', 'rank_from_reports', 'public_profile_v2', 'predict_rank', 'predict_colleges',
   'post_comments_list', 'placement_trends', 'mock_stats', 'daily_question', 'course_stats', 'course_colleges', 'search_colleges', 'cities_with_colleges',
   'country_college_counts', 'college_quality', 'stream_overview']);
 
