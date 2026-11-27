@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { ExternalLink, Target, CalendarDays, Building2, Monitor, Repeat } from 'lucide-react';
 import EnquiryForm from '@/components/EnquiryForm';
 import FollowExam from '@/components/exams/FollowExam';
+import ExamDates from '@/components/exams/ExamDates';
 import ExamNewsList, { type ExamNewsItem } from '@/components/exams/ExamNewsList';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { timeAgo } from '@/lib/format';
@@ -64,6 +65,7 @@ export default async function ExamPage({ params }: { params: Promise<{ slug: str
             {facts.map((f) => <div key={f.label} className="card flex items-center gap-3 p-4"><f.icon className="text-brand-600" size={20} /><div><p className="text-xs text-slate-500">{f.label}</p><p className="font-semibold text-slate-900">{f.value}</p></div></div>)}
           </div>
         )}
+        <ExamDates slug={e.slug} name={e.short_name} />
         <Block title="About the exam" text={e.description} />
         <Block title="Eligibility" text={e.eligibility} />
         <Block title="Exam pattern" text={e.pattern} />

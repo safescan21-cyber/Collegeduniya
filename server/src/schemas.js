@@ -241,6 +241,13 @@ schemas.exam_resources = z.object({
   exam_slug: str.min(2), kind: z.enum(['question_paper', 'answer_key', 'solution', 'syllabus', 'date_sheet', 'notice', 'analysis', 'sample_paper']),
   title: str.min(3), year: optInt, session: optStr, file_url: optStr, source_url: url, is_published: bool,
 });
+schemas.exam_dates = z.object({
+  exam_slug: str.min(2),
+  event: z.enum(['registration_start', 'registration_end', 'correction_window', 'admit_card', 'exam', 'answer_key', 'result', 'counselling']),
+  title: optStr, date_start: z.string().regex(/^\d{4}-\d{2}-\d{2}/, 'Pick a date'),
+  date_end: z.union([z.literal(''), z.null(), z.string().regex(/^\d{4}-\d{2}-\d{2}/)]).optional().transform((v) => (v ? v : null)),
+  tentative: bool, source_url: url, is_published: bool,
+});
 schemas.exam_stats = z.object({
   exam_slug: str.min(2), year: z.coerce.number().int().min(2000).max(2100), session: z.string().trim().min(1).default('All'),
   total_candidates: z.coerce.number().int().positive(), source: str.min(5),

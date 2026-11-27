@@ -26,6 +26,7 @@ export default async function ExamsPage({ searchParams }: { searchParams: Promis
   return (
     <div className="container-x py-10">
       <h1 className="flex items-center gap-2 text-3xl font-extrabold text-slate-900"><BookOpen className="text-brand-600" />Entrance exams</h1>
+      <Link href="/exams/calendar" className="mt-3 inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-1.5 text-sm font-semibold text-brand-700 hover:bg-brand-100">📅 Exam calendar — all upcoming dates with reminders →</Link>
       <p className="mt-1 text-slate-500">Eligibility, pattern and the colleges that accept each exam. Always confirm dates on the official website.</p>
       <div className="mt-5 flex flex-wrap gap-2">
         <Link href="/exams" className={!sp.level && !sp.stream ? 'btn-primary py-1.5' : 'btn-ghost py-1.5'}>All</Link>

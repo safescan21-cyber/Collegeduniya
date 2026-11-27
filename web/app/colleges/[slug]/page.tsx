@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import ReportCard from '@/components/college/ReportCard';
 import { Flag, flagSrc, isForeign } from '@/components/Flag';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -374,6 +375,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
           {show('ranking') && <Rankings name={c.short_name || c.name} rows={(rankRows || []) as any[]} review={count ? { avg: Number(avg) || 0, count } : null} nirf={(c as any).facts?.nirf?.tlr != null ? (c as any).facts.nirf : null} />}
           {show('scholarships') && <Scholarships name={c.short_name || c.name} text={cx.scholarship_info} />}
           {show('reviews') && <section id="reviews" className="scroll-mt-32">
+            <ReportCard collegeId={c.id} />
             <ReviewSection collegeId={c.id} collegeName={c.name} reviews={reviewList} avg={avg} count={count} />
           </section>}
 

@@ -616,6 +616,7 @@ const crudConfig = {
   college_partners:   { search: ['contact_name', 'contact_email'], filters: ['is_active', 'auto_share'], order: 'created_at', key: 'college_id', select: '*, colleges(name, slug, city)' },
   promotions:         { search: ['note'], filters: ['item_type', 'item_id'], order: 'created_at' },
   exam_resources:     { search: ['title', 'exam_slug', 'session'], filters: ['exam_slug', 'kind', 'year', 'is_published'], order: 'created_at' },
+  exam_dates:         { search: ['exam_slug', 'title'], filters: ['exam_slug', 'event', 'is_published'], order: 'date_start' },
   exam_stats:         { search: ['exam_slug', 'source'], filters: ['exam_slug', 'year'], order: 'year' },
   mock_blueprints:    { search: ['title', 'exam_slug'], filters: ['is_published'], order: 'updated_at', key: 'exam_slug' },
   mock_questions:     { search: ['stem', 'topic', 'section'], filters: ['exam_slug', 'section', 'status', 'ai_check', 'difficulty', 'source', 'auto_approved', 'checked_by_admin'], order: 'created_at' },

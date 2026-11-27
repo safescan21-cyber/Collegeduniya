@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
   Briefcase, Star, User, Save, Trash2, Heart, FilePlus2, Building, Users, Download, Pencil, PlusCircle, GraduationCap, Home, BellRing, FileText, Gift, Bell, MessageCircle, ClipboardCheck,
+  ListChecks,
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { JobAlertManager } from '@/components/JobAlerts';
@@ -11,6 +12,7 @@ import { NotificationList } from '@/components/Notifications';
 import { PublicProfileSettings, EducationEditor, LoginHistory, MockHistory } from '@/components/ProfileExtras';
 import CampusSettings from '@/components/campus/CampusSettings';
 import MyExams from '@/components/exams/MyExams';
+import CollegeList from '@/components/dashboard/CollegeList';
 import DeleteAccount from '@/components/DeleteAccount';
 import PasswordSettings from '@/components/account/PasswordSettings';
 import { Stars } from '@/components/Cards';
@@ -23,7 +25,7 @@ const STATUS_CHIP: Record<string, string> = {
 };
 
 const QUOTA_CHIP: Record<string, string> = { submitted: 'chip', under_review: 'chip-amber', contacted: 'chip-amber', shortlisted: 'chip-green', offered: 'chip-green', admitted: 'chip-green', rejected: 'chip-red', withdrawn: 'chip' };
-type Tab = 'exams' | 'mocks' | 'notifications' | 'alerts' | 'visits' | 'applications' | 'colleges' | 'saved' | 'listings' | 'reviews' | 'profile';
+type Tab = 'list' | 'exams' | 'mocks' | 'notifications' | 'alerts' | 'visits' | 'applications' | 'colleges' | 'saved' | 'listings' | 'reviews' | 'profile';
 
 function Dashboard() {
   const { user, profile, loading, refreshProfile } = useAuth();
@@ -124,6 +126,7 @@ function Dashboard() {
 
   const savedCount = saved.colleges.length + saved.hostels.length + saved.jobs.length;
   const TABS: { key: Tab; label: string; icon: any; n?: number }[] = [
+    { key: 'list', label: 'College list', icon: ListChecks, n: saved.colleges.length },
     { key: 'applications', label: 'Job applications', icon: Briefcase, n: apps.length },
     { key: 'colleges', label: 'College applications', icon: FilePlus2, n: capps.length + qapps.length },
     { key: 'exams', label: 'My exams', icon: BellRing },
@@ -223,6 +226,7 @@ function Dashboard() {
           </div>
         ) : <Empty text="You haven't applied to any college through Collegeolo yet." href="/management-quota" cta="See management quota seats" />)}
 
+        {tab === 'list' && <CollegeList />}
         {tab === 'exams' && <MyExams />}
         {tab === 'mocks' && <MockHistory />}
         {tab === 'notifications' && <NotificationList />}

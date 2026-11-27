@@ -1,7 +1,7 @@
 import { Flag } from '@/components/Flag';
 import Link from 'next/link';
 import {
-  GraduationCap, Home, Briefcase, Users, Globe2, Star, MapPin, ArrowRight, ShieldCheck, Target, Scale, FilePlus2, Calculator, PlusCircle, Flame, Play, Clapperboard, Heart,
+  GraduationCap, Home, Briefcase, Users, Globe2, Star, MapPin, ArrowRight, ShieldCheck, Target, Scale, FilePlus2, Calculator, PlusCircle, Flame, Play, Clapperboard, Heart, CalendarDays, Landmark,
 } from 'lucide-react';
 import { mediaUrl } from '@/lib/mediaUrl';
 import HeroSearch from '@/components/HeroSearch';
@@ -78,6 +78,8 @@ export default async function HomePage() {
     { href: '/compare', icon: Scale, title: t('home.tool.compare'), text: t('home.tool.compare.d') },
     { href: '/apply', icon: FilePlus2, title: t('home.tool.apply'), text: t('home.tool.apply.d') },
     { href: '/rank-predictor', icon: Calculator, title: t('home.tool.rank'), text: t('home.tool.rank.d') },
+    { href: '/exams/calendar', icon: CalendarDays, title: 'Exam calendar', text: 'Every upcoming last date, admit card, exam and result — with reminders' },
+    { href: '/education-loan', icon: Landmark, title: 'Education loan EMI', text: 'Your EMI and total interest, including the study period' },
   ];
 
   return (
@@ -122,7 +124,7 @@ export default async function HomePage() {
       {/* TOOLS */}
       <section className="container-x mt-14">
         <h2 className="section-title">{t('home.tools')}</h2>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {tools.map((x) => (
             <Link key={x.href} href={x.href} className="card group flex items-start gap-4 p-5 transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700 group-hover:bg-brand-600 group-hover:text-white"><x.icon size={20} /></span>

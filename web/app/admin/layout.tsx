@@ -41,6 +41,7 @@ const GROUPS: Group[] = [
   { id: 'exams', label: 'Exams & mock tests', icon: BookOpen, items: [
     { href: '/admin/exams', label: 'Exams', icon: BookOpen },
     { href: '/admin/exam-news', label: 'Exam news', icon: Rss },
+    { href: '/admin/exam-dates', label: 'Exam dates', icon: CalendarCheck, keywords: 'calendar deadlines reminders' },
     { href: '/admin/exam-library', label: 'Exam library', icon: FileStack, keywords: 'papers pdf' },
     { href: '/admin/mock-tests', label: 'Mock tests', icon: ClipboardCheck, keywords: 'questions test' },
   ] },
