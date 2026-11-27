@@ -117,10 +117,21 @@ async function overpass(query) {
 const areaKey = (lat, lng) => `osm-area:v2:${lat.toFixed(3)}:${lng.toFixed(3)}`;
 const inflight = new Map();
 
+// a college page asks once per place type (hospital, ATM, pharmacy…) for the SAME area — keep recent areas in memory
+// so that is one database read, not one per type; and remember "no data here" for an hour so retries don't hammer
+// the map services or the database
+const areaMem = new Map();        // key → { at, rows, fetchedAt }
+const AREA_MEM_MS = 10 * 60_000;
+const noData = new Map();         // key → time we last found nothing
 async function readArea(key) {
+  const m = areaMem.get(key);
+  if (m && Date.now() - m.at < AREA_MEM_MS) return { rows: m.rows, fresh: Date.now() - m.fetchedAt < AREA_DAYS * DAY };
   const { data } = await supabase.from('api_cache').select('payload, fetched_at').eq('key', key).maybeSingle();
   if (!data) return null;
-  return { rows: data.payload, fresh: Date.now() - new Date(data.fetched_at).getTime() < AREA_DAYS * DAY };
+  const fetchedAt = new Date(data.fetched_at).getTime();
+  areaMem.set(key, { at: Date.now(), rows: data.payload, fetchedAt });
+  if (areaMem.size > 500) areaMem.delete(areaMem.keys().next().value);
+  return { rows: data.payload, fresh: Date.now() - fetchedAt < AREA_DAYS * DAY };
 }
 
 // Overpass: everything around a point in one call (richer: phone numbers, 24×7 ER …) — slow when the servers are busy
@@ -235,7 +246,13 @@ export async function nominatimArea(lat, lng, { report = null } = {}) {
 export function fetchArea(lat, lng) {
   const key = areaKey(lat, lng);
   if (inflight.has(key)) return inflight.get(key);
-  const save = (rows) => { rows.sort((a, b) => a.distance_km - b.distance_km); return supabase.from('api_cache').upsert({ key, payload: rows, fetched_at: new Date().toISOString() }).then(() => rows); };
+  const save = (rows) => {
+    rows.sort((a, b) => a.distance_km - b.distance_km);
+    areaMem.set(key, { at: Date.now(), rows, fetchedAt: Date.now() }); noData.delete(key);
+    return supabase.from('api_cache').upsert({ key, payload: rows, fetched_at: new Date().toISOString() }).then(() => rows);
+  };
+  const nd = noData.get(key);
+  if (nd && Date.now() - nd < 3600e3) return Promise.reject(new Error('No map data'));   // tried recently, nothing there
   const job = (async () => {
     let rows = [];
     try { rows = await photonArea(lat, lng); } catch (e) { console.warn('[photon]', e.message); }
@@ -252,7 +269,8 @@ export function fetchArea(lat, lng) {
     }
     if (!rows.length) throw new Error('No map data');
     return rows;
-  })().finally(() => inflight.delete(key));
+  })().catch((e) => { noData.set(key, Date.now()); if (noData.size > 2000) noData.delete(noData.keys().next().value); throw e; })
+    .finally(() => inflight.delete(key));
   inflight.set(key, job);
   return job;
 }

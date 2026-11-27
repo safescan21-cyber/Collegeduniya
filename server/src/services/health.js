@@ -105,7 +105,14 @@ const CHECKS = [
     const { data, error } = await supabase.rpc('admin_db_activity');
     if (error) throw new Error(error.message);
     const slow = (data || []).filter((q) => q.seconds >= 10);
-    if (!slow.length) return `${(data || []).length} running, none slow`;
+    if (!slow.length) {
+      // nothing slow right now — if the server is busy, show which queries used the most database time overall
+      if (os.loadavg()[0] / os.cpus().length > 2) {
+        const { data: top } = await supabase.rpc('admin_top_queries', { p_lim: 4 });
+        if (top?.length) throw new Error(`${(data || []).length} running, none slow — most database time so far: ${top.map((t) => `${t.total_seconds}s total, ${t.calls}× avg ${t.avg_ms}ms: ${t.query.slice(0, 120)}`).join(' · ')}`);
+      }
+      return `${(data || []).length} running, none slow`;
+    }
     const fmt = (q) => `${q.seconds >= 60 ? `${Math.floor(q.seconds / 60)}m${q.seconds % 60}s` : `${q.seconds}s`} [${q.role}${q.app ? `/${q.app}` : ''}${q.waiting ? `, waiting ${q.waiting}` : ''}] ${q.query.slice(0, 160)}`;
     throw new Error(`${slow.length} slow: ${slow.slice(0, 4).map(fmt).join(' · ')}`);
   } },

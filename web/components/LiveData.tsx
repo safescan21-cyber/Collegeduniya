@@ -32,7 +32,7 @@ export function LiveNearby({ lat, lng, kinds = ['hospital', 'pharmacy', 'pg', 't
     const load = () => fetch(`${API_URL}/api/nearby?lat=${lat}&lng=${lng}&kind=${kind}&radius=${r}`)
       .then((x) => x.json()).then((b) => {
         if (stop) return;
-        if (b.pending && tries++ < 12) { setPending(true); timer = setTimeout(load, 8000); return; }   // first visit here: data is being collected
+        if (b.pending && tries++ < 4) { setPending(true); timer = setTimeout(load, 15000); return; }   // first visit here: data is being collected
         setPending(false); setRows(b.data || []); if (b.error) setErr(b.error);
       })
       .catch(() => { if (!stop) { setPending(false); setRows([]); setErr('Could not load map data.'); } });
