@@ -7,7 +7,8 @@ export const ORG = {
   legalName: e(process.env.NEXT_PUBLIC_ORG_LEGAL_NAME),          // registered business name, e.g. "XYZ Ventures (Proprietorship)"
   founder: e(process.env.NEXT_PUBLIC_ORG_FOUNDER) || 'Sonu Kumar Giri',   // your name, as you want it shown
   founderLinkedin: e(process.env.NEXT_PUBLIC_ORG_FOUNDER_LINKEDIN) || 'https://www.linkedin.com/in/SonuKumarGiri',
-  founderPhoto: e(process.env.NEXT_PUBLIC_ORG_FOUNDER_PHOTO),     // e.g. /founder.jpg in web/public
+  founderPhoto: e(process.env.NEXT_PUBLIC_ORG_FOUNDER_PHOTO) || '/founder.jpg',          // web/public/founder.jpg
+  founderCover: e(process.env.NEXT_PUBLIC_ORG_FOUNDER_COVER) || '/founder-cover.jpg',
   founderRole: e(process.env.NEXT_PUBLIC_ORG_FOUNDER_ROLE) || 'Founder',
   founderNote: e(process.env.NEXT_PUBLIC_ORG_FOUNDER_NOTE),       // a few lines in your own words
   started: e(process.env.NEXT_PUBLIC_ORG_STARTED),                // e.g. 2026
@@ -30,7 +31,7 @@ export const orgJsonLd = () => ({
       ...(ORG.address ? { address: { '@type': 'PostalAddress', streetAddress: ORG.address, addressCountry: 'IN' } } : {}),
       contactPoint: [{ '@type': 'ContactPoint', contactType: 'customer support', email: ORG.email, ...(ORG.phone ? { telephone: ORG.phone } : {}), availableLanguage: ['English', 'Hindi'] }] },
     ...(ORG.founder ? [{ '@type': 'Person', '@id': `${ORG.url}/founder#person`, name: ORG.founder, jobTitle: ORG.founderRole, url: `${ORG.url}/founder`,
-      worksFor: { '@id': `${ORG.url}/#org` }, ...(ORG.founderLinkedin ? { sameAs: [ORG.founderLinkedin] } : {}) }] : []),
+      worksFor: { '@id': `${ORG.url}/#org` }, ...(ORG.founderPhoto ? { image: `${ORG.url}${ORG.founderPhoto}` } : {}), ...(ORG.founderLinkedin ? { sameAs: [ORG.founderLinkedin] } : {}) }] : []),
     { '@type': 'WebSite', '@id': `${ORG.url}/#site`, url: ORG.url, name: ORG.brand, publisher: { '@id': `${ORG.url}/#org` }, inLanguage: 'en-IN',
       potentialAction: { '@type': 'SearchAction', target: `${ORG.url}/colleges?q={q}`, 'query-input': 'required name=q' } },
   ],

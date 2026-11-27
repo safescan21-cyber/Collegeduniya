@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: `${ORG.founder} — Founder of Collegeolo`,
   description: `${ORG.founder} is the founder of Collegeolo, a free platform that helps students choose a college, find a PG or hostel near campus and get part-time work.`,
   alternates: { canonical: '/founder' },
-  openGraph: { type: 'profile', title: `${ORG.founder} — Founder of Collegeolo`, url: '/founder' },
+  openGraph: { type: 'profile', title: `${ORG.founder} — Founder of Collegeolo`, url: '/founder', ...(ORG.founderPhoto ? { images: [{ url: ORG.founderPhoto, width: 480, height: 480, alt: ORG.founder }] } : {}) },
 };
 
 const initials = ORG.founder.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
@@ -16,12 +16,15 @@ export default function Founder() {
   return (
     <div className="container-x max-w-4xl py-12">
       <section className="card overflow-hidden p-0">
-        <div className="h-28 bg-gradient-to-r from-brand-700 via-indigo-600 to-brand-500" />
+        {ORG.founderCover
+          // eslint-disable-next-line @next/next/no-img-element
+          ? <img src={ORG.founderCover} alt="" className="h-40 w-full object-cover sm:h-52" />
+          : <div className="h-28 bg-gradient-to-r from-brand-700 via-indigo-600 to-brand-500" />}
         <div className="px-6 pb-8">
           <div className="-mt-14 flex flex-wrap items-end gap-5">
             {ORG.founderPhoto
               // eslint-disable-next-line @next/next/no-img-element
-              ? <img src={ORG.founderPhoto} alt={ORG.founder} className="h-28 w-28 rounded-2xl border-4 border-white object-cover shadow-lg" />
+              ? <img src={ORG.founderPhoto} alt={`${ORG.founder}, founder of Collegeolo`} width={128} height={128} className="h-32 w-32 rounded-2xl border-4 border-white object-cover shadow-lg" />
               : <span className="grid h-28 w-28 place-items-center rounded-2xl border-4 border-white bg-gradient-to-br from-brand-600 to-indigo-700 text-4xl font-extrabold text-white shadow-lg">{initials}</span>}
             <div className="pb-1">
               <h1 className="text-3xl font-extrabold text-slate-900">{ORG.founder}</h1>
