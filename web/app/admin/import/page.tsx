@@ -114,7 +114,7 @@ export default function AdminImport() {
         </div>
         <div className="card p-5">
           <h2 className="font-bold text-slate-900">🇺🇸 Every U.S. college with real tuition</h2>
-          <p className="mt-1 text-sm text-slate-500">Imports about 6,000 colleges from the U.S. Department of Education College Scorecard: tuition (in-state / out-of-state), size, admission rate, location and website.</p>
+          <p className="mt-1 text-sm text-slate-500">Imports every degree-granting U.S. college (about 3,200 — associate, bachelor’s and graduate; certificate-only trade schools are left out) from the U.S. Department of Education College Scorecard: tuition (in-state / out-of-state), size, admission rate, location and website.</p>
           {integ && !integ.scorecard && <p className="mt-3 rounded-lg bg-amber-50 p-2 text-xs text-amber-800">Add COLLEGE_SCORECARD_API_KEY to server/.env (free at api.data.gov/signup) and restart the API.</p>}
           <button disabled={!integ?.scorecard || !!busy} className="btn-primary mt-4" onClick={async () => {
             if (!confirm('Import all U.S. colleges now? It takes a few minutes.')) return;
