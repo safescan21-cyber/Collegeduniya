@@ -16,6 +16,7 @@ import CollegeStudents from '@/components/college/CollegeStudents';
 import CollegeNews from '@/components/college/CollegeNews';
 import IntakeGroups from '@/components/college/IntakeGroups';
 import CoursesTable from '@/components/college/CoursesTable';
+import CountryGuide from '@/components/college/CountryGuide';
 import CollegePosts from '@/components/community/CollegePosts';
 import EnquiryForm from '@/components/EnquiryForm';
 import { SaveButton, CompareButton, ShareButtons, ApplyCartButton } from '@/components/ActionButtons';
@@ -306,6 +307,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             ) : <EmptyState title="Courses not added yet" />}
           </section>}
 
+          <CountryGuide c={{ name: c.name, short_name: c.short_name, country_code: (c as any).country_code, state: c.state, type: c.type, website: site }} />
           {show('admission') && <Admission name={c.short_name || c.name} process={cx.admission_process} dates={dates} exams={cx.exams_accepted || []} examNames={examNames}
             eligibility={courseList.filter((x: any) => x.eligibility).slice(0, 15).map((x: any) => ({ course: x.name, text: x.eligibility }))} />}
           {show('placements') && placementList.length > 0 && (
