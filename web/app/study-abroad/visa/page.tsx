@@ -3,9 +3,10 @@ import Link from 'next/link';
 import { Plane } from 'lucide-react';
 import { EmptyState } from '@/components/Cards';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
+import VisaNews from '@/components/abroad/VisaNews';
 
 // rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
-export const metadata: Metadata = { title: 'Student visa guides by country', description: 'Student visa steps, processing time, fees and work rights — with links to each official immigration website.' };
+export const metadata: Metadata = { title: 'Student visa guides & latest visa news by country', description: 'Latest student visa news and rule changes for the UK, USA, Canada, Australia and more — plus visa steps, processing time, fees and work rights with links to each official immigration website.' };
 
 export default async function VisaIndex() {
   const rows = hasSupabase ? ((await supabasePublic().from('visa_guides').select('country_code, title, summary, updated_at').eq('is_published', true).order('title')).data || []) : [];
@@ -23,6 +24,7 @@ export default async function VisaIndex() {
           ))}
         </div>
       ) : <div className="mt-6"><EmptyState icon={<Plane size={28} />} title="Visa guides coming soon" text="Our team is writing guides from official sources." /></div>}
+      <VisaNews limit={15} />
     </div>
   );
 }

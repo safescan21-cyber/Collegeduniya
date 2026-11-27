@@ -25,6 +25,7 @@ import callRoutes from './routes/calls.js';
 import accountRoutes from './routes/account.js';
 import { startCollegeAutofill } from './services/collegeAutofill.js';
 import { startExamNews } from './services/examNews.js';
+import { startVisaNews } from './services/visaNews.js';
 import { startHealthMonitor } from './services/health.js';
 import { errorWatch, startErrorWatch } from './services/errorWatch.js';
 import { supabase as sbAdmin } from './supabase.js';
@@ -110,6 +111,7 @@ const server = app.listen(PORT, () => {
   startJobAlertScheduler();
   startCollegeAutofill();
   startExamNews();
+  startVisaNews();
   startHealthMonitor();
   startErrorWatch();
   // chats (messages + call log) older than CHAT_RETENTION_MONTHS (default 6) are deleted daily; posts are kept

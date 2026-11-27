@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { ExternalLink, Clock, Wallet, Briefcase } from 'lucide-react';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { renderMarkdown } from '@/lib/markdown';
+import VisaNews from '@/components/abroad/VisaNews';
 
 // rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 async function get(cc: string) {
@@ -29,7 +30,9 @@ export default async function VisaGuide({ params }: { params: Promise<{ country:
       </div>
       {v.body && <article className="prose prose-slate mt-6 max-w-none" dangerouslySetInnerHTML={{ __html: renderMarkdown(v.body) }} />}
       <a href={v.official_url} target="_blank" rel="noopener" className="btn-primary mt-6">Official immigration website<ExternalLink size={14} /></a>
+      {v.needs_review_since && <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">⚠️ The government has announced a change that may affect this guide — see the news below and check the official website. We’re updating this page.</p>}
       <p className="mt-3 text-xs text-slate-400">Updated {new Date(v.updated_at).toLocaleDateString()}. Immigration rules change often — the official website is always the final word. This is not legal advice.</p>
+      <VisaNews country={v.country_code} />
     </div>
   );
 }

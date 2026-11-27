@@ -655,6 +655,35 @@ router.post('/official-fees/run', wrap(async (req, res) => {
   res.json(await collectOfficialFees({ limit: Math.min(Number(req.query.limit) || 3, 10), collegeId: req.query.college || null }));
 }));
 
+// ---- student visa news (services/visaNews.js): list, hide/show, collect now; guides flagged "needs review"
+router.get('/visa-news', wrap(async (req, res) => {
+  let q = supabase.from('visa_news').select('id, country_code, title, url, source, official, topic, published_at, is_hidden', { count: 'exact' })
+    .order('published_at', { ascending: false }).limit(150);
+  if (req.query.country) q = q.eq('country_code', String(req.query.country).toUpperCase().slice(0, 2));
+  if (req.query.official === '1') q = q.eq('official', true);
+  const [{ data, count, error }, { data: guides }] = await Promise.all([q,
+    supabase.from('visa_guides').select('country_code, title, updated_at, needs_review_since, review_reason').order('country_code')]);
+  if (error) return fail(res, error);
+  res.json({ data, count, guides: guides || [] });
+}));
+router.post('/visa-news/:id/hide', wrap(async (req, res) => {
+  const { error } = await supabase.from('visa_news').update({ is_hidden: req.body?.hidden !== false }).eq('id', req.params.id);
+  if (error) return fail(res, error);
+  res.json({ ok: true });
+}));
+router.post('/visa-guides/:cc/reviewed', wrap(async (req, res) => {
+  const { error } = await supabase.from('visa_guides').update({ needs_review_since: null, review_reason: null }).eq('country_code', String(req.params.cc).toUpperCase().slice(0, 2));
+  if (error) return fail(res, error);
+  res.json({ ok: true });
+}));
+router.post('/visa-news/collect', wrap(async (req, res) => {
+  const { collectVisaNews } = await import('../services/visaNews.js');
+  const only = req.query.country ? String(req.query.country).toUpperCase().slice(0, 2) : null;
+  if (only) return res.json(await collectVisaNews({ only }));
+  collectVisaNews().then((st) => console.log('[visa-news] admin run', st)).catch((e) => console.warn('[visa-news]', e.message));   // ~2 min: in the background
+  res.json({ started: true });
+}));
+
 router.post('/exam-dates/collect', wrap(async (req, res) => {
   const { collectExamDates } = await import('../services/examDates.js');
   res.json(await collectExamDates({ limit: Math.min(Number(req.query.limit) || 5, 30) }));

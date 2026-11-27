@@ -38,6 +38,7 @@ const GROUPS: Group[] = [
     { href: '/admin/rank-reports', label: 'Rank results (students)', icon: Users },
     { href: '/admin/scholarships', label: 'Scholarships', icon: Award },
     { href: '/admin/visa-guides', label: 'Visa guides', icon: Plane, keywords: 'study abroad' },
+    { href: '/admin/visa-news', label: 'Visa news', icon: Newspaper, keywords: 'study abroad immigration updates' },
   ] },
   { id: 'exams', label: 'Exams & mock tests', icon: BookOpen, items: [
     { href: '/admin/exams', label: 'Exams', icon: BookOpen },
