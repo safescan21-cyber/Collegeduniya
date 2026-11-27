@@ -49,6 +49,7 @@ const KINDS = [
     fix: 'A code fix is needed so the API checks the input and answers 400 instead of 500.',
     action: null },
 ];
+// admin buttons that wait for outside websites on purpose (probe, collect, fees run) and the AI answer are not counted as slow
 const SLOW = { kind: 'slow', cause: `The request took longer than ${SLOW_MS / 1000}s.`, fix: 'Usually the server or database is busy; if one route is always slow it needs caching or an index.', action: null };
 const OTHER = { kind: 'code_error', cause: 'An error in the API code.', fix: 'Look at the message and the API log (pm2 logs collegeolo-api); it needs a code fix.', action: null };
 
@@ -93,7 +94,7 @@ export function errorWatch() {
       const ms = Date.now() - t0;
       if (req.path === '/api/health') return;
       if (res.statusCode >= 500) recordProblem({ route: routeOf(req), status: res.statusCode, message: res.locals.errMsg || res.statusMessage });
-      else if (ms > SLOW_MS && !/\/(ai|mock|import|chat|assistant|stream)/.test(req.path)) recordProblem({ route: routeOf(req), status: res.statusCode, slowMs: ms });
+      else if (ms > SLOW_MS && !/\/(ai|mock|import|chat|assistant|stream|ask)\b|exam-news\/(probe|collect)|official-fees\/run|website-check\/run|college-news\/collect|study-news\/collect|visa-news\/collect/.test(req.path)) recordProblem({ route: routeOf(req), status: res.statusCode, slowMs: ms });
     });
     next();
   };

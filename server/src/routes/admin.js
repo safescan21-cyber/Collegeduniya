@@ -974,15 +974,17 @@ router.get('/quota_applications/:id/documents', wrap(async (req, res) => {
 
 // ---------------------------------------------------------------- cutoffs & rankings from official sheets
 router.post('/import/cutoffs', sheetUpload.single('file'), wrap(async (req, res) => {
-  if (!req.file) return fail(res, new Error('Upload a .xlsx or .csv file'), 422);
-  const { headers, rows } = await parseSheet(req.file.buffer, req.file.originalname);
+  if (!req.file) return fail(res, new Error('Upload a .xlsx, .csv or saved .html results page'), 422);
+  let sheet; try { sheet = await parseSheet(req.file.buffer, req.file.originalname); } catch (e) { return fail(res, e, 422); }   // unreadable file → clear message, not a crash
+  const { headers, rows } = sheet;
   const { exam, year, round = 'Final', country = 'IN', source } = req.body || {};
   if (!exam || !year) return fail(res, new Error('Choose the exam and year'), 422);
   res.json({ data: await importCutoffs({ headers, rows, exam, year, round, country, source: source || req.file.originalname }) });
 }));
 router.post('/import/rankings', sheetUpload.single('file'), wrap(async (req, res) => {
-  if (!req.file) return fail(res, new Error('Upload a .xlsx or .csv file'), 422);
-  const { headers, rows } = await parseSheet(req.file.buffer, req.file.originalname);
+  if (!req.file) return fail(res, new Error('Upload a .xlsx, .csv or saved .html results page'), 422);
+  let sheet; try { sheet = await parseSheet(req.file.buffer, req.file.originalname); } catch (e) { return fail(res, e, 422); }
+  const { headers, rows } = sheet;
   const { year, category = 'Overall', source = 'NIRF', country = 'IN', source_url } = req.body || {};
   if (!year) return fail(res, new Error('Choose the year'), 422);
   res.json({ data: await importRankings({ headers, rows, year, category, source, country, sourceUrl: source_url || null }) });
