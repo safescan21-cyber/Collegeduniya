@@ -109,6 +109,10 @@ async function saveFindings(college, page, found) {
     const { error } = await supabase.from('fee_findings').upsert(row, { onConflict: 'college_id,course_key,level' });
     if (!error && !prev) added++;
   }
+  // one official B.Tech fee applies to every B.Tech branch of that institute (JoSAA lists the branches, without fees)
+  const btech = found.find((f) => f.level === 'UG' && /b\.?\s?tech|bachelor of technology|b\.?\s?e\.?\b/i.test(f.course) && !/dual|m\.?\s?tech|mba/i.test(f.course) && perYear(f));
+  if (btech) await supabase.from('courses').update({ fees: perYear(btech), currency: btech.currency })
+    .eq('college_id', college.id).eq('source', 'josaa').eq('catalog_slug', 'btech');
   if (found.length) await supabase.rpc('refresh_official_fee_range', { p_college: college.id });
   return added;
 }
@@ -122,9 +126,21 @@ export async function collectOfficialFees({ limit = Number(env('FEES_PER_RUN', 1
     if (countries.length && env('FEES_ALL_COUNTRIES', 'off') !== 'on') q = q.in('country', countries);
     q = q.order('fees_checked_at', { ascending: true, nullsFirst: true }).order('ranking', { ascending: true, nullsFirst: false });
   }
-  const { data: colleges } = await q.limit(limit);
+  // IITs, NITs, IIITs, IISc, IISERs, AIIMS, IIMs and other national institutes first (until each was read once in 60 days)
+  let colleges = [];
+  if (!collegeId) {
+    const { data: top } = await supabase.from('colleges').select('id, name, city, country, website').eq('is_published', true).not('website', 'is', null).eq('country', 'India')
+      .or('name.ilike.%Indian Institute of Technology%,name.ilike.%National Institute of Technology%,name.ilike.%Indian Institute of Information Technology%,name.ilike.%Indian Institute of Science%,name.ilike.%All India Institute of Medical Sciences%,name.ilike.%Indian Institute of Management%,name.ilike.%Birla Institute of Technology%')
+      .or(`fees_checked_at.is.null,fees_checked_at.lt.${new Date(Date.now() - 60 * 864e5).toISOString()}`)
+      .order('fees_checked_at', { ascending: true, nullsFirst: true }).limit(limit);
+    colleges = top || [];
+  }
+  if (colleges.length < limit) {
+    const { data } = await q.limit(limit - colleges.length);
+    colleges.push(...(data || []).filter((c) => !colleges.some((x) => x.id === c.id)));
+  }
   let checked = 0, added = 0, blocked = 0;
-  for (const college of colleges || []) {
+  for (const college of colleges) {
     if (!collegeId && serverBusy()) break;
     await supabase.from('colleges').update({ fees_checked_at: new Date().toISOString() }).eq('id', college.id);
     const home = /^https?:\/\//i.test(college.website) ? college.website : `https://${college.website}`;

@@ -54,6 +54,16 @@ export async function runOfficialData({ log = (m) => console.log(`[official-data
         await importScorecard({ log }).then(() => kickAutofill()).catch((e) => log(`Scorecard failed: ${e.message}`));
       }
     }
+    if (process.env.AUTO_JOSAA !== 'off') {   // IIT / NIT / IIIT / GFTI programmes + seats (JoSAA): first time, after a failure (6 h), yearly
+      const { data } = await supabase.from('import_runs').select('created_at, status').eq('kind', 'josaa').order('created_at', { ascending: false }).limit(1);
+      const last = data?.[0]; const age = last ? Date.now() - new Date(last.created_at).getTime() : Infinity;
+      const due = !last || (last.status === 'failed' && age > 6 * 3600e3) || (last.status === 'done' && age > 300 * 864e5);
+      if (due && !serverBusy()) {
+        log('JoSAA seat matrix is due — IIT / NIT / IIIT programmes');
+        const { importJosaa } = await import('./josaa.js');
+        await importJosaa({ log }).then(() => kickAutofill()).catch((e) => log(`JoSAA failed: ${e.message}`));
+      }
+    }
     if (process.env.AUTO_UK !== 'off') {   // UK (Discover Uni, CC BY 4.0): first time, then once a year (HESA refreshes it each autumn)
       const { data } = await supabase.from('import_runs').select('created_at, status').eq('kind', 'discover_uni').order('created_at', { ascending: false }).limit(1);
       const last = data?.[0]; const age = last ? Date.now() - new Date(last.created_at).getTime() : Infinity;

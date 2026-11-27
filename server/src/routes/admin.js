@@ -196,6 +196,14 @@ router.post('/import/uk', ukZip.single('file'), wrap(async (req, res) => {
     .then(() => kickAutofill()).catch((e) => console.error('[discover-uni]', e.message));
   res.status(202).json({ ok: true, message: 'UK import started (≈400 providers, ≈30,000 courses; 5–15 minutes). Progress shows under “Recent imports”.' });
 }));
+// JoSAA seat matrix (IIT / NIT / IIIT / GFTI programmes + seats). Optional upload: the seat-matrix page saved from a browser
+// ("Save page as… → HTML only") if josaa.admissions.nic.in refuses the server.
+router.post('/import/josaa', sheetUpload.single('file'), wrap(async (req, res) => {
+  const { importJosaa } = await import('../services/josaa.js');
+  const html = req.file?.buffer ? req.file.buffer.toString('utf8') : null;
+  importJosaa({ startedBy: req.user.id, html, log: (m) => console.log(`[josaa] ${m}`) }).then(() => kickAutofill()).catch((e) => console.error('[josaa]', e.message));
+  res.status(202).json({ ok: true, message: 'JoSAA import started (≈1,000 programmes at ≈138 institutes, about a minute). Progress shows under “Recent imports”.' });
+}));
 router.post('/import/aishe-list', wrap(async (req, res) => {
   importAisheList({ startedBy: req.user.id, log: (m) => console.log(`[aishe] ${m}`) }).then(() => kickAutofill()).catch((e) => console.error('[aishe]', e.message));
   res.status(202).json({ ok: true, message: 'India import started (≈70,000 institutions, 5–10 minutes). Progress shows under “Recent imports”.' });

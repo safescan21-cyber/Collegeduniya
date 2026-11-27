@@ -1,4 +1,5 @@
 'use client';
+import JosaaImport from '@/components/admin/JosaaImport';
 import JobsApiKeys from '@/components/admin/JobsApiKeys';
 import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, XCircle, Loader2, Download, RefreshCw, Search } from 'lucide-react';
@@ -100,6 +101,7 @@ export default function AdminImport() {
         <SheetImport onStarted={loadRuns} />
         <OfficialDataImport />
         <NirfDataImport />
+        <JosaaImport onStarted={loadRuns} />
         <EuropeImport onStarted={loadRuns} />
         <WorldImport onStarted={loadRuns} />
         <div className="card p-5">
