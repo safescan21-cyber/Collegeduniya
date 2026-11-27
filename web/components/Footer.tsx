@@ -22,6 +22,18 @@ export default async function Footer() {
           <Logo light />
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-brand-200/80">{t('footer.about')}</p>
           <Link href="/counselling" className="btn-accent mt-5">{t('nav.counselling')}</Link>
+          {ORG.founder && (
+            <Link href="/founder" className="group mt-6 flex max-w-sm items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 transition hover:bg-white/10">
+              {ORG.founderPhoto
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={ORG.founderPhoto} alt={ORG.founder} width={48} height={48} loading="lazy" className="h-12 w-12 shrink-0 rounded-full border-2 border-white/30 object-cover" />
+                : <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand-600 font-bold text-white">{ORG.founder[0]}</span>}
+              <span className="min-w-0">
+                <span className="block text-xs text-brand-200/70">Founded by</span>
+                <b className="block text-white group-hover:underline">{ORG.founder}</b>
+                <span className="block text-xs italic text-brand-200/90">“No student should give up studying because of money.”</span>
+              </span>
+            </Link>)}
         </div>
         <div>
           <h4 className="mb-3 font-semibold text-white">{t('footer.explore')}</h4>
