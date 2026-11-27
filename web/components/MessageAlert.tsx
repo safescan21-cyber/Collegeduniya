@@ -61,6 +61,7 @@ export default function MessageAlert() {
         const m = p.new || {};
         if (!m.sender_id || m.sender_id === user.id) return;
         chime('message');
+        window.dispatchEvent(new Event('collegeolo:chat'));   // header / bottom-bar badge refresh
         const onChat = window.location.pathname.startsWith('/messages');
         if (!onChat || document.hidden) setPop({ text: String(m.body || 'New message').slice(0, 90), href: `/messages?c=${m.conversation_id}` });
         if (document.hidden) { unseen.current++; title.current ||= document.title.replace(/^\(\d+\) /, ''); document.title = `(${unseen.current}) New message · ${title.current}`; }

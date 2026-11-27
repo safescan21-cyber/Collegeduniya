@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Heart, ThumbsDown, MessageCircle, Share2, Plus, Volume2, VolumeX, Loader2, X, Clapperboard, Trash2 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { supabaseBrowser } from '@/lib/supabase/client';
-import { uploadMedia, mediaUrl, MAX_VIDEO_MB } from '@/lib/media';
+import { uploadMedia, uploadPoster, mediaUrl, MAX_VIDEO_MB } from '@/lib/media';
+import { shotPath } from '@/lib/shotUrl';
 import { timeAgo } from '@/lib/format';
 import Verified from '@/components/campus/Verified';
 import Watermark from '@/components/Watermark';
@@ -113,7 +114,7 @@ function Shot({ shot, muted, setMuted, onNear, onDeleted }: { shot: FeedPost; mu
     <section ref={box} className="relative h-full snap-start snap-always overflow-hidden" onContextMenu={(e) => e.preventDefault()}>
       <div className="absolute inset-0 flex items-center justify-center" onClick={tap}>
         {m?.type === 'video'
-          ? <video ref={vid} src={mediaUrl(m.path)} muted={muted} loop playsInline preload="metadata" controlsList="nodownload noremoteplayback" disablePictureInPicture className="h-full w-full object-contain" />
+          ? <video ref={vid} src={mediaUrl(m.path)} poster={m.poster ? mediaUrl(m.poster) : undefined} muted={muted} loop playsInline preload="metadata" controlsList="nodownload noremoteplayback" disablePictureInPicture className="h-full w-full object-contain" />
           // eslint-disable-next-line @next/next/no-img-element
           : m && <img src={mediaUrl(m.path)} alt="" draggable={false} className="h-full w-full object-contain" />}
         <Watermark dense />
@@ -135,7 +136,8 @@ function Shot({ shot, muted, setMuted, onNear, onDeleted }: { shot: FeedPost; mu
           <Verified on={p.author_verified} size={14} />
           {!p.is_mine && <FollowButton userId={p.author_id} initial={loggedIn ? !!p.author_followed : undefined} variant="dark" onChange={(f) => setP((x) => ({ ...x, author_followed: f }))} />}
         </div>
-        {p.college_name && <p className="mt-0.5 truncate text-xs text-white/70">{p.college_slug ? <Link href={`/colleges/${p.college_slug}`} className="hover:underline">{p.college_name}</Link> : p.college_name} · {timeAgo(p.created_at)}</p>}
+        <p className="mt-0.5 truncate text-xs text-white/70">{p.college_name && <>{p.college_slug ? <Link href={`/colleges/${p.college_slug}`} className="hover:underline">{p.college_name}</Link> : p.college_name} · </>}
+          <Link href={shotPath(p.id, p.body)} className="hover:underline" title="This shot's own page — link to share">{timeAgo(p.created_at)}</Link></p>
         {p.body && <p onClick={() => setFull(!full)} className={`mt-1 whitespace-pre-wrap break-words text-sm ${full ? '' : 'line-clamp-2'}`}>{p.body}</p>}
       </div>
 
@@ -146,7 +148,7 @@ function Shot({ shot, muted, setMuted, onNear, onDeleted }: { shot: FeedPost; mu
             <Comments postId={p.id} onCount={(n) => n !== p.comments && setP((x) => ({ ...x, comments: n }))} />
           </div>
         </div>)}
-      {share && <ShareMenu postId={p.id} text={(p.body || '').slice(0, 100)} onShared={(n) => setP((x) => ({ ...x, shares: n }))} onClose={() => setShare(false)} />}
+      {share && <ShareMenu postId={p.id} path={shotPath(p.id, p.body)} text={(p.body || '').slice(0, 100)} onShared={(n) => setP((x) => ({ ...x, shares: n }))} onClose={() => setShare(false)} />}
     </section>
   );
 }
@@ -174,7 +176,8 @@ function UploadShot({ onClose, onDone }: { onClose: () => void; onDone: () => vo
     if (!file || !user) return;
     setBusy(true); setErr('');
     try {
-      const m = await uploadMedia(user.id, file);
+      const m: { type: 'image' | 'video'; path: string; poster?: string } = await uploadMedia(user.id, file);
+      if (m.type === 'video') { const poster = await uploadPoster(user.id, file).catch(() => null); if (poster) m.poster = poster; }   // thumbnail for search & previews
       const { error } = await supabaseBrowser().from('posts').insert({ user_id: user.id, kind: 'shot', body: caption.trim() || null, media: [m] });
       if (error) throw new Error(error.message);
       onDone();

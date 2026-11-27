@@ -10,13 +10,13 @@ type Chat = { id: string; status: string; other_name: string; group?: boolean; e
 
 // Share = the only way content leaves the site: send it to a friend's chat, or share the link through the phone's apps.
 // Nothing is downloaded — the friend opens it on Collegeolo.
-export default function ShareMenu({ postId, text, onShared, onClose }: { postId: string; text: string; onShared: (n: number) => void; onClose: () => void }) {
+export default function ShareMenu({ postId, text, path, onShared, onClose }: { postId: string; text: string; path?: string; onShared: (n: number) => void; onClose: () => void }) {
   const { user } = useAuth();
   const router = useRouter();
   const sb = supabaseBrowser();
   const [chats, setChats] = useState<Chat[] | null>(null);
   const [sent, setSent] = useState<string[]>([]); const [busy, setBusy] = useState(''); const [copied, setCopied] = useState(false);
-  const url = `${typeof location !== 'undefined' ? location.origin : 'https://www.collegeolo.com'}/community/post/${postId}`;
+  const url = `${typeof location !== 'undefined' ? location.origin : 'https://www.collegeolo.com'}${path || `/community/post/${postId}`}`;   // shots: their own page
   const loggedIn = !!user && !(user as any).is_anonymous;
   const canShare = typeof navigator !== 'undefined' && typeof (navigator as any).share === 'function';
   const counted = async () => { const { data } = await sb.rpc('share_post', { p_post: postId }); if (typeof data === 'number') onShared(data); };

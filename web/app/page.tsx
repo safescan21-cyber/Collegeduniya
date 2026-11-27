@@ -152,7 +152,10 @@ export default async function HomePage() {
                 const m = s.media?.[0];
                 return (
                   <Link key={s.id} href={`/community/shots?start=${s.id}`} className="group relative aspect-[9/16] w-36 shrink-0 snap-start overflow-hidden rounded-2xl bg-slate-800 sm:w-44">
-                    {m?.type === 'video'
+                    {m?.type === 'video' && m.poster
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <img src={mediaUrl(m.poster)} alt={String(s.body || '').slice(0, 80)} loading="lazy" draggable={false} className="h-full w-full object-cover transition group-hover:scale-105" />
+                      : m?.type === 'video'
                       ? <video src={`${mediaUrl(m.path)}#t=0.5`} preload="metadata" muted playsInline className="h-full w-full object-cover transition group-hover:scale-105" />
                       // eslint-disable-next-line @next/next/no-img-element
                       : m && <img src={mediaUrl(m.path)} alt="" loading="lazy" draggable={false} className="h-full w-full object-cover transition group-hover:scale-105" />}

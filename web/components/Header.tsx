@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { NotificationBell } from './Notifications';
+import { useChatUnread, badge } from './chat/useChatUnread';
 import { useLang, LangSwitch } from './LangProvider';
 import type { DictKey } from '@/lib/i18n';
 import { STREAMS } from '@/lib/streams';
@@ -50,6 +51,18 @@ const MORE: { href: string; key: DictKey; icon: any }[] = [
   { href: '/partners?as=employer', key: 'nav.forCompanies', icon: Building2 },
   { href: '/counselling', key: 'nav.counselling', icon: PhoneCall },
 ];
+
+// Chat in the header with an unread badge (desktop and phone) — it used to be only inside the menu
+function ChatButton({ compact = false }: { compact?: boolean }) {
+  const path = usePathname();
+  const n = useChatUnread(path);
+  return (
+    <Link href="/messages" aria-label={n ? `Chat — ${n} unread` : 'Chat'} className={`relative inline-flex items-center gap-1.5 rounded-xl font-semibold ${compact ? 'p-2 text-brand-700' : 'bg-brand-50 px-3 py-2 text-sm text-brand-700 hover:bg-brand-100'}`}>
+      <MessageCircle size={compact ? 22 : 17} />{!compact && 'Chat'}
+      {n > 0 && <span className="absolute -end-1 -top-1 min-w-[18px] rounded-full bg-rose-500 px-1 text-center text-[10px] font-bold leading-[18px] text-white ring-2 ring-white">{badge(n)}</span>}
+    </Link>
+  );
+}
 
 export function Logo({ light = false }: { light?: boolean }) {
   return (
@@ -117,6 +130,7 @@ export default function Header() {
               {isAdmin && <Link href="/admin" className="btn-ghost px-3"><ShieldCheck size={16} />{t('auth.admin')}</Link>}
               {profile?.account_type === 'pg_owner' && <Link href="/owner" className="btn-ghost px-3"><BedDouble size={16} />{t('nav.ownerPortal')}</Link>}
               {profile?.account_type === 'employer' && <Link href="/employer" className="btn-ghost px-3"><Building2 size={16} />{t('nav.employerPortal')}</Link>}
+              <ChatButton />
               <NotificationBell />
               <Link href="/dashboard" className="btn-ghost px-3"><LayoutDashboard size={16} />{profile?.full_name?.split(' ')[0] || t('auth.dashboard')}</Link>
               <button onClick={logout} className="btn-ghost px-3" aria-label={t('auth.logout')}><LogOut size={16} /></button>
@@ -129,6 +143,7 @@ export default function Header() {
           )}
         </div>
         <div className="flex items-center gap-2 lg:hidden">
+          {user && <ChatButton compact />}
           <LangSwitch />
           <button onClick={() => setOpen(!open)} aria-label="Menu">{open ? <X /> : <Menu />}</button>
         </div>

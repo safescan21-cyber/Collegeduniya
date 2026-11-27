@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import VisitTracker from '@/components/VisitTracker';
 import ChatWidget from '@/components/ChatWidget';
+import BottomNav from '@/components/BottomNav';
 import ReferralCapture from '@/components/ReferralCapture';
 import { PresencePing, OnlineAlerts } from '@/components/Presence';
 import MessageAlert from '@/components/MessageAlert';
@@ -55,6 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Footer />
             <ListTray />
             <ChatWidget />
+            <BottomNav />
           </CallProvider>
           </AuthProvider>
         </LangProvider>

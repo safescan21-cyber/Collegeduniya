@@ -28,3 +28,25 @@ export async function uploadMedia(userId: string, file: File): Promise<{ type: '
   if (error) throw new Error(error.message);
   return { type: video ? 'video' : 'image', path };
 }
+
+// A thumbnail for a video shot: one frame (about half a second in) drawn to a canvas in the browser, saved as a small JPG
+// next to the video. Used as the poster in the player, in "More shots" and for Google's video results.
+export async function uploadPoster(userId: string, file: File): Promise<string | null> {
+  const src = URL.createObjectURL(file);
+  try {
+    const v = document.createElement('video');
+    v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = src;
+    await new Promise<void>((ok, bad) => { v.onloadeddata = () => ok(); v.onerror = () => bad(new Error('cannot read video')); setTimeout(() => bad(new Error('timeout')), 8000); });
+    v.currentTime = Math.min(0.5, (v.duration || 1) / 2);
+    await new Promise<void>((ok) => { v.onseeked = () => ok(); setTimeout(ok, 3000); });
+    const w = v.videoWidth, h = v.videoHeight; if (!w || !h) return null;
+    const scale = Math.min(1, 720 / Math.max(w, h));
+    const c = document.createElement('canvas'); c.width = Math.round(w * scale); c.height = Math.round(h * scale);
+    c.getContext('2d')!.drawImage(v, 0, 0, c.width, c.height);
+    const blob: Blob | null = await new Promise((ok) => c.toBlob(ok, 'image/jpeg', 0.8));
+    if (!blob) return null;
+    const path = `${userId}/${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}-poster.jpg`;
+    const { error } = await supabaseBrowser().storage.from('community').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+    return error ? null : path;
+  } finally { URL.revokeObjectURL(src); }
+}

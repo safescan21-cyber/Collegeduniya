@@ -4,6 +4,8 @@ import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { SITE_URL } from '@/lib/format';
 import { sitemapPlan, readRange, SHARD, CITY_MIN_POP } from '@/lib/sitemapPlan';
 import { topPath } from '@/lib/top';
+import { shotPath } from '@/lib/shotUrl';
+import { mediaUrl } from '@/lib/mediaUrl';
 
 export const revalidate = 86400;
 
@@ -57,6 +59,16 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
     sb.from('scholarships').select('slug, updated_at').eq('is_published', true).limit(5000),
     sb.from('visa_guides').select('country_code, updated_at').eq('is_published', true),
   ]);
+  const { data: shotRows } = await sb.rpc('shots_for_sitemap', { p_lim: 5000 });
+  // a page per shot (same rule as the page: a real caption or some reactions), with the video for Google's video index
+  const shotEntries = ((shotRows || []) as any[]).filter((r) => String(r.body || '').replace(/#[\p{L}\p{N}_]+/gu, ' ').replace(/\s+/g, ' ').trim().length >= 20 || (r.likes + r.comments) >= 3)
+    .map((r) => {
+      const m = (r.media || [])[0] || {}; const thumb = m.type === 'image' ? mediaUrl(m.path) : m.poster ? mediaUrl(m.poster) : null;
+      const title = (String(r.body || '').replace(/#[\p{L}\p{N}_]+/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 90)) || `Campus video by ${r.author_name}`;
+      return { url: `${SITE_URL}${shotPath(r.id, r.body)}`, lastModified: r.edited_at || r.created_at, priority: 0.5,
+        ...(m.type === 'video' && thumb ? { videos: [{ title, thumbnail_loc: thumb, description: `${title}${r.college_name ? ` — ${r.college_name}` : ''}`.slice(0, 2048), content_loc: mediaUrl(m.path), publication_date: r.created_at }] } : {}),
+        ...(m.type === 'image' ? { images: [mediaUrl(m.path)] } : {}) };
+    });
   const { data: rankEx } = await sb.rpc('rank_predictor_exams');
   const { data: sov } = await sb.rpc('stream_overview');
   const streamOk = new Set(((sov || []) as any[]).filter((r) => r.colleges >= 5 || r.exams >= 2).map((r) => r.stream));
@@ -78,6 +90,7 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
     ...Array.from(new Map([...((blogs || []) as any[]), ...((posts || []) as any[])]
       .filter((r) => r.kind === 'blog' || (r.body || '').length >= 280 || r.comments >= 3).map((r) => [r.id, r])).values())
       .map((r) => ({ url: `${SITE_URL}/community/post/${r.id}`, lastModified: r.edited_at || r.created_at, priority: 0.5 })),
+    ...shotEntries,
     ...STREAMS.filter((x) => streamOk.has(x.name)).map((x) => ({ url: `${SITE_URL}/streams/${x.slug}`, changeFrequency: 'weekly' as const, priority: 0.9 })),
     { url: `${SITE_URL}/courses`, changeFrequency: 'weekly' as const, priority: 0.8 },
     ...((courseCounts || []) as any[]).filter((r) => Number(r.colleges) >= 3).map((r) => ({ url: `${SITE_URL}/courses/${r.slug}`, changeFrequency: 'weekly' as const, priority: 0.8 })),
