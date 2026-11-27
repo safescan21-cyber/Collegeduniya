@@ -1,3 +1,4 @@
+import fs from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { supabase } from '../supabase.js';
 import { cleanEnv } from './emailSetup.js';
@@ -59,15 +60,50 @@ export async function fixHistory(limit = 50) {
 export const actionList = () => Object.entries(ACTIONS).map(([id, a]) => ({ id, label: a.label }));
 
 // what is using the CPU right now (shown when the server is very busy)
+// What is using the server RIGHT NOW. `ps` shows each process's average CPU since it started (so `ps` itself always
+// looks like 100% and long-running busy processes look idle) — instead we read /proc twice, 1 second apart, and
+// report the real current CPU per program, plus disk wait (load can be high while CPU is idle if the disk is slow).
+const nameOf = (c) => /next build|next-build|\.next-[ab].*build/.test(c) ? 'website build' : /npm (ci|install)/.test(c) ? 'npm install'
+  : /next.*start|next-server/.test(c) ? 'website' : /collegeolo\/server|src\/index\.js/.test(c) ? 'API'
+  : /postgres/.test(c) ? 'database' : /foodpharma/i.test(c) ? 'foodpharma app' : /imgproxy/.test(c) ? 'imgproxy'
+  : /dockerd|containerd/.test(c) ? 'docker' : /kworker|kswapd|jbd2|ksoftirq/.test(c) ? 'system (disk/memory)' : (c.split(/\s+/)[0] || '').split('/').pop().slice(0, 30);
+async function procSnapshot() {
+  const snap = new Map(); let dState = 0;
+  for (const pid of (await fs.readdir('/proc')).filter((d) => /^\d+$/.test(d))) {
+    try {
+      const st = await fs.readFile(`/proc/${pid}/stat`, 'utf8');
+      const rest = st.slice(st.lastIndexOf(')') + 2).split(' ');
+      if (rest[0] === 'D') dState++;
+      const ticks = Number(rest[11]) + Number(rest[12]);              // utime + stime
+      const rss = Number(rest[21]) * 4096;
+      let cmd = (await fs.readFile(`/proc/${pid}/cmdline`, 'utf8')).replace(/\0/g, ' ').trim();
+      if (!cmd) cmd = `[${st.slice(st.indexOf('(') + 1, st.lastIndexOf(')'))}]`;
+      snap.set(pid, { ticks, rss, cmd });
+    } catch { /* process ended */ }
+  }
+  return { snap, dState };
+}
+async function cpuTimes() {
+  const l = (await fs.readFile('/proc/stat', 'utf8')).split('\n')[0].trim().split(/\s+/).slice(1).map(Number);
+  return { total: l.reduce((a, b) => a + b, 0), idle: l[3], iowait: l[4] || 0 };
+}
 export async function topProcesses() {
   try {
-    const out = await new Promise((resolve, reject) => execFile('ps', ['-eo', 'pcpu,rss,args', '--sort=-pcpu'], { timeout: 5000 }, (e, o) => (e ? reject(e) : resolve(o))));
-    return out.split('\n').slice(1, 6).map((l) => l.trim()).filter(Boolean).map((l) => {
-      const [cpu, rss, ...cmd] = l.split(/\s+/);
-      const c = cmd.join(' ');
-      const name = /next build/.test(c) ? 'website build' : /next.*start|next-server/.test(c) ? 'website' : /collegeolo\/server|src\/index\.js/.test(c) ? 'API'
-        : /postgres/.test(c) ? 'database' : /foodpharma/i.test(c) ? 'foodpharma app' : c.split('/').pop().slice(0, 40);
-      return `${name} ${cpu}% CPU ${Math.round(Number(rss) / 1024)} MB`;
-    });
+    const [a, c0] = await Promise.all([procSnapshot(), cpuTimes()]);
+    await new Promise((r) => setTimeout(r, 1000));
+    const [b, c1] = await Promise.all([procSnapshot(), cpuTimes()]);
+    const HZ = 100; const groups = new Map();
+    for (const [pid, p] of b.snap) {
+      const before = a.snap.get(pid); if (!before) continue;
+      const cpu = ((p.ticks - before.ticks) / HZ) * 100;            // % of one CPU over the 1 s sample
+      const n = nameOf(p.cmd); const g = groups.get(n) || { cpu: 0, rss: 0 };
+      g.cpu += cpu; g.rss += p.rss; groups.set(n, g);
+    }
+    const dt = c1.total - c0.total || 1;
+    const busy = Math.round(100 * (1 - (c1.idle - c0.idle + c1.iowait - c0.iowait) / dt));
+    const iow = Math.round(100 * (c1.iowait - c0.iowait) / dt);
+    const list = [...groups].filter(([, g]) => g.cpu >= 1).sort((x, y) => y[1].cpu - x[1].cpu).slice(0, 5)
+      .map(([n, g]) => `${n} ${Math.round(g.cpu)}% CPU ${Math.round(g.rss / 1048576)} MB`);
+    return [`CPU ${busy}% busy, disk wait ${iow}%${b.dState ? `, ${b.dState} waiting on disk` : ''}`, ...list];
   } catch { return []; }
 }

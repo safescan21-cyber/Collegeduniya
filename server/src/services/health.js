@@ -95,7 +95,7 @@ const CHECKS = [
     const load = os.loadavg()[0] / os.cpus().length;
     if (load > 3) {
       const top = await topProcesses();
-      throw new Error(`server very busy (load ${os.loadavg()[0].toFixed(1)} on ${os.cpus().length} CPUs)${top.length ? ` — using CPU: ${top.slice(0, 3).join(', ')}` : ''}`);
+      throw new Error(`server very busy (load ${os.loadavg()[0].toFixed(1)} on ${os.cpus().length} CPUs)${top.length ? ` — ${top.slice(0, 4).join(', ')}` : ''}`);
     }
     if (freePct < 5) throw new Error(`memory almost full (${(os.freemem() / 1073741824).toFixed(1)} GB free)`);
     return `${(os.freemem() / 1073741824).toFixed(1)} GB free of ${(os.totalmem() / 1073741824).toFixed(0)} GB · load ${os.loadavg()[0].toFixed(1)}`;
