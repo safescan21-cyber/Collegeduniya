@@ -2,11 +2,8 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
-// Screenshots: no website can block a phone's screenshot buttons or screen recording. What we do instead —
-//   * the PrintScreen key wipes the clipboard and blanks the page for a moment
-//   * when the window loses focus (Snipping Tool, Win+Shift+S, ⌘+Shift+4, app switcher) the page blurs until you come back
-//   * photos and videos carry a watermark with the viewer's @username (components/Watermark.tsx)
-//   * long-press "save image", drag-to-desktop, video download and picture-in-picture are turned off
+// Screenshots are allowed (no blur / PrintScreen blocking). Photos and videos carry a viewer watermark
+// (components/Watermark.tsx); long-press "save image", drag-to-desktop, video download and picture-in-picture are off.
 // Discourages copying the site's content: no text selection, copy, cut, right-click menu or image dragging on public
 // pages, plus copy/save/print/view-source shortcuts. Typing fields and the admin panel are left alone. (A determined person can still read the page
 // source — this stops casual copy-paste, it is not a lock.)
@@ -20,27 +17,8 @@ export default function NoCopy() {
   useEffect(() => {
     document.documentElement.classList.toggle('no-copy', on);
     if (!on) return;
-    let t: any; let s: any;
+    let t: any;
     const say = (msg = 'Copying is turned off on Collegeolo — use Share to send a page') => { setNote(msg); clearTimeout(t); t = setTimeout(() => setNote(false), 2200); };
-    const root = document.documentElement;
-    const shield = (ms?: number) => { root.classList.add('shield'); clearTimeout(s); if (ms) s = setTimeout(() => root.classList.remove('shield'), ms); };
-    const unshield = () => { clearTimeout(s); root.classList.remove('shield'); };
-    // focus moved to another app / screenshot tool (but not into an embedded video on the page)
-    const onBlur = () => setTimeout(() => { if (document.activeElement?.tagName !== 'IFRAME') shield(); }, 0);
-    const onVis = () => (document.hidden ? shield() : unshield());
-    // the page is still in view but another window has focus (second monitor, side-by-side, in-app browser panes):
-    // any pointer movement, touch or scroll over the page brings it back — a screenshot tool freezes the screen
-    // before that can happen, so the snapshot stays blurred
-    const back = () => { if (root.classList.contains('shield') && !document.hidden) unshield(); };
-    const backEvents = ['pointermove', 'pointerdown', 'wheel', 'touchstart'] as const;   // not keys: PrintScreen must keep the blur
-    const shotKeys = (e: KeyboardEvent) => {
-      const k = e.key.toLowerCase();
-      const macShot = e.metaKey && e.shiftKey && ['3', '4', '5', '6'].includes(k);
-      if (k === 'printscreen' || macShot) {
-        shield(1500); say('Screenshots are turned off — use Share to send this page');
-        try { navigator.clipboard?.writeText('Screenshots are turned off on Collegeolo — share the link instead: ' + location.href); } catch { /* not allowed */ }
-      }
-    };
     const block = (e: Event) => {
       if (editable(e.target) || (e.type !== 'contextmenu' && editable(document.activeElement))) return;
       e.preventDefault();
@@ -58,18 +36,12 @@ export default function NoCopy() {
     const sel = (e: Event) => { if (e.type === 'selectstart') { if (!editable(e.target)) e.preventDefault(); return; } block(e); };
     evs.forEach((ev) => document.addEventListener(ev, sel));
     document.addEventListener('keydown', keys, true);
-    document.addEventListener('keydown', shotKeys, true); document.addEventListener('keyup', shotKeys, true);
-    window.addEventListener('blur', onBlur); window.addEventListener('focus', unshield); document.addEventListener('visibilitychange', onVis);
-    backEvents.forEach((ev) => window.addEventListener(ev, back, { passive: true }));
     // videos: no download button, no picture-in-picture (also for videos added later)
     const lock = () => document.querySelectorAll('video').forEach((v) => { v.setAttribute('controlsList', 'nodownload noremoteplayback'); v.disablePictureInPicture = true; });
     lock(); const mo = new MutationObserver(lock); mo.observe(document.body, { childList: true, subtree: true });
     return () => {
       evs.forEach((ev) => document.removeEventListener(ev, sel)); document.removeEventListener('keydown', keys, true);
-      document.removeEventListener('keydown', shotKeys, true); document.removeEventListener('keyup', shotKeys, true);
-      window.removeEventListener('blur', onBlur); window.removeEventListener('focus', unshield); document.removeEventListener('visibilitychange', onVis);
-      backEvents.forEach((ev) => window.removeEventListener(ev, back));
-      mo.disconnect(); unshield(); clearTimeout(t);
+      mo.disconnect(); clearTimeout(t);
     };
   }, [on]);
   if (!note) return null;
