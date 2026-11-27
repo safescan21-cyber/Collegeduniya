@@ -4,7 +4,7 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 // Public "community" bucket: <user id>/<file>. Photos are shrunk in the browser before upload (saves students' data).
 import { mediaUrl } from '@/lib/mediaUrl';
 export { mediaUrl };
-export const MAX_VIDEO_MB = 50;
+export const MAX_VIDEO_MB = 20;
 
 export async function shrinkImage(file: File, max = 1600, quality = 0.85): Promise<Blob> {
   if (file.type === 'image/gif') return file;

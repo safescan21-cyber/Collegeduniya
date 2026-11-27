@@ -16,7 +16,7 @@ import ReportButton from '@/components/community/ReportButton';
 import type { FeedPost } from '@/components/community/types';
 
 const PAGE = 10;
-const MAX_SECONDS = 90;
+const MAX_SECONDS = 60;
 const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : n ? String(n) : '');
 
 export default function Shots() {
