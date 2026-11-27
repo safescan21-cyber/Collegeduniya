@@ -3,6 +3,9 @@ import Link from 'next/link';
 import { Award, CalendarDays, ExternalLink } from 'lucide-react';
 import FilterBar from '@/components/FilterBar';
 import { EmptyState } from '@/components/Cards';
+import MyScholarships from '@/components/scholarships/MyScholarships';
+import ScholarshipNews from '@/components/scholarships/ScholarshipNews';
+import HowToApply from '@/components/scholarships/HowToApply';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { cleanTerm } from '@/lib/data';
 import { money } from '@/lib/format';
@@ -44,6 +47,8 @@ export default async function ScholarshipsPage({ searchParams }: { searchParams:
           { name: 'open', label: 'Show', type: 'select', options: [{ value: 'all', label: 'Include closed' }] },
         ]} /></aside>
         <section>
+          <MyScholarships />
+          {!sp.q && !sp.country && !sp.level && <ScholarshipNews />}
           {rows.length ? (
             <div className="grid gap-4 md:grid-cols-2">
               {rows.map((s) => (
@@ -58,6 +63,7 @@ export default async function ScholarshipsPage({ searchParams }: { searchParams:
             </div>
           ) : <EmptyState icon={<Award size={28} />} title="No scholarships listed yet" text="Our team adds verified scholarships with official links. Check back soon or ask a counsellor." />}
           <p className="mt-6 flex items-center gap-1 text-xs text-slate-400"><ExternalLink size={12} />Details can change — the official page is always the final word.</p>
+          <div className="mt-8"><HowToApply /></div>
         </section>
       </div>
     </div>

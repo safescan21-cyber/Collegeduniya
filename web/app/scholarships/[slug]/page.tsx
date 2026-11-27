@@ -5,6 +5,9 @@ import { ExternalLink, CalendarDays, Award } from 'lucide-react';
 import TranslateText from '@/components/TranslateText';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { money } from '@/lib/format';
+import TrackScholarship from '@/components/scholarships/TrackScholarship';
+import HowToApply from '@/components/scholarships/HowToApply';
+import { extUrl } from '@/lib/extUrl';
 
 // rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 async function get(slug: string) {
@@ -30,7 +33,11 @@ export default async function ScholarshipPage({ params }: { params: Promise<{ sl
       </div>
       {s.eligibility && <section className="card mt-4 p-5"><h2 className="font-bold">Eligibility</h2><TranslateText text={s.eligibility} className="mt-2 whitespace-pre-line text-slate-600" /></section>}
       {s.how_to_apply && <section className="card mt-4 p-5"><h2 className="font-bold">How to apply</h2><TranslateText text={s.how_to_apply} className="mt-2 whitespace-pre-line text-slate-600" /></section>}
-      <a href={s.official_url} target="_blank" rel="noopener" className="btn-primary mt-6">Apply on the official website<ExternalLink size={14} /></a>
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        {extUrl(s.official_url) && <a href={extUrl(s.official_url)!} target="_blank" rel="noopener noreferrer" className="btn-primary">Apply on the official website<ExternalLink size={14} /></a>}
+        <TrackScholarship id={s.id} deadline={s.deadline} />
+      </div>
+      <div className="mt-6"><HowToApply compact /></div>
       <p className="mt-3 text-xs text-slate-400">Last updated {new Date(s.updated_at).toLocaleDateString()}. Information can change — always confirm on the official page.</p>
     </div>
   );

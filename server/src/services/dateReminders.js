@@ -7,7 +7,9 @@ export async function runDateReminders() {
   const { data, error } = await supabase.rpc('queue_date_reminders');
   if (error) { console.warn('[reminders]', error.message); return 0; }
   if (data) console.log(`[reminders] queued ${data}`);
-  return data || 0;
+  const { data: sch, error: e2 } = await supabase.rpc('queue_scholarship_reminders');   // tracked scholarships: 7 days and 1 day before
+  if (e2) console.warn('[reminders] scholarships', e2.message); else if (sch) console.log(`[reminders] scholarships ${sch}`);
+  return (data || 0) + (sch || 0);
 }
 
 export function startDateReminders() {

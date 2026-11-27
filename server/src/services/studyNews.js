@@ -3,6 +3,7 @@ import { whenIdle } from './loadGuard.js';
 import { throttle } from './http.js';
 import { titleKey } from './examNews.js';
 import { has, getText, gdeltDate } from './visaNews.js';
+import { grab, officialHost, dateFromUrl, decodeEntities } from './examDates.js';
 
 // Study news (migration 052) — education headlines for students, every STUDY_NEWS_EVERY_HOURS (4)
 //  Source: GDELT DOC 2.0 (free, any use with attribution — like exam and visa news). One query per category;
@@ -54,8 +55,47 @@ async function fromGdelt(cat) {
     .map((a) => ({ title: a.title.trim(), url: a.url, source: (a.domain || host(a.url)).replace(/^www\./, ''), published_at: gdeltDate(a.seendate) }));
 }
 
+// Official scholarship notices: the government's own portals. Links whose text is about scholarships / fellowships;
+// dated from the notice address or title, otherwise "seen on" (only when the title names this or next year).
+export const SCHOLARSHIP_SOURCES = [
+  { url: 'https://scholarships.gov.in/', name: 'National Scholarship Portal (scholarships.gov.in)' },
+  { url: 'https://www.ugc.gov.in/', name: 'UGC (ugc.gov.in)' },
+  { url: 'https://www.aicte-india.org/', name: 'AICTE (aicte-india.org)' },
+];
+const SCHOL = /scholarship|fellowship|stipend|post[\s-]?matric|pre[\s-]?matric|merit[\s-]?cum[\s-]?means|PM[\s-]?USP|pragati|saksham|swanath|NSP\b|ishan uday|financial assistance/i;
+const TXT_DATE = /\b(\d{1,2})[./-](\d{1,2})[./-](20\d\d)\b/;
+export async function scholarshipNotices() {
+  const out = []; const yr = new Date().getFullYear(); const recentYear = new RegExp(`\\b(${yr}|${yr + 1}|${yr}-${String(yr + 1).slice(2)})\\b`);
+  for (const src of SCHOLARSHIP_SOURCES) {
+    const page = await grab(src.url).catch(() => null);
+    if (!page) { console.warn('[study-news] could not open', src.url); continue; }
+    const seen = new Set();
+    for (const l of page.links || []) {
+      const title = decodeEntities(l.label).replace(/\s+/g, ' ').trim();
+      if (title.length < 15 || title.length > 300 || !SCHOL.test(title) || /login|sign in|register here|faq|helpdesk|contact/i.test(title)) continue;
+      let u; try { u = new URL(l.href, page.url).toString(); } catch { continue; }
+      if (!/^https?:/i.test(u) || !officialHost(u, page.url) || seen.has(u)) continue;
+      seen.add(u);
+      const m = title.match(TXT_DATE);
+      const date = dateFromUrl(u) || (m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null);
+      if (date && Date.parse(date) < Date.now() - 180 * 864e5) continue;
+      if (!date && !recentYear.test(title)) continue;
+      out.push({ title, url: u, source: src.name, published_at: date ? `${date}T00:00:00Z` : new Date().toISOString(), date_known: !!date });
+    }
+  }
+  return out.slice(0, 60);
+}
+
 export async function collectStudyNews({ only = null } = {}) {
-  const stats = { categories: 0, found: 0, saved: 0, errors: 0 };
+  const stats = { categories: 0, found: 0, saved: 0, errors: 0, official: 0 };
+  if (!only || only === 'scholarships') {
+    for (const n of await scholarshipNotices().catch(() => [])) {
+      const key = titleKey(n.title); if (!key) continue;
+      const { error } = await supabase.from('study_news').insert({ category: 'scholarships', region: 'IN', title: n.title.slice(0, 400), url: n.url, source: n.source,
+        published_at: n.published_at, title_key: key, official: true, date_known: n.date_known, provider: 'official_site' });
+      if (!error) { stats.saved++; stats.official++; } else if (error.code !== '23505') { stats.errors++; console.warn('[study-news] save:', error.message); }
+    }
+  }
   for (const cat of CATEGORIES.filter((c) => !only || c.key === only)) {
     stats.categories++;
     let items = [];
