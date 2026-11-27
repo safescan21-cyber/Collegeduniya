@@ -15,6 +15,7 @@ import CollegeCommunity from '@/components/CollegeCommunity';
 import CollegeStudents from '@/components/college/CollegeStudents';
 import CollegeNews from '@/components/college/CollegeNews';
 import IntakeGroups from '@/components/college/IntakeGroups';
+import CoursesTable from '@/components/college/CoursesTable';
 import CollegePosts from '@/components/community/CollegePosts';
 import EnquiryForm from '@/components/EnquiryForm';
 import { SaveButton, CompareButton, ShareButtons, ApplyCartButton } from '@/components/ActionButtons';
@@ -299,24 +300,9 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
           {show('courses') && <section id="courses" className="scroll-mt-32">
             <h2 className="mb-4 text-xl font-bold text-slate-900">Courses & fees</h2>
             {courseList.length ? (
-              <div className="card overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                    <tr><th className="px-4 py-3">Course</th><th className="px-4 py-3">Level</th><th className="px-4 py-3">Duration</th><th className="px-4 py-3">Fees / year</th><th className="px-4 py-3">Eligibility</th></tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {courseList.map((co) => (
-                      <tr key={co.id}>
-                        <td className="px-4 py-3 font-medium text-slate-900">{(co as any).url ? <a href={(co as any).url} target="_blank" rel="noopener nofollow" className="hover:text-brand-700 hover:underline">{co.name}</a> : co.name}{(co as any).study_mode ? <span className="block text-xs text-slate-400">{(co as any).study_mode}</span> : null}{co.seats ? <span className="block text-xs text-slate-400">{co.seats} seats</span> : null}</td>
-                        <td className="px-4 py-3"><span className="chip">{co.level}</span></td>
-                        <td className="px-4 py-3 text-slate-600">{co.duration || '—'}</td>
-                        <td className="px-4 py-3 font-semibold text-slate-900">{money(co.fees, co.currency || c.currency || 'INR')}</td>
-                        <td className="px-4 py-3 text-slate-600">{co.eligibility || '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <CoursesTable currency={c.currency || 'INR'} website={site}
+                courses={courseList.map((co: any) => ({ id: co.id, name: co.name, level: co.level, duration: co.duration, fees: co.fees, currency: co.currency, eligibility: co.eligibility,
+                  url: co.url ? extUrl(co.url) : null, study_mode: co.study_mode, seats: co.seats, source: co.source }))} />
             ) : <EmptyState title="Courses not added yet" />}
           </section>}
 
