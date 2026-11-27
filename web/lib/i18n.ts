@@ -164,6 +164,7 @@ const en = {
   'nav.quiz': 'Career quiz',
   'nav.roommates': 'Find a roommate',
   'nav.messages': 'Messages',
+  'nav.people': 'Find people',
   'nav.community': 'Community',
   'nav.courses': 'Courses',
   'nav.scholarships': 'Scholarships',
@@ -374,6 +375,7 @@ const en = {
 export type DictKey = keyof typeof en;
 
 const hi: Partial<Record<DictKey, string>> = {
+  'nav.people': 'लोग खोजें',
   'nav.colleges': 'कॉलेज',
   'nav.hostels': 'पीजी और हॉस्टल',
   'nav.jobs': 'पार्ट-टाइम जॉब',

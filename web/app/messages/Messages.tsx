@@ -124,14 +124,16 @@ export default function Messages() {
   return (
     <div className="card grid h-[78vh] overflow-hidden md:grid-cols-[320px_1fr]">
       <aside className={`${opened ? 'hidden md:flex' : 'flex'} min-h-0 flex-col border-e border-slate-100`}>
-        <p className="flex items-center gap-2 border-b border-slate-100 p-4 font-bold text-slate-900"><MessagesSquare size={18} />Messages<SoundToggle /></p>
+        <p className="flex items-center gap-2 border-b border-slate-100 p-4 font-bold text-slate-900"><MessagesSquare size={18} />Messages<SoundToggle />
+          <Link href="/people" className="ms-auto flex items-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-700"><UserPlus size={13} />Find people</Link></p>
         <div className="flex gap-1 border-b border-slate-100 p-2 text-sm">
           {([['chats', 'Chats', MessagesSquare, 0], ['groups', 'Groups', UsersRound, (groups || []).reduce((a, g) => a + g.unread, 0)], ['requests', 'Requests', Inbox, requests.length], ['people', 'College', Users, 0]] as const).map(([k, l, I, n]) => (
             <button key={k} onClick={() => setTab(k)} className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-xs sm:text-sm ${tab === k ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>
               <I size={14} />{l}{n > 0 && <span className="rounded-full bg-rose-500 px-1.5 text-[10px] text-white">{n}</span>}</button>))}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          {tab === 'chats' && (chats.length ? chats.map((c) => <Item key={c.id} c={c} />) : <p className="p-6 text-sm text-slate-500">No chats yet. Find students of your college under <button onClick={() => setTab('people')} className="font-semibold text-brand-700">My college</button>.</p>)}
+          {tab === 'chats' && (chats.length ? chats.map((c) => <Item key={c.id} c={c} />) : <div className="p-6 text-center text-sm text-slate-500"><UserPlus className="mx-auto mb-2 text-brand-600" />No chats yet.<br />Meet seniors, batchmates and students on your course.
+            <Link href="/people" className="btn-primary mt-3 py-2 text-sm">Find people to chat with</Link></div>)}
           {tab === 'groups' && <GroupList groups={groups} active={groupId} reload={loadGroups} />}
           {tab === 'requests' && (requests.length ? requests.map((c) => <Item key={c.id} c={c} />) : <p className="p-6 text-sm text-slate-500">No chat requests.</p>)}
           {tab === 'people' && (!profile?.college_id ? (

@@ -5,6 +5,7 @@ import { Loader2, X } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import FollowButton from '@/components/community/FollowButton';
+import MessageButton from '@/components/chat/MessageButton';
 import Verified from '@/components/campus/Verified';
 
 type Stats = { followers: number; following: number; i_follow: boolean; follows_me: boolean; is_me: boolean };
@@ -34,6 +35,7 @@ export default function FollowBar({ userId, posts }: { userId: string; posts: nu
         {s && !s.is_me && <div className="ms-auto flex items-center gap-2">
           {s.follows_me && <span className="text-xs text-slate-500">Follows you</span>}
           <FollowButton userId={userId} initial={loggedIn ? s.i_follow : undefined} variant="solid" onChange={(f, n) => setS({ ...s, i_follow: f, followers: n })} />
+          <MessageButton key={String(s.i_follow)} userId={userId} />
         </div>}
       </div>
       {list && (

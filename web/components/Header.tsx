@@ -37,6 +37,7 @@ const MORE: { href: string; key: DictKey; icon: any }[] = [
   { href: '/recommend', key: 'nav.recommend', icon: Sparkles },
   { href: '/career-quiz', key: 'nav.quiz', icon: Compass },
   { href: '/roommates', key: 'nav.roommates', icon: UsersRound },
+  { href: '/people', key: 'nav.people', icon: UsersRound },
   { href: '/messages', key: 'nav.messages', icon: MessageCircle },
   { href: '/scholarships', key: 'nav.scholarships', icon: Award },
   { href: '/study-abroad/visa', key: 'nav.visa', icon: Plane },

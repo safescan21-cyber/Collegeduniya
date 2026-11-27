@@ -15,12 +15,12 @@ const slugUser = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[^a-z
 export function PublicProfileSettings() {
   const { user, profile, refreshProfile } = useAuth();
   const sb = supabaseBrowser();
-  const [f, setF] = useState({ username: '', headline: '', bio: '', public_profile: true, show_mock_scores: false, show_online: false, show_last_seen: true });
+  const [f, setF] = useState({ username: '', headline: '', bio: '', public_profile: true, show_mock_scores: false, show_online: false, show_last_seen: true, others_find: true });
   const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   useEffect(() => {
     if (!profile) return;
     const p = profile as any;
-    setF({ username: p.username || '', headline: p.headline || '', bio: p.bio || '', public_profile: p.public_profile !== false, show_mock_scores: !!p.show_mock_scores, show_online: !!p.show_online, show_last_seen: p.show_last_seen !== false });
+    setF({ username: p.username || '', headline: p.headline || '', bio: p.bio || '', public_profile: p.public_profile !== false, show_mock_scores: !!p.show_mock_scores, show_online: !!p.show_online, show_last_seen: p.show_last_seen !== false, others_find: (p as any).chat_from !== 'college' });
   }, [profile]);
   if (!user) return null;
   const save = async () => {
@@ -28,7 +28,8 @@ export function PublicProfileSettings() {
     let username = f.username.trim().toLowerCase();
     if (!username) username = `${slugUser(profile?.full_name || 'student') || 'student'}.${Math.random().toString(36).slice(2, 6)}`;
     if (!/^[a-z0-9_.]{3,30}$/.test(username)) { setBusy(false); return setMsg('Username: 3–30 characters, lowercase letters, numbers, dot or underscore.'); }
-    const { error } = await sb.from('profiles').update({ ...f, username, headline: f.headline.trim() || null, bio: f.bio.trim() || null }).eq('id', user.id);
+    const { others_find, ...rest } = f;
+    const { error } = await sb.from('profiles').update({ ...rest, chat_from: others_find ? 'anyone' : 'college', username, headline: f.headline.trim() || null, bio: f.bio.trim() || null }).eq('id', user.id);
     setBusy(false);
     if (error) return setMsg(/duplicate|unique/i.test(error.message) ? 'That username is taken — try another.' : error.message);
     setF((x) => ({ ...x, username })); setMsg('Saved ✓'); refreshProfile();
@@ -50,6 +51,7 @@ export function PublicProfileSettings() {
         <label className="flex items-start gap-2"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-brand-600" checked={f.show_mock_scores} onChange={(e) => setF({ ...f, show_mock_scores: e.target.checked })} /><span>Show my best mock-test scores on my profile</span></label>
         <label className="flex items-start gap-2"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-brand-600" checked={f.show_online} onChange={(e) => setF({ ...f, show_online: e.target.checked })} /><span>Show my first name and city in “is online” alerts (otherwise you appear as “A student”)</span></label>
         <label className="flex items-start gap-2"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-brand-600" checked={f.show_last_seen} onChange={(e) => setF({ ...f, show_last_seen: e.target.checked })} /><span>Show when I’m active in chats (“Active now” / “Last seen”) to people I chat with. If you turn this off, you won’t see theirs either.</span></label>
+        <label className="flex items-start gap-2"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-brand-600" checked={f.others_find} onChange={(e) => setF({ ...f, others_find: e.target.checked })} /><span><b>Students from other colleges can find me</b> in <Link href="/people" className="text-brand-700 underline">Find people</Link> and send me a chat request (I accept or decline). Students of my own college can always find me.</span></label>
       </div>
       <div className="flex items-center gap-3"><button onClick={save} disabled={busy} className="btn-primary">{busy ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}Save</button>{msg && <span className="text-sm text-slate-600">{msg}</span>}</div>
     </section>

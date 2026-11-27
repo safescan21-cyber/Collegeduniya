@@ -27,6 +27,7 @@ export type Profile = {
   allow_calls?: boolean;
   show_last_seen?: boolean;
   campus_visible?: boolean;
+  chat_from?: 'anyone' | 'college';
   last_seen_at?: string | null;
   is_blocked: boolean;
   created_at: string;
