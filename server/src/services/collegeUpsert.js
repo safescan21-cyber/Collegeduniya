@@ -88,6 +88,20 @@ export async function upsertColleges(rows, { log = () => {} } = {}) {
     for (const f of ['fees_min', 'fees_max', 'latitude', 'longitude', 'website', 'established', 'wikidata_id']) if (rest[f] == null) delete rest[f];
     refresh.push({ id: k.id, patch: rest });
   }
+  // Web addresses (slugs) must be unique: skip ones already taken (on the site or earlier in this batch) by adding a suffix,
+  // so one duplicate no longer fails a whole batch of 500 ("duplicate key … colleges_slug_key")
+  const taken = new Set();
+  const wanted = fresh.map((r) => r.slug).filter(Boolean);
+  for (let i = 0; i < wanted.length; i += 300) {
+    const { data } = await supabase.from('colleges').select('slug').in('slug', wanted.slice(i, i + 300));
+    (data || []).forEach((d) => taken.add(d.slug));
+  }
+  for (const r of fresh) {
+    if (!r.slug) continue;
+    let slug = r.slug; let n = 2;
+    while (taken.has(slug)) slug = `${r.slug}-${n++}`;
+    r.slug = slug; taken.add(slug);
+  }
   // New rows: bulk insert (same columns per request)
   const byShape = new Map();
   for (const r of fresh) { const key = Object.keys(r).sort().join(','); (byShape.get(key) || byShape.set(key, []).get(key)).push(r); }
@@ -96,7 +110,10 @@ export async function upsertColleges(rows, { log = () => {} } = {}) {
     for (let i = 0; i < group.length; i += 500) {
       const chunk = group.slice(i, i + 500);
       const { error } = await supabase.from('colleges').insert(chunk);
-      if (error) throw new Error(error.message);
+      if (error && /duplicate key/i.test(error.message)) {
+        // added by someone else meanwhile — save the rest one by one and skip only the clashing rows
+        for (const one of chunk) { const { error: e1 } = await supabase.from('colleges').insert(one); if (e1 && !/duplicate key/i.test(e1.message)) throw new Error(e1.message); }
+      } else if (error) throw new Error(error.message);
       done += chunk.length;
       log(`saved ${done} / ${rows.length}`);
     }

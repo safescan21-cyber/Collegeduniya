@@ -29,9 +29,8 @@ export default async function CityView({ city }: { city: CityInfo }) {
     const sb = supabasePublic();
     const name = city.name.replace(/[",()%]/g, '');
     const [inCity, near, hIn, hNear, j, nc] = await Promise.all([
-      (city.geoname_id
-        ? sb.from('colleges_public').select('*').eq('is_published', true).or(`city_geoname_id.eq.${city.geoname_id},city.ilike."${name}"`)
-        : sb.from('colleges_public').select('*').eq('is_published', true).ilike('city', name)).order('ranking', { ascending: true, nullsFirst: false }).limit(24),
+      // indexed lookup (geoname id or exact city name) — the old OR … ILIKE scanned every college on each city page
+      sb.rpc('colleges_in_city', { p_gid: city.geoname_id || null, p_name: name, p_lim: 24 }),
       sb.rpc('nearby_colleges', { lat: city.latitude, lng: city.longitude, radius_km: 40 }),
       sb.from('hostels').select('*, colleges(name, slug), hostel_rooms(beds_available)').eq('is_published', true).ilike('city', name).limit(12),
       sb.rpc('nearby_hostels', { lat: city.latitude, lng: city.longitude, radius_km: 25 }),
