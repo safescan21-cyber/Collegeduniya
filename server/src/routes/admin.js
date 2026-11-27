@@ -624,6 +624,28 @@ router.post('/mock/bulk-questions', wrap(async (req, res) => {
   res.json({ ok: true, count: ids.length });
 }));
 
+// Official fees (read from each college's own website) — review queue
+router.get('/official-fees', wrap(async (req, res) => {
+  const status = ['pending', 'approved', 'rejected'].includes(req.query.status) ? req.query.status : 'pending';
+  const { data, error, count } = await supabase.from('fee_findings')
+    .select('id, course, level, fee, currency, period, fee_per_year, duration, quote, source_url, review_status, found_at, college:colleges(id, name, slug, city, country)', { count: 'exact' })
+    .eq('review_status', status).order('found_at', { ascending: false }).range(Number(req.query.offset) || 0, (Number(req.query.offset) || 0) + 49);
+  if (error) return fail(res, error);
+  res.json({ data, count });
+}));
+router.post('/official-fees/:id/review', wrap(async (req, res) => {
+  const status = req.body?.status === 'rejected' ? 'rejected' : 'approved';
+  const { data: f, error } = await supabase.from('fee_findings').update({ review_status: status }).eq('id', req.params.id).select('college_id, course_id').single();
+  if (error) return fail(res, error);
+  if (status === 'rejected' && f.course_id) await supabase.from('courses').delete().eq('id', f.course_id);   // off the site at once
+  await supabase.rpc('refresh_official_fee_range', { p_college: f.college_id });
+  res.json({ ok: true });
+}));
+router.post('/official-fees/run', wrap(async (req, res) => {
+  const { collectOfficialFees } = await import('../services/officialFees.js');
+  res.json(await collectOfficialFees({ limit: Math.min(Number(req.query.limit) || 3, 10), collegeId: req.query.college || null }));
+}));
+
 router.post('/exam-dates/collect', wrap(async (req, res) => {
   const { collectExamDates } = await import('../services/examDates.js');
   res.json(await collectExamDates({ limit: Math.min(Number(req.query.limit) || 5, 30) }));

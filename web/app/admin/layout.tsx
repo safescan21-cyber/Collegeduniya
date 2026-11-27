@@ -30,6 +30,7 @@ const GROUPS: Group[] = [
   ] },
   { id: 'colleges', label: 'Colleges & courses', icon: School, items: [
     { href: '/admin/colleges', label: 'Colleges', icon: GraduationCap, keywords: 'university fees photos' },
+    { href: '/admin/official-fees', label: 'Official fees', icon: CreditCard, badge: 'fees', keywords: 'fees scraper website review' },
     { href: '/admin/management-quota', label: 'Management quota', icon: Armchair },
     { href: '/admin/course-catalog', label: 'Course pages', icon: GraduationCap },
     { href: '/admin/rankings', label: 'Rankings', icon: Trophy, keywords: 'nirf world leiden' },
@@ -89,6 +90,7 @@ const PENDING: [string, string, string, string[]][] = [
   ['verify', 'identity_verifications', 'status', ['pending', 'review']],
   ['contact', 'contact_messages', 'status', ['open']],
   ['examdates', 'exam_dates', 'review_status', ['pending']],
+  ['fees', 'fee_findings', 'review_status', ['pending']],
 ];
 
 const isActive = (href: string, path: string) => (href === '/admin' ? path === '/admin' : path === href || path.startsWith(`${href}/`));

@@ -21,7 +21,7 @@ const MAX_BYTES = 5 * 1024 * 1024;
 // compare text ignoring punctuation and spacing (PDF/HTML tables collapse differently), but the words must match in order
 const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
-async function grab(url) {
+export async function grab(url) {
   const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 25000);
   try {
     const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT, Accept: 'text/html,application/pdf;q=0.9,*/*;q=0.5' }, redirect: 'follow', signal: ctrl.signal });
@@ -46,7 +46,7 @@ async function grab(url) {
   } catch { return null; } finally { clearTimeout(t); }
 }
 
-const sameSite = (a, b) => { try { const x = new URL(a).hostname.replace(/^www\./, ''); const y = new URL(b).hostname.replace(/^www\./, ''); return x === y || x.endsWith(`.${y}`) || y.endsWith(`.${x}`); } catch { return false; } };
+export const sameSite = (a, b) => { try { const x = new URL(a).hostname.replace(/^www\./, ''); const y = new URL(b).hostname.replace(/^www\./, ''); return x === y || x.endsWith(`.${y}`) || y.endsWith(`.${x}`); } catch { return false; } };
 
 // does the quote really state this date? (day number + month name/number must both be in it)
 function quoteHasDate(quote, iso) {
