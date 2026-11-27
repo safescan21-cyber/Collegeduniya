@@ -43,6 +43,17 @@ export async function runOfficialData({ log = (m) => console.log(`[official-data
     if (process.env.AUTO_CRICOS !== 'off' && await cricosDue()) {
       log('Australia (CRICOS) is due — importing'); await importCricos({ log }).then(() => kickAutofill()).catch((e) => log(`CRICOS failed: ${e.message}`));
     }
+    if (process.env.AUTO_US !== 'off' && process.env.COLLEGE_SCORECARD_API_KEY) {   // U.S. tuition + programmes (College Scorecard)
+      const { data } = await supabase.from('import_runs').select('created_at, status, message').eq('kind', 'scorecard').order('created_at', { ascending: false }).limit(1);
+      const last = data?.[0]; const age = last ? Date.now() - new Date(last.created_at).getTime() : Infinity;
+      const busy = last && ((last.status === 'running' && age < 3 * 3600e3) || (last.status === 'failed' && age < 6 * 3600e3));
+      const due = !last || !/programmes/.test(last.message || '') || age > 330 * 864e5;   // first time, the older version without courses, or yearly
+      if (!busy && due && !serverBusy()) {
+        log('U.S. College Scorecard is due — tuition into existing colleges + programmes as courses');
+        const { importScorecard } = await import('./scorecard.js');
+        await importScorecard({ log }).then(() => kickAutofill()).catch((e) => log(`Scorecard failed: ${e.message}`));
+      }
+    }
     if (process.env.AUTO_UK !== 'off') {   // UK (Discover Uni, CC BY 4.0): first time, then once a year (HESA refreshes it each autumn)
       const { data } = await supabase.from('import_runs').select('created_at, status').eq('kind', 'discover_uni').order('created_at', { ascending: false }).limit(1);
       const last = data?.[0]; const age = last ? Date.now() - new Date(last.created_at).getTime() : Infinity;
