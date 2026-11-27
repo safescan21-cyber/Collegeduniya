@@ -67,6 +67,20 @@ const nameOf = (c) => /next build|next-build|\.next-[ab].*build/.test(c) ? 'webs
   : /next.*start|next-server/.test(c) ? 'website' : /collegeolo\/server|src\/index\.js/.test(c) ? 'API'
   : /postgres/.test(c) ? 'database' : /foodpharma/i.test(c) ? 'foodpharma app' : /imgproxy/.test(c) ? 'imgproxy'
   : /dockerd|containerd/.test(c) ? 'docker' : /kworker|kswapd|jbd2|ksoftirq/.test(c) ? 'system (disk/memory)' : (c.split(/\s+/)[0] || '').split('/').pop().slice(0, 30);
+// which Docker container a process belongs to (so two Supabase databases on one server are shown separately)
+let containerNames = { at: 0, map: new Map() };
+async function containerOf(pid) {
+  try {
+    const cg = await fs.readFile(`/proc/${pid}/cgroup`, 'utf8');
+    const id = cg.match(/([0-9a-f]{64})/)?.[1]; if (!id) return null;
+    if (Date.now() - containerNames.at > 5 * 60_000) {
+      const { execFile } = await import('node:child_process');
+      const out = await new Promise((res) => execFile('docker', ['ps', '--no-trunc', '--format', '{{.ID}} {{.Names}}'], { timeout: 5000 }, (e, so) => res(e ? '' : so)));
+      containerNames = { at: Date.now(), map: new Map(out.split('\n').filter(Boolean).map((l) => l.split(' '))) };
+    }
+    return containerNames.map.get(id) || null;
+  } catch { return null; }
+}
 async function procSnapshot() {
   const snap = new Map(); let dState = 0;
   for (const pid of (await fs.readdir('/proc')).filter((d) => /^\d+$/.test(d))) {
@@ -78,7 +92,7 @@ async function procSnapshot() {
       const rss = Number(rest[21]) * 4096;
       let cmd = (await fs.readFile(`/proc/${pid}/cmdline`, 'utf8')).replace(/\0/g, ' ').trim();
       if (!cmd) cmd = `[${st.slice(st.indexOf('(') + 1, st.lastIndexOf(')'))}]`;
-      snap.set(pid, { ticks, rss, cmd });
+      snap.set(pid, { ticks, rss, cmd, pid });
     } catch { /* process ended */ }
   }
   return { snap, dState };
@@ -96,7 +110,9 @@ export async function topProcesses() {
     for (const [pid, p] of b.snap) {
       const before = a.snap.get(pid); if (!before) continue;
       const cpu = ((p.ticks - before.ticks) / HZ) * 100;            // % of one CPU over the 1 s sample
-      const n = nameOf(p.cmd); const g = groups.get(n) || { cpu: 0, rss: 0 };
+      let n = nameOf(p.cmd);
+      if (cpu >= 1 && (n === 'database' || n === 'imgproxy')) { const c = await containerOf(p.pid); if (c) n = `${n} (${c.replace(/[-_]?(db|imgproxy)[-_]?\d*$/i, '').replace(/^supabase[-_]?/i, '') || c})`; }
+      const g = groups.get(n) || { cpu: 0, rss: 0 };
       g.cpu += cpu; g.rss += p.rss; groups.set(n, g);
     }
     const dt = c1.total - c0.total || 1;
