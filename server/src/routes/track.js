@@ -22,7 +22,7 @@ router.post('/', async (req, res) => {
     user_agent: ua,
     user_id: req.user?.id || null,
     // Cloudflare / Nginx GeoIP header if available
-    country: req.headers['cf-ipcountry'] || req.headers['x-country'] || null,
+    country: req.headers['cf-ipcountry'] || req.headers['x-country'] || req.headers['x-geo-country'] || null,
   });
   if (error) {
     console.error('[track]', error.message);

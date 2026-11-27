@@ -19,7 +19,11 @@ const loginLimit = rateLimit({ windowMs: 60_000, limit: 20, standardHeaders: tru
 const hdr = (req, ...names) => {
   for (const n of names) {
     const v = req.headers[n];
-    if (v && v !== 'XX' && v !== 'T1') { try { return decodeURIComponent(String(v)).slice(0, 80); } catch { return String(v).slice(0, 80); } }
+    if (v && v !== 'XX' && v !== 'T1') {
+      // nginx passes GeoIP city names as raw UTF-8 bytes; Node reads header bytes as latin1 — turn "SÃ£o Paulo" back into "São Paulo"
+      const raw = /[\u0080-\u00ff]/.test(String(v)) ? Buffer.from(String(v), 'latin1').toString('utf8') : String(v);
+      try { return decodeURIComponent(raw).slice(0, 80); } catch { return raw.slice(0, 80); }
+    }
   }
   return null;
 };
@@ -28,6 +32,11 @@ export const geoFromReq = (req) => ({
   region: hdr(req, 'cf-region', 'x-region', 'x-geo-region'),
   country: hdr(req, 'cf-ipcountry', 'x-country', 'x-geo-country'),
 });
+// approximate point (city centre level) — GeoIP2 headers from nginx, or Cloudflare's visitor location headers
+export const geoPointFromReq = (req) => {
+  const lat = Number(hdr(req, 'x-geo-lat', 'cf-iplatitude')); const lng = Number(hdr(req, 'x-geo-lon', 'cf-iplongitude'));
+  return Number.isFinite(lat) && Number.isFinite(lng) && (lat || lng) ? { lat, lng } : null;
+};
 export function deviceFromUA(ua = '') {
   const b = /Edg\//.test(ua) ? 'Edge' : /SamsungBrowser/.test(ua) ? 'Samsung Internet' : /OPR\//.test(ua) ? 'Opera' : /Firefox\//.test(ua) ? 'Firefox'
     : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Browser';

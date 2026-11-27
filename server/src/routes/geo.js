@@ -1,3 +1,4 @@
+import { geoFromReq, geoPointFromReq } from './presence.js';
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
@@ -14,6 +15,18 @@ const num = (v) => (v === undefined || v === '' ? NaN : Number(v));
 const validLatLng = (lat, lng) => Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
 
 // GET /api/fx?base=GBP → { base, rates:{INR:…}, updated }  (cached 12 h, for "≈ fee in your currency")
+// Where is this visitor? (from the IP address: nginx GeoIP2 + DB-IP City Lite, or Cloudflare headers). Approximate —
+// city level at best, often just the country. The page uses it as a starting point; the browser's GPS stays the precise option.
+// IP Geolocation by DB-IP (https://db-ip.com), CC BY 4.0.
+router.get('/geo/me', limit(120), (req, res) => {
+  const g = geoFromReq(req); const point = geoPointFromReq(req);
+  res.set('Cache-Control', 'private, no-store').json({
+    country_code: g.country, country: hdr2(req, 'x-geo-country-name') || null, region: g.region, city: g.city,
+    lat: point?.lat ?? null, lng: point?.lng ?? null, source: req.headers['x-geo-country'] ? 'db-ip' : req.headers['cf-ipcountry'] ? 'cloudflare' : null,
+  });
+});
+const hdr2 = (req, n) => { const v = req.headers[n]; return v ? Buffer.from(String(v), 'latin1').toString('utf8').slice(0, 80) : null; };
+
 router.get('/fx', limit(120), wrap(async (req, res) => {
   try { res.set('Cache-Control', 'public, max-age=21600').json({ data: await ratesFor(req.query.base) }); }
   catch (e) { res.status(503).json({ error: e.message }); }

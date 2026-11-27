@@ -13,8 +13,32 @@ restore() {
   cp -p "/root/nginx-collegeolo.$TS.bak" "$SITE"; cp -p "/root/nginx-main.$TS.bak" "$MAIN"
   if [ $HAD_HTTP = 1 ]; then cp -p "/root/nginx-http.$TS.bak" /etc/nginx/conf.d/collegeolo-http.conf; else rm -f /etc/nginx/conf.d/collegeolo-http.conf; fi
   rm -f /etc/nginx/snippets/collegeolo-server.conf.new
+  if [ ${HAD_GEO:-0} = 1 ]; then cp -p "/root/nginx-geoip.$TS.bak" /etc/nginx/conf.d/collegeolo-geoip.conf; else rm -f /etc/nginx/conf.d/collegeolo-geoip.conf; fi
+  echo "# GeoIP off (rolled back)" > /etc/nginx/snippets/collegeolo-geo-headers.conf
 }
 mkdir -p /var/cache/nginx/collegeolo /etc/nginx/snippets
+
+# ---- visitor location (GeoIP2). Needs the nginx geoip2 module (Ubuntu: libnginx-mod-http-geoip2) and the DB-IP database.
+# If either is missing, the header snippet stays empty and everything else works as before.
+HAD_GEO=0; [ -f /etc/nginx/conf.d/collegeolo-geoip.conf ] && HAD_GEO=1 && cp -p /etc/nginx/conf.d/collegeolo-geoip.conf "/root/nginx-geoip.$TS.bak"
+if [ "${GEOIP:-on}" != "off" ]; then
+  if ! ls /etc/nginx/modules-enabled/ 2>/dev/null | grep -q geoip2; then
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq libnginx-mod-http-geoip2 >/dev/null 2>&1 \
+      && echo "nginx: geoip2 module installed" || echo "nginx: could not install libnginx-mod-http-geoip2 — location headers stay off"
+  fi
+  [ -s /usr/share/GeoIP/dbip-city-lite.mmdb ] || bash "$HERE/geoip-update.sh" || true
+  # monthly refresh (DB-IP publishes a new file each month)
+  printf '# Collegeolo: refresh the DB-IP City Lite database monthly\n17 4 3 * * root bash %s/geoip-update.sh --reload >> /var/log/collegeolo-geoip.log 2>&1\n' "$HERE" > /etc/cron.d/collegeolo-geoip
+fi
+if [ "${GEOIP:-on}" != "off" ] && ls /etc/nginx/modules-enabled/ 2>/dev/null | grep -q geoip2 && [ -s /usr/share/GeoIP/dbip-city-lite.mmdb ]; then
+  cp "$HERE/collegeolo-geoip.conf" /etc/nginx/conf.d/collegeolo-geoip.conf
+  cp "$HERE/collegeolo-geo-headers.conf" /etc/nginx/snippets/collegeolo-geo-headers.conf
+  GEO_ON=1
+else
+  rm -f /etc/nginx/conf.d/collegeolo-geoip.conf
+  echo "# GeoIP off (module or database missing)" > /etc/nginx/snippets/collegeolo-geo-headers.conf
+  GEO_ON=0
+fi
 cp "$HERE/collegeolo-http.conf" /etc/nginx/conf.d/collegeolo-http.conf
 cp "$HERE/collegeolo-server.conf" /etc/nginx/snippets/collegeolo-server.conf
 
@@ -57,8 +81,13 @@ for k in range(1, len(parts), 2):
 open(p, 'w').write(res)
 PY
 
+# if only the GeoIP part is the problem, keep everything else and switch location off
+if [ ${GEO_ON:-0} = 1 ] && ! nginx -t > /tmp/nginx-test.log 2>&1; then
+  echo "nginx: GeoIP config not accepted — continuing without visitor location:"; tail -2 /tmp/nginx-test.log
+  rm -f /etc/nginx/conf.d/collegeolo-geoip.conf; echo "# GeoIP off (nginx -t failed)" > /etc/nginx/snippets/collegeolo-geo-headers.conf; GEO_ON=0
+fi
 if nginx -t > /tmp/nginx-test.log 2>&1; then
-  systemctl reload nginx && echo "nginx: heavy-traffic settings applied (gzip, static cache, keep-alive, 8192 connections, fair-use limits)"
+  systemctl reload nginx && echo "nginx: heavy-traffic settings applied (gzip, static cache, keep-alive, 8192 connections, fair-use limits)$([ ${GEO_ON:-0} = 1 ] && echo ', visitor location via GeoIP2 + DB-IP')"
 else
   echo "nginx: new settings NOT accepted — everything put back. Details:"; tail -5 /tmp/nginx-test.log
   restore; rm -f /etc/nginx/snippets/collegeolo-server.conf; nginx -t > /dev/null 2>&1 && systemctl reload nginx

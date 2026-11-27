@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MapPin, Loader2, GraduationCap, Home, Briefcase } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/client';
+import { api } from '@/lib/api';
 import { CollegeCard, HostelCard, JobCard, EmptyState } from '@/components/Cards';
 
 type Tab = 'colleges' | 'hostels' | 'jobs';
@@ -15,6 +16,15 @@ export default function NearMePage() {
   const [data, setData] = useState<Record<Tab, any[]>>({ colleges: [], hostels: [], jobs: [] });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  // before any permission prompt: approximate area from the internet connection (nginx GeoIP2 + DB-IP City Lite)
+  const [approx, setApprox] = useState<{ city: string | null; region: string | null; source: string | null } | null>(null);
+  useEffect(() => {
+    api('/api/geo/me').then((g: any) => {
+      if (g?.lat == null || g?.lng == null) return;
+      setApprox({ city: g.city, region: g.region, source: g.source });
+      setCoords((cur) => { if (cur) return cur; const c = { lat: g.lat, lng: g.lng }; search(c, 25); return c; });
+    }).catch(() => {});
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const search = async (c: { lat: number; lng: number }, r: number) => {
     setBusy(true); setErr('');
@@ -31,7 +41,7 @@ export default function NearMePage() {
     if (!navigator.geolocation) return setErr('Your browser does not support location.');
     setBusy(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => { const c = { lat: pos.coords.latitude, lng: pos.coords.longitude }; setCoords(c); search(c, radius); },
+      (pos) => { const c = { lat: pos.coords.latitude, lng: pos.coords.longitude }; setApprox(null); setCoords(c); search(c, radius); },
       () => { setBusy(false); setErr('Location permission denied. Allow location access and try again.'); },
       { enableHighAccuracy: true, timeout: 10000 },
     );
@@ -55,9 +65,15 @@ export default function NearMePage() {
             {RADII.map((r) => <option key={r} value={r} className="text-slate-900">Within {r} km</option>)}
           </select>
           <button onClick={locate} disabled={busy} className="btn-accent">
-            {busy ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}{coords ? 'Refresh location' : 'Use my location'}
+            {busy ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}{coords && !approx ? 'Refresh location' : 'Use my location'}
           </button>
         </div>
+        {approx && (
+          <p className="text-sm text-brand-100">
+            Showing places around <b className="text-white">{[approx.city, approx.region].filter(Boolean).join(', ') || 'your area'}</b> — approximate, from your internet connection.
+            Tap “Use my location” for exact distances.
+            {approx.source === 'db-ip' && <> <a href="https://db-ip.com" target="_blank" rel="noopener noreferrer" className="underline opacity-80">IP Geolocation by DB-IP</a></>}
+          </p>)}
         {err && <p className="text-sm text-rose-200">{err}</p>}
       </div>
 
