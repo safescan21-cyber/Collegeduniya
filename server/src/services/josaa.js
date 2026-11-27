@@ -123,8 +123,8 @@ export async function importJosaa({ startedBy = null, log = () => {}, html = nul
       if (id) {
         matched++;
         const ext = normName(inst).slice(0, 120);
-        const { data: dup } = await supabase.from('colleges').select('id').eq('source', 'josaa').eq('external_id', ext).neq('id', id).maybeSingle();
-        if (dup) {   // an earlier run added this institute as new: move nothing, just hide that copy and its JoSAA courses
+        const { data: dup } = await supabase.from('colleges').select('id, is_published').eq('source', 'josaa').eq('external_id', ext).neq('id', id).maybeSingle();
+        if (dup?.is_published) {   // count only copies still showing (already-hidden ones were handled before)   // an earlier run added this institute as new: move nothing, just hide that copy and its JoSAA courses
           await supabase.from('courses').delete().eq('college_id', dup.id).eq('source', 'josaa');
           await supabase.from('colleges').update({ is_published: false }).eq('id', dup.id);
           merged++;
