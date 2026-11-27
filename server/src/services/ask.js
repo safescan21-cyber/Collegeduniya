@@ -47,7 +47,9 @@ export function parseQuestion(q, examList) {
 
 async function collegeFacts(q, topics, facts) {
   const { data: hits } = await supabase.rpc('search_colleges', { p_q: q, p_limit: 3 });
-  const ids = (hits || []).map((h) => h.id).slice(0, 2);
+  // same college listed twice ("IIT Bombay" / "IIT, Bombay") → keep the best match only
+  const norm = (n) => String(n || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const ids = [...new Map((hits || []).map((h) => [norm(h.name), h.id])).values()].slice(0, 2);
   if (!ids.length) return [];
   const { data: rows } = await supabase.rpc('rank_card_facts', { p_ids: ids });
   const { data: names } = await supabase.from('colleges').select('id, name, slug').in('id', ids);
@@ -113,7 +115,7 @@ export async function answerQuestion(question) {
     const numbered = facts.slice(0, 14).map((f, i) => `[${i + 1}] ${f.text}`).join('\n');
     try {
       const out = await complete({
-        system: 'You answer students’ questions for Collegeolo, an Indian college guide. Use ONLY the numbered facts given. Never add numbers, names, dates or claims that are not in the facts. If the facts do not fully answer, say what is missing. Write simple English (Class 10 level), 2–6 short sentences or a short list. Do not mention "facts" or numbering.',
+        system: 'You answer students’ questions for Collegeolo, an Indian college guide. Use ONLY the numbered facts given. Never add numbers, names, dates or claims that are not in the facts. If the facts do not fully answer, say plainly “Collegeolo doesn’t have <the missing thing> for this yet — check the college page or official website.” Never say “the provided information” or “the facts”. Write simple English (Class 10 level), 2–6 short sentences or a short list. Do not mention "facts" or numbering.',
         prompt: `Question: ${q}\n\nFacts:\n${numbered}`, maxTokens: 500, temperature: 0.2,
       });
       answer = String(out?.text || '').trim() || null; ai = !!answer;
