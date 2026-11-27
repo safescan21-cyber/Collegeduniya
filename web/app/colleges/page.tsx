@@ -50,7 +50,8 @@ export default async function CollegesPage({ searchParams }: { searchParams: Pro
         p_q: cleanTerm(sp.q) || null, p_country: sp.country || null, p_state: sp.state || null, p_city: sp.city ? cleanTerm(sp.city) : null,
         p_type: sp.type || null, p_inst: sp.inst || null, p_stream: sp.stream || null, p_exam: sp.exam || null, p_approval: sp.approval || null,
         p_fees_max: sp.fees_max ? Number(sp.fees_max) || null : null, p_level: sp.level || null, p_course: sp.course || null,
-        p_sort: sp.sort || 'rank', p_offset: (page - 1) * PER_PAGE, p_lim: PER_PAGE,
+        // A–Z by default; a name search keeps exact / starts-with matches on top (the 'rank' order does that)
+        p_sort: sp.sort || (sp.q ? 'rank' : 'name'), p_offset: (page - 1) * PER_PAGE, p_lim: PER_PAGE,
       }),
       collegeCountries(),
       collegeStates(sp.country || 'India'),
@@ -101,9 +102,9 @@ export default async function CollegesPage({ searchParams }: { searchParams: Pro
             { name: 'level', label: 'Course level', type: 'select', options: ['UG', 'PG', 'Diploma', 'PhD', 'Certificate'] },
             { name: 'inst', label: 'Institution', type: 'select', options: ['University', 'College', 'Standalone institution'] },
             { name: 'fees_max', label: 'Max fees / year (₹)', type: 'text', placeholder: 'e.g. 200000' },
-            { name: 'sort', label: 'Sort by', type: 'select', options: [
+            { name: 'sort', label: 'Sort by', type: 'select', anyLabel: 'Name A–Z', options: [
               { value: 'rank', label: 'Rank' }, { value: 'fees_low', label: 'Fees: low to high' },
-              { value: 'fees_high', label: 'Fees: high to low' }, { value: 'name', label: 'Name A–Z' }, { value: 'newest', label: 'Recently added' }] },
+              { value: 'fees_high', label: 'Fees: high to low' }, { value: 'newest', label: 'Recently added' }] },
           ]} />
         </aside>
         <section className="min-w-0">
