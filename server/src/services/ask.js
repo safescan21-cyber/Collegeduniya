@@ -49,7 +49,7 @@ async function collegeFacts(q, topics, facts) {
   const { data: hits } = await supabase.rpc('search_colleges', { p_q: q, p_limit: 3 });
   // same college listed twice ("IIT Bombay" / "IIT, Bombay") → keep the best match only
   const norm = (n) => String(n || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
-  const ids = [...new Map((hits || []).map((h) => [norm(h.name), h.id])).values()].slice(0, 2);
+  const seen = new Set(); const ids = (hits || []).filter((h) => !seen.has(norm(h.name)) && seen.add(norm(h.name))).map((h) => h.id).slice(0, 2);
   if (!ids.length) return [];
   const { data: rows } = await supabase.rpc('rank_card_facts', { p_ids: ids });
   const { data: names } = await supabase.from('colleges').select('id, name, slug').in('id', ids);
