@@ -451,15 +451,16 @@ router.post('/ai/providers/:id/key', requireSuperAdmin, wrap(async (req, res) =>
 // Job-search API keys (Jooble, Adzuna) saved from Admin → Import & APIs. Super admin; the key is never sent back.
 router.get('/integrations/jobs-keys', wrap(async (_req, res) => {
   const { savedSecretNames } = await import('../services/secrets.js');
-  const { providersStatus } = await import('../services/jobs.js');
+  const { providersStatus, joobleUsage } = await import('../services/jobs.js');
   const saved = await savedSecretNames();
-  res.json({ status: { ...providersStatus(), scorecard: scorecardEnabled() }, saved: { JOOBLE_API_KEY: saved.JOOBLE_API_KEY || null, ADZUNA_APP_ID: saved.ADZUNA_APP_ID || null, ADZUNA_APP_KEY: saved.ADZUNA_APP_KEY || null, COLLEGE_SCORECARD_API_KEY: saved.COLLEGE_SCORECARD_API_KEY || null } });
+  res.json({ jooble_site: process.env.JOOBLE_API_URL || 'https://jooble.org/api', jooble_usage: joobleUsage(), jooble_daily_max: Number(process.env.JOOBLE_DAILY_MAX || 15),
+    status: { ...providersStatus(), scorecard: scorecardEnabled() }, saved: { JOOBLE_API_KEY: saved.JOOBLE_API_KEY || null, ADZUNA_APP_ID: saved.ADZUNA_APP_ID || null, ADZUNA_APP_KEY: saved.ADZUNA_APP_KEY || null, COLLEGE_SCORECARD_API_KEY: saved.COLLEGE_SCORECARD_API_KEY || null } });
 }));
 router.post('/integrations/jobs-keys', requireSuperAdmin, wrap(async (req, res) => {
   const { saveSecret, deleteSecret } = await import('../services/secrets.js');
   const { testJobsProvider } = await import('../services/jobs.js');
   const provider = ['adzuna', 'scorecard'].includes(req.body?.provider) ? req.body.provider : 'jooble';
-  const keys = provider === 'jooble' ? { JOOBLE_API_KEY: req.body?.key } : provider === 'scorecard' ? { COLLEGE_SCORECARD_API_KEY: req.body?.key }
+  const keys = provider === 'jooble' ? { JOOBLE_API_KEY: req.body?.key, ...(req.body?.site ? { JOOBLE_API_URL: req.body.site } : {}) } : provider === 'scorecard' ? { COLLEGE_SCORECARD_API_KEY: req.body?.key }
     : { ADZUNA_APP_ID: req.body?.app_id, ADZUNA_APP_KEY: req.body?.key };
   for (const [n, v] of Object.entries(keys)) await saveSecret(n, v, req.user.id);
   const test = await (provider === 'scorecard' ? import('../services/scorecard.js').then((m) => m.testScorecardKey()) : testJobsProvider(provider))

@@ -15,3 +15,4 @@ android/*.apk
 android/app/
 android/build/
 android/.gradle/
+server/data/.jooble-usage.json

@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { fetchJson } from './http.js';
 import { cached } from './cache.js';
 
@@ -8,7 +10,24 @@ import { cached } from './cache.js';
 // Results are cached per city for JOBS_CACHE_HOURS (default 12h) to stay inside free quotas.
 
 const ADZUNA_COUNTRIES = new Set(['gb', 'us', 'at', 'au', 'be', 'br', 'ca', 'ch', 'de', 'es', 'fr', 'in', 'it', 'mx', 'nl', 'nz', 'pl', 'sg', 'za']);
-const HOURS = Number(process.env.JOBS_CACHE_HOURS || 12);
+const HOURS = Number(process.env.JOBS_CACHE_HOURS || 24);
+
+// Jooble keys are tied to one country site (jooble.org = USA, in.jooble.org = India …) and are reported to have a small
+// lifetime request limit, so: the site is chosen with the key in the admin panel (JOOBLE_API_URL), and calls are capped
+// per day (JOOBLE_DAILY_MAX, default 15), counted in a file so restarts and deploys don't reset the count.
+const USAGE_FILE = path.resolve(process.cwd(), 'data', '.jooble-usage.json');
+const today = () => new Date().toISOString().slice(0, 10);
+function joobleBudget() {
+  let u = { day: today(), calls: 0, total: 0 };
+  try { u = { ...u, ...JSON.parse(fs.readFileSync(USAGE_FILE, 'utf8')) }; } catch { /* first use */ }
+  if (u.day !== today()) { u.day = today(); u.calls = 0; }
+  return u;
+}
+function joobleSpend() {
+  const u = joobleBudget(); u.calls++; u.total = (u.total || 0) + 1;
+  try { fs.mkdirSync(path.dirname(USAGE_FILE), { recursive: true }); fs.writeFileSync(USAGE_FILE, JSON.stringify(u)); } catch { /* read-only disk: cap still works in memory */ }
+}
+export const joobleUsage = () => joobleBudget();
 const strip = (s) => String(s || '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 
 // one small real search to check a key right after it is saved in the admin panel
@@ -45,6 +64,8 @@ async function adzuna({ country, city, what, page = 1 }) {
 }
 
 async function jooble({ city, countryName, what }) {
+  if (joobleBudget().calls >= Number(process.env.JOOBLE_DAILY_MAX || 15)) return [];
+  joobleSpend();
   const body = { keywords: what || '', location: [city, countryName].filter(Boolean).join(', '), page: 1, ResultOnPage: 20 };
   const data = await fetchJson(`${process.env.JOOBLE_API_URL || 'https://jooble.org/api'}/${process.env.JOOBLE_API_KEY}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
