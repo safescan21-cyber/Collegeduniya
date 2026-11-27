@@ -41,7 +41,7 @@ const GROUPS: Group[] = [
   { id: 'exams', label: 'Exams & mock tests', icon: BookOpen, items: [
     { href: '/admin/exams', label: 'Exams', icon: BookOpen },
     { href: '/admin/exam-news', label: 'Exam news', icon: Rss },
-    { href: '/admin/exam-dates', label: 'Exam dates', icon: CalendarCheck, keywords: 'calendar deadlines reminders' },
+    { href: '/admin/exam-dates', label: 'Exam dates', icon: CalendarCheck, badge: 'examdates', keywords: 'calendar deadlines reminders' },
     { href: '/admin/exam-library', label: 'Exam library', icon: FileStack, keywords: 'papers pdf' },
     { href: '/admin/mock-tests', label: 'Mock tests', icon: ClipboardCheck, keywords: 'questions test' },
   ] },
@@ -88,6 +88,7 @@ const PENDING: [string, string, string, string[]][] = [
   ['reports', 'content_reports', 'status', ['open']],
   ['verify', 'identity_verifications', 'status', ['pending', 'review']],
   ['contact', 'contact_messages', 'status', ['open']],
+  ['examdates', 'exam_dates', 'review_status', ['pending']],
 ];
 
 const isActive = (href: string, path: string) => (href === '/admin' ? path === '/admin' : path === href || path.startsWith(`${href}/`));

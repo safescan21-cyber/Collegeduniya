@@ -33,6 +33,7 @@ import { startNearbyPrefill } from './services/geo.js';
 import { startAutoCountries } from './services/autoCountries.js';
 import { startBundledCourses } from './services/bundledCourses.js';
 import { startDateReminders } from './services/dateReminders.js';
+import { startExamDates } from './services/examDates.js';
 import { otpReady, notifyReady } from './services/whatsapp.js';
 
 const app = express();
@@ -125,6 +126,7 @@ const server = app.listen(PORT, () => {
   startAutoCountries();
   startBundledCourses();
   startDateReminders();
+  startExamDates();
   loadSecrets().then((n) => n && console.log(`[secrets] ${n} key(s) from the admin panel`)).finally(() =>
     console.log(`[ai] ${llmReady() ? `${llmProvider()} · ${llmModel()}` : 'not configured — mock-test generation and AI feedback are off (rule-based feedback still works)'}`));
 });

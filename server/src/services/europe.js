@@ -104,14 +104,15 @@ export const finishRun = (id, patch) => id && supabase.from('import_runs').updat
 // ---------------------------------------------------------------- UK: Discover Uni
 async function discoverUniZipUrl() {
   if (process.env.DISCOVER_UNI_URL) return process.env.DISCOVER_UNI_URL;
-  let html;
-  try { html = (await fetchBuf(HESA_PAGE, { timeoutMs: 30000 })).toString('utf8'); } catch (e) {
-    throw new Error(`HESA's website blocks automatic downloads (${e.message}). Download the zip at ${HESA_PAGE} in your browser and upload it in Admin → Import → UK & Europe.`);
+  let lastErr = null;
+  for (const page of [HESA_PAGE, 'https://www.hesa.ac.uk/kisdata', 'https://www.hesa.ac.uk/support/tools-and-downloads/unistats']) {
+    let html;
+    try { html = (await fetchBuf(page, { timeoutMs: 30000 })).toString('utf8'); } catch (e) { lastErr = e; continue; }
+    const links = [...html.matchAll(/href="([^"]+)"/g)].map((m) => { try { return new URL(m[1].replace(/&amp;/g, '&'), page).href; } catch { return null; } }).filter(Boolean);
+    const hit = links.find((u) => /\.zip(\?|$)/i.test(u)) || links.find((u) => /download/i.test(u) && /(discover|unistats|kis|on_?course)/i.test(u));
+    if (hit) return hit;
   }
-  const links = [...html.matchAll(/href="([^"]+)"/g)].map((m) => new URL(m[1].replace(/&amp;/g, '&'), HESA_PAGE).href);
-  const hit = links.find((u) => /\.zip(\?|$)/i.test(u)) || links.find((u) => /download/i.test(u) && /(discover|unistats|kis|on_?course)/i.test(u));
-  if (!hit) throw new Error('Could not find the download link on the HESA page — set DISCOVER_UNI_URL in server/.env, or upload the zip in Admin → Import');
-  return hit;
+  throw new Error(`Could not get the Discover Uni download link from HESA${lastErr ? ` (${lastErr.message})` : ''} — download the zip at https://www.hesa.ac.uk/kisdata and upload it once in Admin → Import → UK & Europe, or set DISCOVER_UNI_URL in server/.env.`);
 }
 
 const url = (u) => (u ? (/^https?:\/\//i.test(String(u)) ? String(u) : `https://${String(u).replace(/^\/+/, '')}`) : null);

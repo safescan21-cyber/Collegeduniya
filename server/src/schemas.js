@@ -247,6 +247,7 @@ schemas.exam_dates = z.object({
   title: optStr, date_start: z.string().regex(/^\d{4}-\d{2}-\d{2}/, 'Pick a date'),
   date_end: z.union([z.literal(''), z.null(), z.string().regex(/^\d{4}-\d{2}-\d{2}/)]).optional().transform((v) => (v ? v : null)),
   tentative: bool, source_url: url, is_published: bool,
+  review_status: z.enum(['pending', 'approved', 'rejected']).optional(),
 });
 schemas.exam_stats = z.object({
   exam_slug: str.min(2), year: z.coerce.number().int().min(2000).max(2100), session: z.string().trim().min(1).default('All'),

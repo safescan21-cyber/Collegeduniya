@@ -43,6 +43,16 @@ export async function runOfficialData({ log = (m) => console.log(`[official-data
     if (process.env.AUTO_CRICOS !== 'off' && await cricosDue()) {
       log('Australia (CRICOS) is due — importing'); await importCricos({ log }).then(() => kickAutofill()).catch((e) => log(`CRICOS failed: ${e.message}`));
     }
+    if (process.env.AUTO_UK !== 'off') {   // UK (Discover Uni, CC BY 4.0): first time, then once a year (HESA refreshes it each autumn)
+      const { data } = await supabase.from('import_runs').select('created_at, status').eq('kind', 'discover_uni').order('created_at', { ascending: false }).limit(1);
+      const last = data?.[0]; const age = last ? Date.now() - new Date(last.created_at).getTime() : Infinity;
+      const due = !last || (last.status !== 'done' && age > 7 * 864e5) || age > 330 * 864e5;
+      if (due && !serverBusy()) {
+        log('UK (Discover Uni) is due — downloading from HESA');
+        const { importDiscoverUni } = await import('./europe.js');
+        await importDiscoverUni({ log }).then(() => kickAutofill()).catch((e) => log(`Discover Uni failed: ${e.message}`));
+      }
+    }
     if (process.env.AUTO_LEIDEN !== 'off') {
       const { data } = await supabase.from('import_runs').select('id').eq('kind', 'leiden').limit(1);
       if (!data?.length && !serverBusy()) { log('World ranking (Leiden) never imported — starting it in the background'); spawnLeidenImport({}); }
