@@ -18,7 +18,8 @@ export default function EuropeImport({ onStarted }: { onStarted?: () => void }) 
       method: 'POST', body,
       headers: { Authorization: `Bearer ${data.session?.access_token}`, ...(json ? { 'Content-Type': 'application/json' } : {}) },
     });
-    const b = await r.json();
+    if (r.status === 413) throw new Error('The file is bigger than the web server allows. The new limit (300 MB) goes live with the next deploy — try again in a few minutes.');
+    const b = await r.json().catch(() => ({ error: `The server answered ${r.status} — try again in a minute` }));
     if (!r.ok) throw new Error(b.error || 'Import failed');
     return b.message as string;
   };
@@ -38,9 +39,9 @@ export default function EuropeImport({ onStarted }: { onStarted?: () => void }) 
         <button className="btn-primary" disabled={!!busy} onClick={() => run('uk', () => call('uk'))}>
           {busy === 'uk' ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}Try automatic download</button>
         <a href="https://www.hesa.ac.uk/data-and-analysis/discover-uni-dataset" target="_blank" rel="noopener" className="text-xs text-brand-700 underline">Get the zip from hesa.ac.uk</a>
-        <input type="file" accept=".zip" className="input w-64 py-1.5" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-        <button className="btn-ghost" disabled={!file || !!busy} onClick={() => run('ukzip', () => { const fd = new FormData(); fd.append('file', file!); return call('uk', fd); })}>
-          {busy === 'ukzip' ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}Import zip</button>
+        <input type="file" accept=".zip,application/zip,application/x-zip-compressed" className="input w-64 py-1.5" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+        <button className="btn-primary" disabled={!file || !!busy} onClick={() => run('ukzip', () => { const fd = new FormData(); fd.append('file', file!); return call('uk', fd); })}>
+          {busy === 'ukzip' ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}{busy === 'ukzip' ? 'Uploading…' : file ? `Import ${file.name} (${Math.round(file.size / 1048576)} MB)` : 'Import zip'}</button>
       </div>
 
       <h3 className="mt-6 font-semibold text-slate-900">Europe — ETER (European Tertiary Education Register)</h3>
