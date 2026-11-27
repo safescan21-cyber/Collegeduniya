@@ -203,20 +203,26 @@ export async function importDiscoverUni({ zipBuffer = null, dryRun = false, star
         level: 'UG', study_mode: MODE[k.KISMODE] || null, url: k.CRSEURL || null, currency: 'GBP',
         duration: num(k.NUMSTAGE) ? `${num(k.NUMSTAGE)} years` : null,
       }));
-      for (let i = 0; i < rows.length; i += 500) {
-        const { error } = await supabase.from('courses').upsert(rows.slice(i, i + 500), { onConflict: 'college_id,source,external_id' });
+      // one row per course id (the same course can be listed twice for one provider) — Postgres refuses duplicates in one upsert
+      const uniqRows = [...new Map(rows.map((x) => [x.external_id, x])).values()];
+      for (let i = 0; i < uniqRows.length; i += 500) {
+        const { error } = await supabase.from('courses').upsert(uniqRows.slice(i, i + 500), { onConflict: 'college_id,source,external_id' });
         if (error) throw new Error(`courses: ${error.message}`);
       }
-      coursesSaved += rows.length;
+      coursesSaved += uniqRows.length;
       // graduate outcomes per course → placements table (shown on the college page)
       const out = list.map((k) => ({ k, s: salary.get(KEY(k)), w: work.get(KEY(k)) })).filter((x) => x.s != null || x.w != null)
         .map(({ k, s, w }) => ({ college_id: id, year, course: `${(k.TITLE || 'Course').slice(0, 150)} (${MODE[k.KISMODE] || ''})`.replace(' ()', ''),
           median_package: s, currency: 'GBP', package_unit: 'year', placement_rate: w, source: `${UK_SOURCE} — graduate median salary 15 months after the course; % in work or study` }));
-      for (let i = 0; i < out.length; i += 500) {
-        const { error } = await supabase.from('college_placements').upsert(out.slice(i, i + 500), { onConflict: 'college_id,year,course' });
+      // two courses with the same title and mode (e.g. at two campuses) would make the same row twice → keep the one with more data
+      const score = (o) => (o.median_package != null ? 2 : 0) + (o.placement_rate != null ? 1 : 0);
+      const best = new Map(); for (const o of out) { const k = o.course.toLowerCase(); if (!best.has(k) || score(o) > score(best.get(k))) best.set(k, o); }
+      const uniqOut = [...best.values()];
+      for (let i = 0; i < uniqOut.length; i += 500) {
+        const { error } = await supabase.from('college_placements').upsert(uniqOut.slice(i, i + 500), { onConflict: 'college_id,year,course' });
         if (error) throw new Error(`outcomes: ${error.message}`);
       }
-      outcomesSaved += out.length;
+      outcomesSaved += uniqOut.length;
       if ((matched + created) % 25 === 0) log(`${matched + created} providers · ${coursesSaved} courses`);
     }
     const res = { providers: inst.length, matched, created, skipped, courses: coursesSaved, outcomes: outcomesSaved };
