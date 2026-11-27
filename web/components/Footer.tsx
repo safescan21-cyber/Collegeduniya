@@ -64,6 +64,8 @@ export default async function Footer() {
             <li><Link href="/study-abroad/calculator" className="hover:text-white">{t('nav.calculator')}</Link></li>
             <li><Link href="/study-abroad/usa" className="hover:text-white">Study in USA</Link></li>
             <li><Link href="/study-abroad/germany" className="hover:text-white">Study in Germany</Link></li>
+            <li><Link href="/study-abroad/japan" className="hover:text-white">Study in Japan</Link></li>
+            <li><Link href="/study-abroad/uk" className="hover:text-white">Study in UK</Link></li>
             <li><Link href="/near-me" className="hover:text-white">{t('nav.nearMe')}</Link></li>
           </ul>
         </div>

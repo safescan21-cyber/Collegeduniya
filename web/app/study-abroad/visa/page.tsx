@@ -4,6 +4,7 @@ import { Plane } from 'lucide-react';
 import { EmptyState } from '@/components/Cards';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import VisaNews from '@/components/abroad/VisaNews';
+import { GUIDES } from '@/lib/admissionGuides';
 
 // rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
 export const metadata: Metadata = { title: 'Student visa guides & latest visa news by country', description: 'Latest student visa news and rule changes for the UK, USA, Canada, Australia and more — plus visa steps, processing time, fees and work rights with links to each official immigration website.' };
@@ -14,6 +15,10 @@ export default async function VisaIndex() {
     <div className="container-x py-10">
       <h1 className="flex items-center gap-2 text-3xl font-extrabold text-slate-900"><Plane className="text-brand-600" />Student visa guides</h1>
       <p className="mt-1 text-slate-500">Plain-language checklists. Rules change — every guide links to the official government page.</p>
+      <div className="mt-4 flex flex-wrap gap-2 text-sm">
+        <span className="self-center font-semibold text-slate-700">Admission guides:</span>
+        {Object.values(GUIDES).map((g) => <Link key={g.slug} href={`/study-abroad/${g.slug}`} className="chip hover:bg-brand-50">{g.flag} Study in {g.country}</Link>)}
+      </div>
       {rows.length ? (
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rows.map((v: any) => (

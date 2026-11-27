@@ -13,6 +13,10 @@ const FIELDS = [
   'latest.earnings.10_yrs_after_entry.median', 'school.degrees_awarded.predominant',
   'latest.programs.cip_4_digit',   // every programme the college awards: subject + degree level → its course list
 ].join(',');
+// Last year's admitted students: middle 50% (25th–75th percentile) SAT section scores and ACT composite (IPEDS via Scorecard)
+const SCORE_FIELDS = ['latest.admissions.sat_scores.25th_percentile.critical_reading', 'latest.admissions.sat_scores.75th_percentile.critical_reading',
+  'latest.admissions.sat_scores.25th_percentile.math', 'latest.admissions.sat_scores.75th_percentile.math',
+  'latest.admissions.act_scores.25th_percentile.cumulative', 'latest.admissions.act_scores.75th_percentile.cumulative'].join(',');
 // Scorecard credential levels → our course levels
 const CRED_LEVEL = { 1: 'Certificate', 2: 'UG', 3: 'UG', 4: 'Certificate', 5: 'PG', 6: 'PhD', 7: 'PG', 8: 'Certificate' };
 const CRED_NAME = { 1: 'Undergraduate certificate', 2: "Associate's degree", 3: "Bachelor's degree", 4: 'Post-baccalaureate certificate',
@@ -34,12 +38,14 @@ export async function testScorecardKey() {
 
 export async function fetchScorecard({ degreesOnly = true, log = () => {} } = {}) {
   const out = [];
-  let fields = FIELDS; let per = 50;   // programme lists make each school larger → smaller pages
+  let fields = `${FIELDS},${SCORE_FIELDS}`; let per = 50;   // programme lists make each school larger → smaller pages
   for (let page = 0; page < 400; page++) {
     const p = new URLSearchParams({ api_key: process.env.COLLEGE_SCORECARD_API_KEY, fields, per_page: String(per), page: String(page) });
     if (degreesOnly) p.set('school.degrees_awarded.predominant__range', '2..4'); // associate, bachelor, graduate
     let data;
     try { data = await fetchJson(`${BASE}?${p}`, { timeoutMs: 90000 }); } catch (e) {
+      // if the API refuses the test-score fields, import without them
+      if (page === 0 && fields.includes('sat_scores')) { log(`test scores not available (${e.message}) — importing without them`); fields = FIELDS; page--; continue; }
       // if the API refuses the programme field, still import colleges with tuition (without course lists)
       if (page === 0 && fields.includes('programs')) { log(`programmes not available (${e.message}) — importing colleges without course lists`); fields = FIELDS.replace(',latest.programs.cip_4_digit', ''); per = 100; page--; continue; }
       throw e;
@@ -50,6 +56,18 @@ export async function fetchScorecard({ degreesOnly = true, log = () => {} } = {}
     if (results.length < per) break;
     await new Promise((r) => setTimeout(r, 300));
   }
+  return out;
+}
+
+// SAT total = reading/writing + math at the same percentile; only when both sections are reported
+export function testScores(s) {
+  const n = (k) => { const v = s[`latest.admissions.${k}`]; return v == null || !Number.isFinite(Number(v)) ? null : Math.round(Number(v)); };
+  const r25 = n('sat_scores.25th_percentile.critical_reading'), r75 = n('sat_scores.75th_percentile.critical_reading');
+  const m25 = n('sat_scores.25th_percentile.math'), m75 = n('sat_scores.75th_percentile.math');
+  const a25 = n('act_scores.25th_percentile.cumulative'), a75 = n('act_scores.75th_percentile.cumulative');
+  const out = {};
+  if (r25 && m25 && r75 && m75) { out.sat_25 = r25 + m25; out.sat_75 = r75 + m75; }
+  if (a25 && a75) { out.act_25 = a25; out.act_75 = a75; }
   return out;
 }
 
@@ -72,6 +90,7 @@ export function mapScorecard(s, locate) {
       graduation_rate: s['latest.completion.rate_suppressed.overall'] ?? null,
       median_earnings_10y: s['latest.earnings.10_yrs_after_entry.median'] ?? null,
       fees_note: 'Annual tuition (in-state – out-of-state), U.S. College Scorecard',
+      ...testScores(s),
     },
     is_published: true, data_updated_at: new Date().toISOString(),
   };

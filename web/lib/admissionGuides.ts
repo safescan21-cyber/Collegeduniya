@@ -1,17 +1,18 @@
-// Admission guides for Indian students — USA and Germany.
+// Admission guides for Indian students — USA, Germany, Japan, UK, Canada, Australia.
 // Every number links to the official page it came from; checked on CHECKED below. Rules change: the pages say so.
 
 export const CHECKED = '28 November 2026';
 
 export type Step = { title: string; text: string; link?: { label: string; href: string } };
 export type Cost = { item: string; amount: string; note?: string; source: { label: string; href: string } };
+export type Code = 'US' | 'DE' | 'JP' | 'GB' | 'CA' | 'AU';
 export type Guide = {
-  code: 'US' | 'DE'; slug: string; country: string; flag: string;
+  code: Code; slug: string; country: string; flag: string;
   intro: string; ugSteps: Step[]; pgSteps: Step[]; costs: Cost[]; intakes: string; tips: string[];
   official: { label: string; href: string }[]; scholarships: { label: string; href: string }[];
 };
 
-export const GUIDES: Record<'US' | 'DE', Guide> = {
+export const GUIDES: Record<Code, Guide> = {
   US: {
     code: 'US', slug: 'usa', country: 'United States', flag: '🇺🇸',
     intro: 'U.S. colleges decide admission themselves, using a “holistic” review: school marks, essays, recommendation letters, activities and (at some colleges) SAT/ACT scores. There is no single entrance exam, and each college sets its own deadline.',
@@ -85,9 +86,151 @@ export const GUIDES: Record<'US' | 'DE', Guide> = {
     ],
     scholarships: [{ label: 'DAAD scholarships', href: '/scholarships/daad-scholarships-germany' }],
   },
+  JP: {
+    code: 'JP', slug: 'japan', country: 'Japan', flag: '🇯🇵',
+    intro: 'Japanese universities admit international students through their own entrance process. For Japanese-taught bachelor’s degrees most use the EJU (Examination for Japanese University Admission) plus Japanese-language ability; a growing number of programmes are taught fully in English and take applications directly. National universities charge a standard tuition of ¥535,800 a year, but since 2024 they may set higher fees for international students — check each university.',
+    ugSteps: [
+      { title: 'Pick the route: English-taught or Japanese-taught', text: 'English-taught degree programmes take Class 12 marks, an English test (IELTS/TOEFL) and essays — no Japanese needed to apply. Japanese-taught programmes usually ask for the EJU and Japanese at about JLPT N2–N1 level. Many students first study Japanese for 1–2 years at a language school.', link: { label: 'Study in Japan (JASSO) — search schools by language', href: 'https://www.studyinjapan.go.jp/en/' } },
+      { title: 'Take the EJU if the university asks for it', text: 'The EJU is held twice a year, in June and November; in India it is held in New Delhi. Applications from outside Japan open roughly February–March (June test) and July–August (November test). Each university says which subjects (Japanese, Science or Japan and the World, Mathematics) it needs.', link: { label: 'JASSO — EJU', href: 'https://www.jasso.go.jp/en/ryugaku/eju/' } },
+      { title: 'Apply to the university', text: 'Each university runs its own application and often a document screening, interview or written exam. Deadlines vary — many April-start programmes close between autumn and winter of the previous year.' },
+      { title: 'Try for the MEXT (Japanese Government) scholarship', text: 'The Embassy of Japan in India selects Indian students for MEXT scholarships (undergraduate, research students and others) — it covers tuition plus a monthly allowance and airfare.', link: { label: 'Embassy of Japan in India', href: 'https://www.in.emb-japan.go.jp/' } },
+      { title: 'Certificate of Eligibility (COE), then the student visa', text: 'After admission, the university (as your proxy in Japan) applies for your Certificate of Eligibility at a Regional Immigration Services Bureau. With the original COE you apply for the student visa at the Japanese Embassy/Consulate in India covering your state.', link: { label: 'MOFA — long-term visas', href: 'https://www.mofa.go.jp/j_info/visit/visa/long/index.html' } },
+    ],
+    pgSteps: [
+      { title: 'Find a supervisor or an English-taught master’s', text: 'Many Japanese graduate schools want you to contact a professor first. Some students join as a “research student” (non-degree) for 6–12 months, then sit the master’s entrance exam. English-taught master’s programmes take direct applications.' },
+      { title: 'Apply for MEXT research student scholarship', text: 'Embassy-recommended MEXT research student scholarships are the main fully funded route for Indian graduates; selection includes a written test and interview at the Embassy.', link: { label: 'Embassy of Japan in India', href: 'https://www.in.emb-japan.go.jp/' } },
+      { title: 'COE and student visa', text: 'Same as bachelor’s: the university applies for the COE, then you apply for the visa in India.' },
+    ],
+    costs: [
+      { item: 'Tuition at national universities (standard)', amount: '¥535,800 a year', note: 'The standard rate most national universities publish. Since 2024 they may charge international students more — e.g. Tohoku ¥900,000 and Tsukuba ¥608,800 for international students enrolling from April 2027.', source: { label: 'University of Tsukuba — fees', href: 'https://www.tsukuba.ac.jp/en/admissions/fees-tuition/' } },
+      { item: 'Admission (enrolment) fee at national universities', amount: '¥282,000 (one time)', note: 'Paid after you get the offer; examination fee ¥17,000 (bachelor’s) / ¥30,000 (graduate).', source: { label: 'Hiroshima University — fees', href: 'https://www.hiroshima-u.ac.jp/node/73725' } },
+      { item: 'Private universities', amount: 'Set by each university', note: 'Usually higher than national universities — see the university’s own website.', source: { label: 'Study in Japan — academic fees', href: 'https://www.studyinjapan.go.jp/en/' } },
+      { item: 'Student visa', amount: 'Small fee in rupees', note: 'Paid at the Embassy/Consulate (or its visa centre) when applying with your COE.', source: { label: 'Embassy of Japan in India — long-term visa', href: 'https://www.in.emb-japan.go.jp/long_term%20visas.html' } },
+    ],
+    intakes: 'Main intake: April. Many English-taught programmes also start in September/October. EJU: June and November (New Delhi centre in India). Start 12–18 months ahead — longer if you need Japanese first.',
+    tips: [
+      'Check whether your course is English-taught before planning a year of Japanese study.',
+      'Tuition for international students is starting to differ by university from 2027 — always read the university’s own fee page.',
+      'Many universities give tuition reductions to privately financed international students with good grades; ask the international office.',
+    ],
+    official: [
+      { label: 'Study in Japan (JASSO)', href: 'https://www.studyinjapan.go.jp/en/' },
+      { label: 'EJU (JASSO)', href: 'https://www.jasso.go.jp/en/ryugaku/eju/' },
+      { label: 'JLPT — Japanese-Language Proficiency Test', href: 'https://www.jlpt.jp/e/' },
+      { label: 'Embassy of Japan in India', href: 'https://www.in.emb-japan.go.jp/' },
+    ],
+    scholarships: [{ label: 'MEXT (Japanese Government) scholarship', href: '/scholarships/mext-japan-research-students' }],
+  },
+
+  GB: {
+    code: 'GB', slug: 'uk', country: 'United Kingdom', flag: '🇬🇧',
+    intro: 'Bachelor’s degrees in the UK take three years (four in Scotland) and are applied for through UCAS; master’s degrees are often just one year and applied for directly. Universities set their own entry marks for Indian Class 12 students. After an offer, the university gives you a CAS number for the Student visa.',
+    ugSteps: [
+      { title: 'Shortlist courses on UCAS', text: 'Each course page lists the entry requirement for Indian students (often a percentage in Class 12, sometimes subject marks). Many universities accept high Class 12 English marks instead of IELTS — check the course.', link: { label: 'UCAS — international students', href: 'https://www.ucas.com/international' } },
+      { title: 'Apply through UCAS (up to 5 choices)', text: 'One application with a personal statement and a teacher reference. Deadline: 15 October for Oxford, Cambridge, medicine, dentistry and veterinary courses; late January for most other courses.', link: { label: 'UCAS', href: 'https://www.ucas.com/' } },
+      { title: 'Meet the offer conditions', text: 'Most offers are “conditional” on your final Class 12 marks and an English test. When you meet them the offer becomes unconditional.' },
+      { title: 'Get your CAS and show money', text: 'The university issues a Confirmation of Acceptance for Studies (CAS). For the visa you show your first year’s unpaid fees plus living costs for up to 9 months, held in your account for 28 days.', link: { label: 'GOV.UK — Student visa: money you need', href: 'https://www.gov.uk/student-visa/money' } },
+      { title: 'Apply for the Student visa', text: 'Apply online up to 6 months before the course starts, pay the visa fee and the immigration health surcharge, and give biometrics at a visa centre.', link: { label: 'GOV.UK — Student visa', href: 'https://www.gov.uk/student-visa' } },
+    ],
+    pgSteps: [
+      { title: 'Apply directly to each university', text: 'Most master’s programmes take applications on the university’s own portal: bachelor’s marks, statement of purpose, references, IELTS/TOEFL. Popular courses fill early — many have rolling admission.' },
+      { title: 'Look at Chevening and Commonwealth scholarships', text: 'UK government scholarships fund full master’s degrees for Indian students; they close many months before the course starts.' },
+      { title: 'CAS and Student visa', text: 'Same as bachelor’s: CAS from the university, funds proof, then the visa application.', link: { label: 'GOV.UK — Student visa', href: 'https://www.gov.uk/student-visa' } },
+    ],
+    costs: [
+      { item: 'Tuition', amount: 'Set by each university', note: 'International fees differ by course and university — see the course page.', source: { label: 'UCAS', href: 'https://www.ucas.com/' } },
+      { item: 'Student visa fee', amount: '£558', note: 'Applying from outside the UK (from 8 April 2026).', source: { label: 'GOV.UK — Student visa', href: 'https://www.gov.uk/student-visa' } },
+      { item: 'Immigration health surcharge', amount: '£776 a year', note: 'Paid upfront for the whole visa length; gives NHS access.', source: { label: 'GOV.UK — Student visa', href: 'https://www.gov.uk/student-visa' } },
+      { item: 'Living costs to show for the visa', amount: '£1,529/month (London) · £1,171/month (elsewhere)', note: 'For up to 9 months, held for 28 days in a row.', source: { label: 'GOV.UK — money you need', href: 'https://www.gov.uk/student-visa/money' } },
+    ],
+    intakes: 'Main intake: September/October. Some master’s courses also start in January. UCAS deadlines: 15 October (Oxford, Cambridge, medicine) and late January for most courses.',
+    tips: [
+      'A UK master’s is usually one year — compare total cost, not yearly fee, with other countries.',
+      'Check if your Class 12 English marks are accepted instead of IELTS.',
+      'Only universities with a Student sponsor licence can give a CAS.',
+    ],
+    official: [
+      { label: 'GOV.UK — Student visa', href: 'https://www.gov.uk/student-visa' },
+      { label: 'UCAS', href: 'https://www.ucas.com/' },
+      { label: 'UKCISA (UK Council for International Student Affairs)', href: 'https://www.ukcisa.org.uk/' },
+    ],
+    scholarships: [
+      { label: 'Chevening Scholarship', href: '/scholarships/chevening-scholarship-uk' },
+      { label: 'Commonwealth Master’s Scholarship', href: '/scholarships/commonwealth-masters-scholarship-uk' },
+    ],
+  },
+
+  CA: {
+    code: 'CA', slug: 'canada', country: 'Canada', flag: '🇨🇦',
+    intro: 'Canadian universities and colleges admit students on Class 12 or bachelor’s marks plus an English test. To get a study permit you need a letter of acceptance from a Designated Learning Institution (DLI) and, for most students, a Provincial Attestation Letter (PAL), because Canada caps study permits each year.',
+    ugSteps: [
+      { title: 'Check the institution is a DLI', text: 'Only Designated Learning Institutions can admit international students for a study permit.', link: { label: 'IRCC — DLI list', href: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/study-permit/prepare/designated-learning-institutions-list.html' } },
+      { title: 'Apply to the university or college', text: 'Each institution sets its own Class 12 percentage and subject requirements and its own deadlines. Ontario universities use the OUAC portal; most others use their own.' },
+      { title: 'Get the letter of acceptance and PAL', text: 'Your institution requests the Provincial Attestation Letter (PAL) from the province for you. Without a PAL (when required) IRCC returns the application.', link: { label: 'IRCC — study permit', href: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/study-permit.html' } },
+      { title: 'Show proof of funds', text: 'First-year tuition, plus living costs (CAN$23,448 for one person outside Quebec from 1 September 2026), plus travel. Officers check where the money came from.', link: { label: 'IRCC — proof of financial support', href: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/study-permit/get-documents/financial-support.html' } },
+      { title: 'Apply for the study permit', text: 'Apply online, pay the fees, then give biometrics at a visa application centre.' },
+    ],
+    pgSteps: [
+      { title: 'Apply to the graduate programme', text: 'Master’s and PhD admission is decided by the department: bachelor’s marks, statement, references, IELTS/TOEFL, sometimes GRE/GMAT. Research degrees often need a supervisor.' },
+      { title: 'Check whether you need a PAL', text: 'Rules on PAL exemptions for master’s and doctoral students change — check the IRCC page when you apply.', link: { label: 'IRCC — study permit', href: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/study-permit.html' } },
+      { title: 'Proof of funds and study permit', text: 'Same funds rule and application as above.' },
+    ],
+    costs: [
+      { item: 'Tuition', amount: 'Set by each institution', note: 'See the university’s international fee page.', source: { label: 'IRCC — study in Canada', href: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada.html' } },
+      { item: 'Study permit fee', amount: 'CAN$150', note: 'Not refunded if refused.', source: { label: 'IRCC — fees', href: 'https://ircc.canada.ca/english/information/fees/fees.asp' } },
+      { item: 'Biometrics', amount: 'CAN$85', note: 'Valid for 10 years.', source: { label: 'IRCC — fees', href: 'https://ircc.canada.ca/english/information/fees/fees.asp' } },
+      { item: 'Living costs to show', amount: 'CAN$23,448 a year (1 person)', note: 'Outside Quebec, applications from 1 September 2026; on top of tuition and travel.', source: { label: 'IRCC — proof of financial support', href: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/study-permit/get-documents/financial-support.html' } },
+    ],
+    intakes: 'Main intake: September. Many colleges and some universities also take students in January and May. Deadlines are usually 6–9 months before the start.',
+    tips: [
+      'Study permits are capped — apply early once you have the letter of acceptance and PAL.',
+      'Quebec has its own extra document (CAQ) and a different funds amount.',
+      'Check if the programme makes you eligible for a post-graduation work permit before you choose it.',
+    ],
+    official: [
+      { label: 'IRCC — Study in Canada', href: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada.html' },
+      { label: 'IRCC — DLI list', href: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/study-permit/prepare/designated-learning-institutions-list.html' },
+      { label: 'EduCanada', href: 'https://www.educanada.ca/' },
+    ],
+    scholarships: [],
+  },
+
+  AU: {
+    code: 'AU', slug: 'australia', country: 'Australia', flag: '🇦🇺',
+    intro: 'Australian universities admit Indian students on Class 12 or bachelor’s marks plus an English test. Every course for international students must be registered on CRICOS. After you accept an offer, the university issues a Confirmation of Enrolment (CoE), which you need for the Student visa (subclass 500).',
+    ugSteps: [
+      { title: 'Choose a CRICOS-registered course', text: 'CRICOS lists every course open to international students, with its length and the official tuition estimate. Course pages here show those CRICOS fees.', link: { label: 'CRICOS', href: 'https://cricos.education.gov.au/' } },
+      { title: 'Apply to the university', text: 'Apply directly (or through the university’s listed representatives). Each university sets its own Class 12 requirement; many offer a foundation year if you don’t meet it.' },
+      { title: 'Accept the offer and get your CoE', text: 'Pay the deposit and buy Overseas Student Health Cover (OSHC); the university then issues the electronic Confirmation of Enrolment.' },
+      { title: 'Apply for the Student visa (subclass 500)', text: 'Apply online in ImmiAccount with the CoE, English test, OSHC and proof of funds. You must meet the Genuine Student requirement — explain why this course and why Australia.', link: { label: 'Home Affairs — Student visa', href: 'https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500' } },
+    ],
+    pgSteps: [
+      { title: 'Apply to the master’s course', text: 'Coursework master’s: apply directly with bachelor’s marks and IELTS/TOEFL/PTE. Research master’s and PhD: find a supervisor first; Research Training Program scholarships can cover tuition.' },
+      { title: 'CoE and Student visa', text: 'Same as bachelor’s: CoE after accepting, then the subclass 500 visa with funds proof.', link: { label: 'Home Affairs — Student visa', href: 'https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500' } },
+    ],
+    costs: [
+      { item: 'Tuition', amount: 'Per course (CRICOS)', note: 'See the course list on each university page here (CRICOS data).', source: { label: 'CRICOS', href: 'https://cricos.education.gov.au/' } },
+      { item: 'Student visa (subclass 500)', amount: 'AUD 2,500', note: 'Main applicant, applications from 1 July 2026; not refunded if refused.', source: { label: 'Home Affairs — Student visa', href: 'https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500' } },
+      { item: 'Living costs to show', amount: 'AUD 29,710 a year (1 person)', note: 'Plus first-year tuition and travel, for the financial capacity check.', source: { label: 'Home Affairs — Student visa', href: 'https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500' } },
+      { item: 'Overseas Student Health Cover', amount: 'Required', note: 'Bought before the CoE, for the whole visa.', source: { label: 'Home Affairs — Student visa', href: 'https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500' } },
+    ],
+    intakes: 'Two main intakes: February/March (Semester 1) and July (Semester 2). Some universities also have a November or trimester intake.',
+    tips: [
+      'Course fees on the university pages here come from CRICOS — the government register.',
+      'Visa refusals often come from a weak Genuine Student statement — make it specific to your course and career.',
+      'Use only education agents listed by the university; never pay for a “guaranteed visa”.',
+    ],
+    official: [
+      { label: 'Study Australia (Australian Government)', href: 'https://www.studyaustralia.gov.au/' },
+      { label: 'Home Affairs — Student visa', href: 'https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500' },
+      { label: 'CRICOS', href: 'https://cricos.education.gov.au/' },
+    ],
+    scholarships: [],
+  },
+
 };
 
-export const guideFor = (code?: string | null) => (code === 'US' || code === 'DE' ? GUIDES[code] : null);
+export const guideFor = (code?: string | null) => (code && code in GUIDES ? GUIDES[code as Code] : null);
 
 // Fee line for one German university, from the official rules (public vs private, state, TUM)
 export function germanFeeRule(c: { name?: string | null; state?: string | null; type?: string | null }) {
@@ -100,4 +243,13 @@ export function germanFeeRule(c: { name?: string | null; state?: string | null; 
   if (/public|state/i.test(c.type || ''))
     return { amount: 'No tuition fee — semester contribution only', note: 'Public universities in this state charge no tuition; you pay a semester contribution (amount on the university’s website).', href: 'https://www.daad.de/en/studying-in-germany/living-in-germany/finances/' };
   return { amount: 'Check the official website', note: 'Public universities in Germany usually charge no tuition (except Baden-Württemberg and TU Munich); private ones do.', href: 'https://www.daad.de/en/studying-in-germany/living-in-germany/finances/' };
+}
+
+// Fee line for one Japanese university: national standard rate, the known 2027 increases, private = own fees
+export function japanFeeRule(c: { name?: string | null; type?: string | null }) {
+  const name = (c.name || '').toLowerCase();
+  if (/tohoku university/.test(name)) return { amount: '¥900,000 a year for international students (from April 2027)', note: 'New international bachelor’s and master’s students; ¥535,800 for those who enrolled earlier. Admission fee ¥282,000.', href: 'https://www.tohoku.ac.jp/en/' };
+  if (/university of tsukuba/.test(name)) return { amount: '¥608,800 a year for international students (from April 2027)', note: '¥535,800 for students enrolling in 2026. Admission fee ¥282,000.', href: 'https://www.tsukuba.ac.jp/en/admissions/fees-tuition/' };
+  if (/private/i.test(c.type || '')) return { amount: 'Private university — its own fees', note: 'See the official website for this university’s tuition.', href: null };
+  return { amount: 'National universities: ¥535,800 a year (standard)', note: 'Plus ¥282,000 admission fee. Since 2024 national universities may charge international students more — check this university’s fee page.', href: 'https://www.studyinjapan.go.jp/en/' };
 }

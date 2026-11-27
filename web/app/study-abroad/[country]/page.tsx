@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: { params: Promise<{ country: 
   const year = new Date().getFullYear() + 1;
   return {
     title: `Study in ${g.country} from India ${year}: admission, fees, visa & top universities`,
-    description: `How Indian students get admission to ${g.country === 'United States' ? 'U.S. colleges' : 'German universities'}: step-by-step for bachelor’s and master’s, tuition and visa costs from official sources, intakes, and top universities with fees.`,
+    description: `How Indian students get admission to universities in ${g.country}: step-by-step for bachelor’s and master’s, tuition and visa costs from official sources, intakes, and top universities with fees.`,
     alternates: { canonical: `/study-abroad/${g.slug}` },
   };
 }
