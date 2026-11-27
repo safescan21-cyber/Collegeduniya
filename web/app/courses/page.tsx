@@ -25,6 +25,11 @@ export default async function Courses() {
       <nav className="text-sm text-slate-500"><Link href="/" className="hover:underline">Home</Link> / Courses</nav>
       <h1 className="mt-2 text-3xl font-extrabold text-slate-900">Courses</h1>
       <p className="mt-1 max-w-2xl text-slate-500">Pick a course to see how long it takes, who can apply, the entrance exams, what it costs at real colleges, and where you can study it.</p>
+      <form action="/courses/search" className="mt-5 flex max-w-2xl gap-2">
+        <input name="q" className="input flex-1" placeholder="Search any course worldwide — e.g. data science, MBA, nursing" maxLength={80} />
+        <button className="btn-primary">Search</button>
+      </form>
+      <Link href="/courses/search" className="mt-2 inline-block text-sm font-semibold text-brand-700 hover:underline">🌍 Find the best course worldwide — ranked universities, fees in ₹ →</Link>
       {groups.map(([lv, list]) => (
         <section key={lv} className="mt-8">
           <h2 className="mb-3 text-lg font-bold text-slate-900">{LABEL[lv]}</h2>

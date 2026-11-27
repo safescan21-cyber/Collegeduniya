@@ -194,7 +194,7 @@ export default async function HomePage() {
         <section className="container-x mt-16">
           <div className="mb-6 flex items-end justify-between">
             <div><h2 className="section-title flex items-center gap-2"><Flame size={24} className="text-orange-500" />{trending.some((k) => Number(k.visitors) > 0) ? 'Trending courses this week' : 'Popular courses'}</h2>
-              <p className="mt-1 text-slate-500">What students are checking out most right now</p></div>
+              <p className="mt-1 text-slate-500">What students are checking out most right now · <Link href="/courses/search" className="font-semibold text-brand-700 hover:underline">search any course worldwide →</Link></p></div>
             <Link href="/courses" className="hidden items-center gap-1 text-sm font-semibold text-brand-700 hover:underline sm:flex">All courses <ArrowRight size={16} /></Link>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

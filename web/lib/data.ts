@@ -25,5 +25,17 @@ export async function distinctValues(table: 'colleges' | 'hostels' | 'jobs', col
   return Array.from(new Set((data || []).map((r: any) => r[column]).filter(Boolean))).sort() as string[];
 }
 
+// /colleges dropdowns — distinct values straight from the database (cached with the other public reads)
+export async function collegeCountries() {
+  if (!hasSupabase) return [] as string[];
+  const { data } = await supabasePublic().rpc('college_countries');
+  return ((data || []) as { country: string }[]).map((r) => r.country);
+}
+export async function collegeStates(country: string) {
+  if (!hasSupabase || !country) return [] as string[];
+  const { data } = await supabasePublic().rpc('college_states', { p_country: country });
+  return ((data || []) as { state: string }[]).map((r) => r.state);
+}
+
 // Strip characters that would break a PostgREST or() filter
 export const cleanTerm = (s?: string) => (s || '').replace(/[%,()*]/g, ' ').trim().slice(0, 80);

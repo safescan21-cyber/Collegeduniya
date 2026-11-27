@@ -6,7 +6,7 @@ import CollegeRow, { type RowFacts } from '@/components/CollegeRow';
 import FilterBar from '@/components/FilterBar';
 import Pagination from '@/components/Pagination';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
-import { cleanTerm, distinctValues } from '@/lib/data';
+import { cleanTerm, collegeCountries, collegeStates } from '@/lib/data';
 import type { College } from '@/lib/types';
 
 // rendered per request (language cookie), but database answers are cached for a short time — lib/supabase/server.ts
@@ -37,57 +37,40 @@ export default async function CollegesPage({ searchParams }: { searchParams: Pro
   let examNames: Record<string, string> = {};
   let courseOpts: { value: string; label: string }[] = [];
 
+  let countries: string[] = []; let states: string[] = [];
   if (hasSupabase) {
     const sb = supabasePublic();
-    const [{ data: ex }, { data: cat }] = await Promise.all([
+    // everything at once: one indexed search call (filters + total + page of ids) and the dropdown lists in parallel
+    const [{ data: ex }, { data: cat }, { data: hits, error }, cs, st] = await Promise.all([
       sb.from('exams').select('slug, short_name').eq('is_published', true).order('short_name').limit(400),
       sb.from('course_catalog').select('slug, name').order('sort'),
+      sb.rpc('college_search', {
+        p_q: cleanTerm(sp.q) || null, p_country: sp.country || null, p_state: sp.state || null, p_city: sp.city ? cleanTerm(sp.city) : null,
+        p_type: sp.type || null, p_inst: sp.inst || null, p_stream: sp.stream || null, p_exam: sp.exam || null, p_approval: sp.approval || null,
+        p_fees_max: sp.fees_max ? Number(sp.fees_max) || null : null, p_level: sp.level || null, p_course: sp.course || null,
+        p_sort: sp.sort || 'rank', p_offset: (page - 1) * PER_PAGE, p_lim: PER_PAGE,
+      }),
+      collegeCountries(),
+      collegeStates(sp.country || 'India'),
     ]);
+    countries = cs; states = st;
     examNames = Object.fromEntries((ex || []).map((e: any) => [e.slug, e.short_name]));
     courseOpts = (cat || []).map((c: any) => ({ value: c.slug, label: c.name }));
-
-    let q = sb.from('colleges_public').select('*', { count: 'exact' });
-    const restrictIds = async (ids: string[]) => { q = q.in('id', Array.from(new Set(ids)).slice(0, 1000).concat(['00000000-0000-0000-0000-000000000000'])); };
-    if (sp.level) { const { data } = await sb.from('courses').select('college_id').eq('level', sp.level).limit(5000); await restrictIds((data || []).map((x: any) => x.college_id)); }
-    if (sp.course) { const { data } = await sb.from('courses').select('college_id').eq('catalog_slug', sp.course).limit(5000); await restrictIds((data || []).map((x: any) => x.college_id)); }
-    let term = cleanTerm(sp.q);
-    // searching a country name ("Japan", "USA", "UK") filters by country — fast (indexed) instead of scanning every college
-    let country = sp.country || '';
-    if (term && !country) {
-      const alias: Record<string, string> = { usa: 'United States', us: 'United States', america: 'United States', uk: 'United Kingdom', britain: 'United Kingdom', england: 'United Kingdom', uae: 'United Arab Emirates', korea: 'South Korea', holland: 'Netherlands' };
-      const want = alias[term.toLowerCase()] || term;
-      const { data: c } = await sb.from('countries').select('name').ilike('name', want).limit(1);
-      if (c?.[0]?.name) { country = c[0].name; term = ''; }
-    }
-    if (term) q = q.or(`name.ilike.%${term}%,short_name.ilike.%${term}%,city.ilike.%${term}%,state.ilike.%${term}%,district.ilike.%${term}%,country.ilike.%${term}%`);
-    if (country) q = q.eq('country', country);
-    if (sp.state) q = q.eq('state', sp.state);
-    if (sp.city) q = q.ilike('city', cleanTerm(sp.city));
-    if (sp.type) q = q.eq('type', sp.type);
-    if (sp.inst) q = q.eq('facts->>institution', sp.inst);
-    if (sp.stream) q = q.contains('streams', [sp.stream]);
-    if (sp.exam) q = q.contains('exams_accepted', [sp.exam]);
-    if (sp.approval) q = q.contains('approvals', [sp.approval]);
-    if (sp.fees_max) q = q.lte('fees_min', Number(sp.fees_max));
-    const sort = sp.sort || 'rank';
-    q = sort === 'fees_low' ? q.order('fees_min', { ascending: true, nullsFirst: false })
-      : sort === 'fees_high' ? q.order('fees_max', { ascending: false, nullsFirst: false })
-      : sort === 'newest' ? q.order('created_at', { ascending: false })
-      : sort === 'name' ? q.order('name')
-      : q.order('ranking', { ascending: true, nullsFirst: false }).order('name');
-    const { data, count } = await q.range((page - 1) * PER_PAGE, page * PER_PAGE - 1);
-    colleges = (data || []) as any[];
-    total = count || 0;
-    if (colleges.length) {
-      const { data: rows } = await sb.rpc('college_rows', { p_ids: colleges.map((c) => c.id) });
+    if (error) console.warn('[colleges] search', error.message);
+    const list = ((hits || []) as { id: string | null; total: number }[]);
+    total = list[0]?.total || 0;
+    const ids = list.map((h) => h.id).filter(Boolean) as string[];
+    if (ids.length) {
+      const [{ data }, { data: rows }] = await Promise.all([
+        sb.from('colleges_public').select('*').in('id', ids),
+        sb.rpc('college_rows', { p_ids: ids }),
+      ]);
+      const byId = Object.fromEntries(((data || []) as any[]).map((c) => [c.id, c]));
+      colleges = ids.map((id) => byId[id]).filter(Boolean);   // keep the search order
       facts = Object.fromEntries(((rows || []) as any[]).map((r) => [r.id, r]));
     }
   }
 
-  const [countries, states] = await Promise.all([
-    distinctValues('colleges', 'country'),
-    distinctValues('colleges', 'state', { country: sp.country || 'India' }),
-  ]);
   const where = sp.city || sp.state || sp.country;
   const courseLabel = courseOpts.find((c) => c.value === sp.course)?.label;
 
@@ -98,7 +81,7 @@ export default async function CollegesPage({ searchParams }: { searchParams: Pro
         <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
           {courseLabel ? `${courseLabel} colleges` : `${sp.stream ? `${sp.stream} ` : ''}Colleges`}{where ? ` in ${where}` : sp.country ? '' : ''}
         </h1>
-        <p className="mt-1 text-slate-500">{total.toLocaleString('en-IN')} colleges{sp.q ? ` matching “${sp.q}”` : ''} · fees, placements, ranks and student reviews side by side</p>
+        <p className="mt-1 text-slate-500">{total > 10000 ? '10,000+' : total.toLocaleString('en-IN')} colleges{sp.q ? ` matching “${sp.q}”` : ''} · fees, placements, ranks and student reviews side by side</p>
       </div>
       <div className="grid gap-8 lg:grid-cols-[270px_1fr]">
         <aside>
