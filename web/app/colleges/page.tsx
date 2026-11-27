@@ -4,6 +4,7 @@ import { GraduationCap } from 'lucide-react';
 import { EmptyState } from '@/components/Cards';
 import CollegeRow, { type RowFacts } from '@/components/CollegeRow';
 import FilterBar from '@/components/FilterBar';
+import CourseRankLists from './CourseRankLists';
 import Pagination from '@/components/Pagination';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { cleanTerm, collegeCountries, collegeStates } from '@/lib/data';
@@ -18,7 +19,7 @@ type SP = Record<string, string | undefined>;
 export async function generateMetadata({ searchParams }: { searchParams: Promise<SP> }): Promise<Metadata> {
   const sp = await searchParams;
   const where = sp.city || sp.state || sp.country;
-  const what = sp.course_name || (sp.stream ? `${sp.stream} colleges` : 'Colleges');
+  const what = (sp.cq ? `${sp.cq} colleges` : '') || sp.course_name || (sp.stream ? `${sp.stream} colleges` : 'Colleges');
   const filtered = Object.keys(sp).some((k) => !['country', 'stream', 'state', 'city'].includes(k));
   return {
     title: `${what}${where ? ` in ${where}` : ''} — fees, placements, rankings & reviews`,
@@ -30,6 +31,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 
 export default async function CollegesPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
+  if (cleanTerm(sp.cq)) return <CourseRankLists sp={sp} />;   // search by course, worldwide → country, world and state lists
   const page = Math.max(1, parseInt(sp.page || '1', 10) || 1);
   let colleges: (College & { brochure_url?: string | null })[] = [];
   let facts: Record<string, RowFacts> = {};
@@ -86,6 +88,7 @@ export default async function CollegesPage({ searchParams }: { searchParams: Pro
       <div className="grid gap-8 lg:grid-cols-[270px_1fr]">
         <aside>
           <FilterBar action="/colleges" values={sp} fields={[
+            { name: 'cq', label: 'Course — any country', type: 'text', placeholder: 'e.g. Computer Science, MBA, Nursing' },
             { name: 'q', label: 'Search', type: 'text', placeholder: 'College name or city' },
             { name: 'course', label: 'Course', type: 'select', options: courseOpts },
             { name: 'stream', label: 'Stream', type: 'select', options: ['Engineering', 'Management', 'Medical', 'Commerce', 'Arts', 'Science', 'Law', 'Design', 'Pharmacy', 'Architecture', 'Media'] },
