@@ -16,7 +16,7 @@ restore() {
   if [ ${HAD_GEO:-0} = 1 ]; then cp -p "/root/nginx-geoip.$TS.bak" /etc/nginx/conf.d/collegeolo-geoip.conf; else rm -f /etc/nginx/conf.d/collegeolo-geoip.conf; fi
   echo "# GeoIP off (rolled back)" > /etc/nginx/snippets/collegeolo-geo-headers.conf
 }
-mkdir -p /var/cache/nginx/collegeolo /etc/nginx/snippets
+mkdir -p /var/cache/nginx/collegeolo /var/cache/nginx/collegeolo-pages /etc/nginx/snippets
 
 # ---- visitor location (GeoIP2). Needs the nginx geoip2 module (Ubuntu: libnginx-mod-http-geoip2) and the DB-IP database.
 # If either is missing, the header snippet stays empty and everything else works as before.
@@ -72,7 +72,8 @@ import re, sys
 p = sys.argv[1]; s = open(p).read()
 def drop(block_src):
     # remove "location /api/ { ... }" (simple, non-nested) from blocks that include the snippet
-    return re.sub(r'\n\s*location\s+/api/\s*\{[^{}]*\}', '', block_src)
+    block_src = re.sub(r'\n\s*location\s+/api/\s*\{[^{}]*\}', '', block_src)
+    return re.sub(r'\n\s*location\s+/\s*\{[^{}]*\}', '', block_src)   # the snippet now has its own "location /" (page microcache)
 parts = re.split(r'(server\s*\{)', s)
 res = parts[0]
 for k in range(1, len(parts), 2):
@@ -87,7 +88,7 @@ if [ ${GEO_ON:-0} = 1 ] && ! nginx -t > /tmp/nginx-test.log 2>&1; then
   rm -f /etc/nginx/conf.d/collegeolo-geoip.conf; echo "# GeoIP off (nginx -t failed)" > /etc/nginx/snippets/collegeolo-geo-headers.conf; GEO_ON=0
 fi
 if nginx -t > /tmp/nginx-test.log 2>&1; then
-  systemctl reload nginx && echo "nginx: heavy-traffic settings applied (gzip, static cache, keep-alive, 8192 connections, fair-use limits)$([ ${GEO_ON:-0} = 1 ] && echo ', visitor location via GeoIP2 + DB-IP')"
+  systemctl reload nginx && echo "nginx: heavy-traffic settings applied (gzip, static cache, 60 s page microcache, keep-alive, 8192 connections, fair-use limits)$([ ${GEO_ON:-0} = 1 ] && echo ', visitor location via GeoIP2 + DB-IP')"
 else
   echo "nginx: new settings NOT accepted — everything put back. Details:"; tail -5 /tmp/nginx-test.log
   restore; rm -f /etc/nginx/snippets/collegeolo-server.conf; nginx -t > /dev/null 2>&1 && systemctl reload nginx
