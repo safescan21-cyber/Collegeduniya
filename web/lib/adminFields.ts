@@ -5,6 +5,7 @@ export const CURRENCIES = ['INR', 'USD', 'GBP', 'EUR', 'CAD', 'AUD', 'AED', 'SGD
 export const COLLEGE_FIELDS: FieldDef[] = [
   { name: 'name', label: 'College name', type: 'text', required: true, full: true },
   { name: 'short_name', label: 'Short name', type: 'text', placeholder: 'IIT Delhi' },
+  { name: 'news_terms', label: 'News names (optional)', type: 'tags', placeholder: 'DU, Delhi University', help: 'Other names newspapers use for this college — used to find news about it.' },
   { name: 'slug', label: 'URL slug', type: 'text', help: 'Leave empty to auto-generate. Changing it changes the page link.' },
   { name: 'type', label: 'Ownership', type: 'select', options: ['Public', 'Private', 'Deemed', 'Autonomous', 'Other'], required: true },
   { name: 'management', label: 'Management (as per regulator)', type: 'text', placeholder: 'Private Un-Aided' },
@@ -73,6 +74,7 @@ export const HIDEABLE_SECTIONS: { key: string; label: string }[] = [
   { key: 'cutoffs', label: 'Cutoffs' },
   { key: 'reviews', label: 'Student reviews' },
   { key: 'qa', label: 'Questions & answers' },
+  { key: 'news', label: 'In the news (headlines)' },
   { key: 'hostels', label: 'PG & hostels nearby' },
   { key: 'jobs', label: 'Part-time jobs nearby' },
   { key: 'nearby', label: 'Nearby places & hospitals' },

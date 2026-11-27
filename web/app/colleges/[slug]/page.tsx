@@ -12,6 +12,7 @@ import Gallery from '@/components/Gallery';
 import QuotaSeatCard from '@/components/QuotaSeatCard';
 import CollegeCommunity from '@/components/CollegeCommunity';
 import CollegeStudents from '@/components/college/CollegeStudents';
+import CollegeNews from '@/components/college/CollegeNews';
 import CollegePosts from '@/components/community/CollegePosts';
 import EnquiryForm from '@/components/EnquiryForm';
 import { SaveButton, CompareButton, ShareButtons, ApplyCartButton } from '@/components/ActionButtons';
@@ -379,6 +380,8 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             <ReportCard collegeId={c.id} />
             <ReviewSection collegeId={c.id} collegeName={c.name} reviews={reviewList} avg={avg} count={count} />
           </section>}
+
+          {show('news') && <CollegeNews collegeId={c.id} name={c.short_name || c.name} />}
 
           {show('community') && (
             <section id="community" className="scroll-mt-32">

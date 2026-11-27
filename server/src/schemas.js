@@ -153,6 +153,7 @@ schemas.colleges = schemas.colleges.extend({
   admin_note: optStr,
   seo_index: z.enum(['auto', 'index', 'noindex']).optional(),
   approvals: z.array(z.string().trim().max(40)).max(20).optional(),
+  news_terms: z.array(z.string().trim().min(2).max(60)).max(10).optional(),
   exams_accepted: z.array(z.string().trim().toLowerCase().regex(/^[a-z0-9-]{2,40}$/, 'Use exam slugs like jee-main')).max(20).optional(),
   brochure_url: z.union([z.literal(''), z.null(), z.string().trim().url()]).optional().transform((v) => v || null),
   admission_process: z.string().max(6000).optional().nullable(),
@@ -161,7 +162,7 @@ schemas.colleges = schemas.colleges.extend({
   faqs: z.string().max(8000).optional().nullable(),
   details_source: z.string().max(300).optional().nullable(),
   hidden_fields: z.array(z.enum(['fees', 'contact', 'website', 'address', 'map', 'ranking', 'accreditation', 'established', 'students', 'logo', 'photos', 'description'])).optional(),
-  hidden_sections: z.array(z.enum(['admission', 'ranking', 'scholarships', 'faqs', 'courses', 'placements', 'cutoffs', 'reviews', 'qa', 'hostels', 'jobs', 'nearby', 'gallery', 'apply', 'enquiry'])).optional(),
+  hidden_sections: z.array(z.enum(['admission', 'ranking', 'scholarships', 'faqs', 'courses', 'placements', 'cutoffs', 'reviews', 'qa', 'hostels', 'jobs', 'nearby', 'gallery', 'apply', 'enquiry', 'news'])).optional(),
 });
 
 export const collegeBulk = z.object({

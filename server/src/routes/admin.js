@@ -704,6 +704,27 @@ router.post('/study-news/collect', wrap(async (_req, res) => {
   res.json({ started: true });
 }));
 
+// ---- college news (services/collegeNews.js)
+router.get('/college-news', wrap(async (req, res) => {
+  let q = supabase.from('college_news').select('id, title, url, source, published_at, is_hidden, college:colleges(id, name, slug)', { count: 'exact' })
+    .order('published_at', { ascending: false }).limit(150);
+  if (req.query.college) q = q.eq('college_id', String(req.query.college));
+  const { data, count, error } = await q;
+  if (error) return fail(res, error);
+  const { count: covered } = await supabase.from('colleges').select('id', { count: 'exact', head: true }).not('news_checked_at', 'is', null);
+  res.json({ data, count, covered: covered || 0 });
+}));
+router.post('/college-news/:id/hide', wrap(async (req, res) => {
+  const { error } = await supabase.from('college_news').update({ is_hidden: req.body?.hidden !== false }).eq('id', req.params.id);
+  if (error) return fail(res, error);
+  res.json({ ok: true });
+}));
+router.post('/college-news/collect', wrap(async (_req, res) => {
+  const { collectCollegeNews } = await import('../services/collegeNews.js');
+  collectCollegeNews().then((st) => console.log('[college-news] admin run', st)).catch((e) => console.warn('[college-news]', e.message));
+  res.json({ started: true });
+}));
+
 router.post('/exam-dates/collect', wrap(async (req, res) => {
   const { collectExamDates } = await import('../services/examDates.js');
   res.json(await collectExamDates({ limit: Math.min(Number(req.query.limit) || 5, 30) }));
