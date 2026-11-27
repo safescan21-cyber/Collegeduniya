@@ -51,8 +51,14 @@ async function collegeFacts(q, topics, facts) {
   const norm = (n) => String(n || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
   const seen = new Set(); const ids = (hits || []).filter((h) => !seen.has(norm(h.name)) && seen.add(norm(h.name))).map((h) => h.id).slice(0, 2);
   if (!ids.length) return [];
-  const { data: rows } = await supabase.rpc('rank_card_facts', { p_ids: ids });
-  const { data: names } = await supabase.from('colleges').select('id, name, slug').in('id', ids);
+  // everything for both colleges in one parallel round trip (was one query after another — slow when the server is busy)
+  const [{ data: rows }, { data: names }, { data: rks }, { data: cuts }] = await Promise.all([
+    supabase.rpc('rank_card_facts', { p_ids: ids }),
+    supabase.from('colleges').select('id, name, slug').in('id', ids),
+    supabase.from('college_rankings').select('college_id, source, category, year, rank, rank_band').in('college_id', ids).order('year', { ascending: false }).limit(12),
+    topics.cutoff ? supabase.from('cutoffs').select('college_id, exam_slug, year, round, course, category, quota, gender, closing_rank')
+      .in('college_id', ids).eq('category', 'General').order('year', { ascending: false }).order('closing_rank', { ascending: true }).limit(10) : Promise.resolve({ data: [] }),
+  ]);
   const nameOf = new Map((names || []).map((n) => [n.id, n]));
   for (const r of rows || []) {
     const c = nameOf.get(r.id); if (!c) continue;
@@ -60,14 +66,9 @@ async function collegeFacts(q, topics, facts) {
     const where = [r.city, r.state, r.country].filter(Boolean).join(', ');
     facts.push({ text: `${c.name} is in ${where}${r.courses ? ` and lists ${r.courses} courses on Collegeolo` : ''}.`, url, title: c.name });
     if (r.fee_min != null) facts.push({ text: `Lowest listed yearly fee at ${c.name}: ${money(r.fee_min, r.fee_currency)}${r.fee_currency && r.fee_currency !== 'INR' && r.fee_min_inr ? ` (about ${inr(r.fee_min_inr)})` : ''}. Fees differ by course — see the college page.`, url: `${url}#courses`, title: `${c.name} fees` });
-    if (r.placement != null && (topics.placement || !topics.fees)) facts.push({ text: `${c.name} ${r.placement_kind === 'median' ? 'median' : 'average'} placement package${r.placement_year ? ` (${r.placement_year})` : ''}: ${money(r.placement, r.placement_currency)} a year.`, url: `${url}#placements`, title: `${c.name} placements` });
-    const { data: rk } = await supabase.from('college_rankings').select('source, category, year, rank, rank_band').eq('college_id', r.id).order('year', { ascending: false }).limit(3);
-    for (const x of rk || []) facts.push({ text: `${c.name}: ${x.source} ${x.category} ${x.year} rank ${x.rank ?? x.rank_band}.`, url: `${SITE}/rankings`, title: `${x.source} ${x.year}` });
-    if (topics.cutoff) {
-      const { data: cut } = await supabase.from('cutoffs').select('exam_slug, year, round, course, category, quota, gender, closing_rank')
-        .eq('college_id', r.id).eq('category', 'General').order('year', { ascending: false }).order('closing_rank', { ascending: true }).limit(4);
-      for (const x of cut || []) facts.push({ text: `${c.name} ${x.course}: ${x.year} ${x.round || ''} closing rank ${x.closing_rank.toLocaleString('en-IN')} (${x.exam_slug}, ${x.category}, ${x.quota || 'All India'}${/female/i.test(x.gender || '') ? ', female-only seat' : ''}).`, url: `${url}#cutoffs`, title: `${c.name} cutoffs` });
-    }
+    if (r.placement != null) facts.push({ text: `${c.name} ${r.placement_kind === 'median' ? 'median' : 'average'} placement package${r.placement_year ? ` (${r.placement_year})` : ''}: ${money(r.placement, r.placement_currency)} a year.`, url: `${url}#placements`, title: `${c.name} placements` });
+    for (const x of (rks || []).filter((k) => k.college_id === r.id).slice(0, 3)) facts.push({ text: `${c.name}: ${x.source} ${x.category} ${x.year} rank ${x.rank ?? x.rank_band}.`, url: `${SITE}/rankings`, title: `${x.source} ${x.year}` });
+    for (const x of (cuts || []).filter((k) => k.college_id === r.id).slice(0, 4)) facts.push({ text: `${c.name} ${x.course}: ${x.year} ${x.round || ''} closing rank ${x.closing_rank.toLocaleString('en-IN')} (${x.exam_slug}, ${x.category}, ${x.quota || 'All India'}${/female/i.test(x.gender || '') ? ', female-only seat' : ''}).`, url: `${url}#cutoffs`, title: `${c.name} cutoffs` });
   }
   return ids;
 }
@@ -114,10 +115,11 @@ export async function answerQuestion(question) {
   if (llmReady()) {
     const numbered = facts.slice(0, 14).map((f, i) => `[${i + 1}] ${f.text}`).join('\n');
     try {
-      const out = await complete({
-        system: 'You answer students’ questions for Collegeolo, an Indian college guide. Use ONLY the numbered facts given. Never add numbers, names, dates or claims that are not in the facts. If the facts do not fully answer, say plainly “Collegeolo doesn’t have <the missing thing> for this yet — check the college page or official website.” Never say “the provided information” or “the facts”. Write simple English (Class 10 level), 2–6 short sentences or a short list. Do not mention "facts" or numbering.',
-        prompt: `Question: ${q}\n\nFacts:\n${numbered}`, maxTokens: 500, temperature: 0.2,
-      });
+      // the AI only rewords; if it is slow (busy provider) show the plain facts instead of keeping the student waiting
+      const out = await Promise.race([new Promise((r) => setTimeout(() => r(null), 7000)), complete({
+        system: 'You answer students’ questions for Collegeolo, an Indian college guide. Use ONLY the numbered facts given. Never add numbers, names, dates or claims that are not in the facts. First give every fact that helps (rankings, placements, location, cutoffs) even if the exact thing asked is missing; then, if part is missing, say plainly “Collegeolo doesn’t have <the missing thing> for this yet — check the college page or official website.” Never say “the provided information” or “the facts”. Write simple English (Class 10 level), 2–6 short sentences or a short list. Do not mention "facts" or numbering.',
+        prompt: `Question: ${q}\n\nFacts:\n${numbered}`, maxTokens: 400, temperature: 0.2,
+      })]);
       answer = String(out?.text || '').trim() || null; ai = !!answer;
     } catch { answer = null; }
   }
