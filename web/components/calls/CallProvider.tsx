@@ -85,16 +85,24 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     ch.subscribe((status: string) => { if (status === 'SUBSCRIBED' && role === 'callee') send({ t: 'ready' }); });
   }, [sb, cleanup]);
 
-  const media = async (kind: Kind) => {
-    local.current = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: kind === 'video' ? { facingMode: 'user', width: { ideal: 640 } } : false });
+  // Returns false when the microphone can't be used (blocked, missing, or the page is inside an app that blocks it).
+  // A video call whose camera is blocked carries on as voice only.
+  const media = async (kind: Kind): Promise<boolean> => {
+    if (!navigator.mediaDevices?.getUserMedia) return false;
+    const audio = { echoCancellation: true, noiseSuppression: true };
+    try { local.current = await navigator.mediaDevices.getUserMedia({ audio, video: kind === 'video' ? { facingMode: 'user', width: { ideal: 640 } } : false }); }
+    catch {
+      if (kind !== 'video') return false;
+      try { local.current = await navigator.mediaDevices.getUserMedia({ audio, video: false }); } catch { return false; }
+    }
     setTimeout(() => { if (localVideo.current && local.current) { localVideo.current.srcObject = local.current; localVideo.current.play().catch(() => {}); } }, 50);
+    return true;
   };
+  const MIC_HELP = 'Your microphone is blocked here. Allow it in the browser’s site settings — or open Collegeolo in Chrome or on your phone.';
 
   const startCall = useCallback(async (conversationId: string, kind: Kind, name: string) => {
     if (callRef.current) return;
-    try {
-      await media(kind);
-    } catch { alert('Allow microphone' + (kind === 'video' ? ' and camera' : '') + ' access to call.'); return; }
+    if (!(await media(kind))) { alert(MIC_HELP); return; }
     const { data: id, error } = await sb.rpc('start_call', { p_conv: conversationId, p_kind: kind });
     if (error || !id) { local.current?.getTracks().forEach((t) => t.stop()); local.current = null; alert(error?.message || 'Could not call'); return; }
     setCall({ id, kind, role: 'caller', name, phase: 'calling' });
@@ -107,7 +115,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const accept = async () => {
     const c = callRef.current; if (!c) return;
     stopRing();
-    try { await media(c.kind); } catch { alert('Allow microphone access to answer.'); return decline(); }
+    if (!(await media(c.kind))) { setCall({ ...c, note: MIC_HELP }); ring(); return; }   // keep ringing: answer from another tab / the phone
     const { data } = await sb.rpc('update_call', { p_call: c.id, p_status: 'accepted' });
     if (data !== 'accepted') return cleanup('The call was cancelled');
     setCall({ ...c, phase: 'connecting' });
@@ -122,7 +130,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const ch = sb.channel(`calls-for-${user.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'calls', filter: `callee_id=eq.${user.id}` }, async ({ new: k }: any) => {
         if (k.status !== 'ringing') return;
-        if (callRef.current) { sb.rpc('update_call', { p_call: k.id, p_status: 'declined' }); return; }   // already on a call
+        if (callRef.current && callRef.current.phase !== 'ended') { sb.rpc('update_call', { p_call: k.id, p_status: 'busy' }); return; }   // already on a call
         const { data } = await sb.rpc('my_inbox');
         const conv = (data || []).find((x: any) => x.id === k.conversation_id);
         setCall({ id: k.id, kind: k.kind, role: 'callee', name: conv?.other_name || 'A student', phase: 'incoming' });
@@ -130,10 +138,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         ringTimer.current = setTimeout(() => { if (callRef.current?.id === k.id && callRef.current?.phase === 'incoming') cleanup('Missed call'); }, RING_MS + 5000);
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'calls', filter: `caller_id=eq.${user.id}` }, ({ new: k }: any) => {
-        if (callRef.current?.id === k.id && ['declined', 'missed', 'busy'].includes(k.status)) cleanup(k.status === 'declined' ? 'Call declined' : 'No answer');
+        if (callRef.current?.id === k.id && ['declined', 'missed', 'busy'].includes(k.status)) cleanup(k.status === 'declined' ? 'Call declined' : k.status === 'busy' ? 'Busy on another call' : 'No answer');
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'calls', filter: `callee_id=eq.${user.id}` }, ({ new: k }: any) => {
-        if (callRef.current?.id === k.id && callRef.current?.phase === 'incoming' && k.status !== 'ringing') cleanup('Missed call');
+        if (callRef.current?.id === k.id && callRef.current?.phase === 'incoming' && k.status !== 'ringing') cleanup(k.status === 'accepted' ? 'Answered on another device' : 'Missed call');
       })
       .subscribe();
     return () => { sb.removeChannel(ch); };
@@ -160,7 +168,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-brand-600 text-4xl font-bold">{call.name[0]?.toUpperCase()}</div>
             <p className="mt-4 text-2xl font-bold">{call.name}</p>
             <p className="mt-1 text-sm text-slate-300">
-              {call.phase === 'incoming' ? `Incoming ${call.kind} call…` : call.phase === 'calling' ? 'Ringing…' : call.phase === 'connecting' ? <><Loader2 size={14} className="inline animate-spin" /> Connecting…</> : call.phase === 'live' ? mmss : call.note}
+              {call.phase === 'incoming' ? (call.note ? <span className="block max-w-xs text-amber-300">{call.note}</span> : `Incoming ${call.kind} call…`) : call.phase === 'calling' ? 'Ringing…' : call.phase === 'connecting' ? <><Loader2 size={14} className="inline animate-spin" /> Connecting…</> : call.phase === 'live' ? mmss : call.note}
             </p>
           </div>
           {call.kind === 'video' && call.phase !== 'incoming' && call.phase !== 'ended' && <video ref={localVideo} autoPlay muted playsInline className="absolute end-4 top-4 z-10 h-40 w-28 rounded-xl border-2 border-white/40 bg-black object-cover -scale-x-100" />}
