@@ -20,9 +20,12 @@ const placeText = (f?: Facts) => f?.placement ? `${lpa(f.placement, f.placement_
 const initials = (n: string) => n.replace(/\(.*?\)/g, '').split(/[\s,-]+/).filter((w) => w.length > 2 && !/^(of|the|and|for)$/i.test(w)).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 function Thumb({ f, name, size = 'h-10 w-10' }: { f?: Facts; name: string; size?: string }) {
   const src = f?.logo || f?.photo;
-  // eslint-disable-next-line @next/next/no-img-element
-  return src ? <img src={src} alt="" loading="lazy" className={`${size} shrink-0 rounded-lg border border-slate-100 bg-white object-contain p-0.5`} />
-    : <span className={`${size} grid shrink-0 place-items-center rounded-lg bg-gradient-to-br from-brand-500 to-indigo-600 text-xs font-extrabold text-white`}>{initials(name) || '🎓'}</span>;
+  // the initials sit underneath: a logo that fails to load (alt="") leaves them showing instead of an empty box
+  return <span className={`${size} relative grid shrink-0 place-items-center overflow-hidden rounded-lg ${src ? 'border border-slate-100 bg-brand-50 text-brand-700' : 'bg-gradient-to-br from-brand-500 to-indigo-600 text-white'} text-xs font-extrabold`}>
+    {initials(name) || '🎓'}
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    {src && <img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" className="absolute inset-0 h-full w-full bg-white object-contain p-0.5" />}
+  </span>;
 }
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<SP> }): Promise<Metadata> {
@@ -55,7 +58,15 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
     sb.from('ranking_lists').select('rank, rank_band, name, city, state, college_id').eq('source', SRC).eq('year', year).eq('category', category).order('rank', { ascending: true, nullsFirst: false }).limit(world ? 500 : 300),
     sb.from('ranking_lists').select('rank, name, city, college_id').eq('source', SRC).eq('year', year - 1).eq('category', category).limit(300),
   ]) : [{ data: [] }, { data: [] }];
-  const rows = (list || []) as Row[];
+  // two imports sometimes wrote one institution twice at the same rank ("Shiv Nadar University" / "Shiv Nadar", city "University"):
+  // keep one row per rank and name — the one linked to a college page, else the longer, fuller name
+  const norm = (n: string) => String(n).toLowerCase().replace(/\(.*?\)/g, '').replace(/[^a-z0-9]/g, '');
+  const rows = ((list || []) as Row[]).reduce<Row[]>((acc, r) => {
+    const i = acc.findIndex((a) => a.rank != null && a.rank === r.rank && (norm(a.name).startsWith(norm(r.name)) || norm(r.name).startsWith(norm(a.name))));
+    if (i < 0) acc.push(r);
+    else if ((!acc[i].college_id && r.college_id) || (!!acc[i].college_id === !!r.college_id && r.name.length > acc[i].name.length && !/^university$/i.test(String(r.city)))) acc[i] = r;
+    return acc;
+  }, []);
   const ids = rows.map((r) => r.college_id).filter(Boolean) as string[];
   // world ranking under the NIRF list (latest Leiden year), and the courses students are looking at this week
   const worldTop = async (): Promise<Row[]> => {
