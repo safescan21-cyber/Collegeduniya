@@ -127,7 +127,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const load = async () => {
       const out: Record<string, number> = {};
       await Promise.all(PENDING.map(async ([key, table, col, vals]) => {
-        const { count, error } = await sb.from(table).select('*', { count: 'exact', head: true }).in(col, vals);
+        const { count, error } = await sb.from(table).select('id', { count: 'exact', head: true }).in(col, vals);   // 'id' only: some tables (reviews) hide private columns, and select=* is refused
         if (!error && count) out[key] = count;
       }));
       setCounts(out);
