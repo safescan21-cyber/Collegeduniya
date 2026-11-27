@@ -14,7 +14,7 @@ import { whenIdle } from './loadGuard.js';
 
 const env = (k, d) => (process.env[k] ?? d);
 const EVENTS = ['registration_start', 'registration_end', 'correction_window', 'admit_card', 'exam', 'answer_key', 'result', 'counselling'];
-const KEYWORDS = /important\s*date|schedule|calendar|information\s*bulletin|brochure|public\s*notice|notification|press\s*release|date\s*sheet|admit\s*card|time\s*table|timetable|inviting|online\s*application|application\s*form|advertisement|exam\s*city|correction|answer\s*key|result|notice/i;
+const KEYWORDS = /important\s*date|schedule|calendar|information\s*bulletin|brochure|public\s*notice|notification|press\s*release|date\s*sheet|admit\s*card|time\s*table|timetable|inviting|online\s*application|application\s*form|advertisement|exam\s*city|correction|answer\s*key|result|notice|announcement|circular|press\s*note|latest\s*(news|updates?)|what.?s\s*new|registration|counselling|counseling|seat\s*allotment|exam\s*date|admission/i;
 // strongest hints that a notice holds the schedule (opened first)
 const SCHEDULE = /inviting|information\s*bulletin|important\s*date|schedule|calendar|time\s*table|timetable|date\s*sheet|notification|advertisement|brochure/i;
 
