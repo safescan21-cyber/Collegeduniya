@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { GraduationCap, MapPin, CalendarDays, ClipboardCheck, School } from 'lucide-react';
 import Verified from '@/components/campus/Verified';
 import UserPosts from './UserPosts';
+import FollowBar from './FollowBar';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -46,6 +47,7 @@ export default async function PublicProfile({ params }: { params: Promise<{ user
           </div>
         </div>
         {p.bio && <p className="mt-4 whitespace-pre-line text-slate-700">{p.bio}</p>}
+        <FollowBar userId={p.id} posts={Number(p.posts) || 0} />
       </div>
 
       {!p.limited && <section className="card mt-6 p-6">

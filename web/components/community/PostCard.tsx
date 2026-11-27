@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ThumbsUp, ThumbsDown, MessageCircle, Share2, MapPin, Trash2, Trophy, BookOpen, Check } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, MessageCircle, Share2, MapPin, Trash2, Trophy, BookOpen, Clapperboard } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { timeAgo } from '@/lib/format';
@@ -10,6 +10,9 @@ import { mediaUrl } from '@/lib/media';
 import Verified from '@/components/campus/Verified';
 import Comments from './Comments';
 import ReportButton from './ReportButton';
+import FollowButton from './FollowButton';
+import ShareMenu from './ShareMenu';
+import Watermark from '@/components/Watermark';
 import { FeedPost, fullDate } from './types';
 
 export default function PostCard({ post, full = false, onDeleted }: { post: FeedPost; full?: boolean; onDeleted?: () => void }) {
@@ -27,13 +30,7 @@ export default function PostCard({ post, full = false, onDeleted }: { post: Feed
     const { data, error } = await sb.rpc('react_post', { p_post: p.id, p_value: next });
     if (!error && data?.[0]) setP({ ...p, likes: data[0].likes, dislikes: data[0].dislikes, my_reaction: data[0].mine });
   };
-  const share = async () => {
-    const url = `${location.origin}/community/post/${p.id}`;
-    const text = p.title || (p.body || '').slice(0, 100) || 'Post on Collegeolo';
-    try { if (navigator.share) await navigator.share({ title: text, url }); else { await navigator.clipboard.writeText(url); setShared(true); setTimeout(() => setShared(false), 1500); } }
-    catch { return; }
-    const { data } = await sb.rpc('share_post', { p_post: p.id }); if (typeof data === 'number') setP({ ...p, shares: data });
-  };
+  const share = () => setShared(true);
   const del = async () => { if (!confirm('Delete this post?')) return; await sb.from('posts').delete().eq('id', p.id); onDeleted?.(); };
   const long = !full && p.kind === 'blog' && (p.body || '').length > 420;
   const author = p.author_username ? <Link href={`/u/${p.author_username}`} className="font-semibold text-slate-900 hover:underline">{p.author_name}</Link> : <span className="font-semibold text-slate-900">{p.author_name}</span>;
@@ -45,7 +42,9 @@ export default function PostCard({ post, full = false, onDeleted }: { post: Feed
         </div>
         <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-center gap-1 text-sm">{author}<Verified on={p.author_verified} />
-            {p.kind === 'blog' && <span className="chip ms-1"><BookOpen size={11} />Blog</span>}{p.kind === 'result' && <span className="chip ms-1"><Trophy size={11} />Result</span>}</p>
+            {p.kind === 'blog' && <span className="chip ms-1"><BookOpen size={11} />Blog</span>}{p.kind === 'result' && <span className="chip ms-1"><Trophy size={11} />Result</span>}
+            {p.kind === 'shot' && <Link href={`/community/shots?start=${p.id}`} className="chip ms-1 hover:bg-brand-100"><Clapperboard size={11} />Shot</Link>}
+            {!p.is_mine && <span className="ms-1"><FollowButton userId={p.author_id} initial={loggedIn ? !!p.author_followed : undefined} onChange={(f) => setP((x) => ({ ...x, author_followed: f }))} /></span>}</p>
           <p className="truncate text-xs text-slate-500">
             {p.college_name && (p.college_slug ? <Link href={`/colleges/${p.college_slug}`} className="hover:underline">{p.college_name}</Link> : p.college_name)}
             {p.college_name ? ' · ' : ''}<time dateTime={p.created_at} title={fullDate(p.created_at)}>{fullDate(p.created_at)} ({timeAgo(p.created_at)})</time>{p.edited_at ? ' · edited' : ''}
@@ -66,9 +65,10 @@ export default function PostCard({ post, full = false, onDeleted }: { post: Feed
           </div>)}
       </div>
       {p.media.length > 0 && (
-        <div className={`mt-3 grid gap-0.5 ${p.media.length > 1 ? 'grid-cols-2' : ''}`}>
+        <div className={`relative mt-3 grid gap-0.5 ${p.media.length > 1 ? 'grid-cols-2' : ''}`} onContextMenu={(e) => e.preventDefault()}>
+          <Watermark />
           {p.media.slice(0, full ? 10 : 4).map((m, i) => m.type === 'video'
-            ? <video key={i} src={mediaUrl(m.path)} controls preload="metadata" playsInline className="max-h-[480px] w-full bg-black" />
+            ? <video key={i} src={mediaUrl(m.path)} controls controlsList="nodownload noremoteplayback" disablePictureInPicture preload="metadata" playsInline className="max-h-[480px] w-full bg-black" />
             : <button key={i} type="button" onClick={() => setZoom(mediaUrl(m.path))} className="relative block bg-slate-100">
                 <img src={mediaUrl(m.path)} alt="" loading="lazy" className={`w-full object-cover ${p.media.length > 1 ? 'aspect-square' : 'max-h-[520px]'}`} />
                 {!full && i === 3 && p.media.length > 4 && <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-2xl font-bold text-white">+{p.media.length - 4}</span>}
@@ -79,10 +79,11 @@ export default function PostCard({ post, full = false, onDeleted }: { post: Feed
         <button onClick={() => react(1)} className={`flex items-center gap-1 rounded-lg px-3 py-1.5 hover:bg-slate-50 ${p.my_reaction === 1 ? 'font-semibold text-brand-700' : ''}`} aria-label="Like"><ThumbsUp size={16} className={p.my_reaction === 1 ? 'fill-brand-600' : ''} />{p.likes || ''}</button>
         <button onClick={() => react(-1)} className={`flex items-center gap-1 rounded-lg px-3 py-1.5 hover:bg-slate-50 ${p.my_reaction === -1 ? 'font-semibold text-rose-600' : ''}`} aria-label="Dislike"><ThumbsDown size={16} />{p.dislikes || ''}</button>
         <button onClick={() => setOpen(!open)} className="flex items-center gap-1 rounded-lg px-3 py-1.5 hover:bg-slate-50" aria-label="Comments"><MessageCircle size={16} />{p.comments || ''}</button>
-        <button onClick={share} className="ms-auto flex items-center gap-1 rounded-lg px-3 py-1.5 hover:bg-slate-50" aria-label="Share">{shared ? <Check size={16} /> : <Share2 size={16} />}{shared ? 'Link copied' : p.shares || ''}</button>
+        <button onClick={share} className="ms-auto flex items-center gap-1 rounded-lg px-3 py-1.5 hover:bg-slate-50" aria-label="Share"><Share2 size={16} />{p.shares || ''}</button>
       </footer>
       {open && <Comments postId={p.id} onCount={(n) => n !== p.comments && setP((x) => ({ ...x, comments: n }))} />}
-      {zoom && <button type="button" onClick={() => setZoom(null)} className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4" aria-label="Close"><img src={zoom} alt="" className="max-h-full max-w-full object-contain" /></button>}
+      {zoom && <button type="button" onClick={() => setZoom(null)} onContextMenu={(e) => e.preventDefault()} className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4" aria-label="Close"><span className="relative inline-block"><img src={zoom} alt="" draggable={false} className="max-h-[90vh] max-w-full object-contain" /><Watermark dense /></span></button>}
+      {shared && <ShareMenu postId={p.id} text={p.title || (p.body || '').slice(0, 100)} onShared={(n) => setP((x) => ({ ...x, shares: n }))} onClose={() => setShared(false)} />}
     </article>
   );
 }

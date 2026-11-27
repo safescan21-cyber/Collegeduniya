@@ -11,13 +11,18 @@ import { timeAgo } from '@/lib/format';
 import { useCalls } from '@/components/calls/CallProvider';
 import Verified from '@/components/campus/Verified';
 import ReportButton from '@/components/community/ReportButton';
+import SharedPost from '@/components/chat/SharedPost';
 
 type Conv = { id: string; status: 'active' | 'pending' | 'declined'; i_requested: boolean; request_note: string | null; context_type: string; context_label: string | null;
   other_id: string; other_name: string; other_username: string | null; other_verified: boolean; other_last_seen: string | null; other_calls: boolean;
   last_message: string | null; last_message_at: string; unread: number };
-type Msg = { id: string; sender_id: string; body: string; created_at: string; read_at: string | null };
+type Msg = { id: string; sender_id: string; body: string; created_at: string; read_at: string | null; reactions: Record<string, string> | null };
 type Person = { id: string; name: string; username: string | null; verified: boolean; course: string | null; batch_year: number | null; relation: string; mode: 'direct' | 'request'; last_seen: string | null; has_chat: string | null };
-const EMOJI = ['😀', '😂', '😍', '👍', '🙏', '🔥', '🎉', '😢', '❤️', '📚'];
+const EMOJI = ['😀', '😂', '🤣', '😊', '😍', '🥰', '😘', '😎', '🤩', '🥳', '😇', '🤔', '🙄', '😴', '😭', '😢', '😡', '🤯', '😱', '🤗',
+  '👍', '👎', '👏', '🙌', '🙏', '💪', '🤝', '✌️', '👋', '🫶', '❤️', '💔', '🔥', '💯', '✨', '🎉', '🎂', '🎁', '📚', '✍️', '🎓', '💻', '☕', '🍕', '🏏', '⚽', '🎶', '🎮', '🚌', '🏠'];
+const REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥', '🎉', '🙏'];
+const POST_LINK = /\/community\/post\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
+const onlyEmoji = (t: string) => t.length <= 16 && /^(?:\p{Extended_Pictographic}|\p{Emoji_Modifier}|\uFE0F|\u200D|\s)+$/u.test(t.trim());
 
 const seen = (iso: string | null) => {
   if (!iso) return null;
@@ -36,7 +41,7 @@ export default function Messages() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [people, setPeople] = useState<Person[] | null>(null); const [q, setQ] = useState('');
   const [note, setNote] = useState<{ id: string; text: string } | null>(null);
-  const [text, setText] = useState(''); const [emoji, setEmoji] = useState(false);
+  const [text, setText] = useState(''); const [emoji, setEmoji] = useState(false); const [picker, setPicker] = useState<string | null>(null);
   const [busy, setBusy] = useState(''); const [err, setErr] = useState('');
   const bottom = useRef<HTMLDivElement>(null);
   const { startCall, busy: inCall } = useCalls();
@@ -44,7 +49,7 @@ export default function Messages() {
   const loadConvs = useCallback(async () => { const { data } = await sb.rpc('my_inbox'); setConvs((data || []) as Conv[]); }, [sb]);
   const loadMsgs = useCallback(async () => {
     if (!active || !user) return;
-    const { data } = await sb.from('messages').select('id, sender_id, body, created_at, read_at').eq('conversation_id', active).order('created_at').limit(500);
+    const { data } = await sb.from('messages').select('id, sender_id, body, created_at, read_at, reactions').eq('conversation_id', active).order('created_at').limit(500);
     setMsgs((data || []) as Msg[]);
     const unread = (data || []).filter((m: Msg) => m.sender_id !== user.id && !m.read_at).map((m: Msg) => m.id);
     if (unread.length) { await sb.from('messages').update({ read_at: new Date().toISOString() }).in('id', unread); loadConvs(); }
@@ -55,7 +60,7 @@ export default function Messages() {
   useEffect(() => { setMsgs([]); loadMsgs(); const t = setInterval(() => { loadMsgs(); loadConvs(); }, 10000); return () => clearInterval(t); }, [loadMsgs, loadConvs]);
   useEffect(() => {   // new messages instantly
     if (!active || !user) return;
-    const ch = sb.channel(`msgs-${active}`).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${active}` }, () => loadMsgs()).subscribe();
+    const ch = sb.channel(`msgs-${active}`).on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${active}` }, () => loadMsgs()).subscribe();
     return () => { sb.removeChannel(ch); };
   }, [active, user, sb, loadMsgs]);
   useEffect(() => { if (tab === 'people' && user) { const h = setTimeout(loadPeople, 250); return () => clearTimeout(h); } }, [tab, user, loadPeople]);
@@ -91,6 +96,11 @@ export default function Messages() {
     if (!conv || !confirm(`Block ${conv.other_name}? They won’t be able to message or call you.`)) return;
     await sb.from('user_blocks').insert({ blocker_id: user.id, blocked_id: conv.other_id });
     loadConvs(); router.push('/messages');
+  };
+  const reactTo = async (m: Msg, em: string) => {
+    setPicker(null);
+    const { data, error } = await sb.rpc('react_message', { p_msg: m.id, p_emoji: em });
+    if (!error) setMsgs((list) => list.map((x) => (x.id === m.id ? { ...x, reactions: (data || {}) as Record<string, string> } : x)));
   };
   const chatWith = async (p: Person, withNote?: string) => {
     setBusy(p.id); setErr('');
@@ -188,19 +198,39 @@ export default function Messages() {
               </div>
             ) : (
               <>
-                <div className="flex-1 space-y-2 overflow-y-auto bg-slate-50 p-4">
-                  {msgs.map((m) => (
-                    <div key={m.id} className={`flex ${m.sender_id === user.id ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.sender_id === user.id ? 'bg-brand-600 text-white' : 'bg-white text-slate-800 shadow-sm'}`}>
-                        <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                        <p className={`mt-0.5 text-[10px] ${m.sender_id === user.id ? 'text-white/70' : 'text-slate-400'}`} title={new Date(m.created_at).toLocaleString('en-IN')}>{timeAgo(m.created_at)}{m.sender_id === user.id && m.read_at ? ' · seen' : ''}</p>
+                <div className="flex-1 space-y-4 overflow-y-auto bg-slate-50 p-4" onClick={(e) => { if (picker && !(e.target as Element).closest('button')) setPicker(null); }}>
+                  {msgs.map((m) => {
+                    const mine = m.sender_id === user.id;
+                    const big = onlyEmoji(m.body);
+                    const link = m.body.match(POST_LINK);
+                    const counts = Object.values(m.reactions || {}).reduce((a: Record<string, number>, e) => ({ ...a, [e]: (a[e] || 0) + 1 }), {});
+                    const myR = (m.reactions || {})[user.id];
+                    return (
+                    <div key={m.id} className={`group flex items-center gap-1 ${mine ? 'flex-row-reverse' : ''}`}>
+                      <div onDoubleClick={() => reactTo(m, '❤️')} className={`relative max-w-[80%] text-sm ${big ? '' : `rounded-2xl px-3 py-2 ${mine ? 'bg-brand-600 text-white' : 'bg-white text-slate-800 shadow-sm'}`}`}>
+                        {big ? <p className="text-4xl leading-tight">{m.body}</p> : <>
+                          {link && <div className="mb-1"><SharedPost id={link[1]} /></div>}
+                          {(() => { const t = link ? m.body.replace(/https?:\/\/\S*\/community\/post\/\S+/i, '').trim() : m.body; return t ? <p className="whitespace-pre-wrap break-words">{t}</p> : null; })()}
+                        </>}
+                        <p className={`mt-0.5 text-[10px] ${mine && !big ? 'text-white/70' : 'text-slate-400'}`} title={new Date(m.created_at).toLocaleString('en-IN')}>{timeAgo(m.created_at)}{mine && m.read_at ? ' · seen' : ''}</p>
+                        {Object.keys(counts).length > 0 && (
+                          <div className={`absolute -bottom-3 ${mine ? 'end-2' : 'start-2'} flex gap-0.5 rounded-full bg-white px-1.5 py-0.5 text-xs shadow`}>
+                            {Object.entries(counts).map(([e, n]) => <button key={e} onClick={() => reactTo(m, e)} className={myR === e ? 'scale-110' : ''}>{e}{n > 1 ? <span className="text-[10px] text-slate-500">{n}</span> : null}</button>)}
+                          </div>)}
+                        {picker === m.id && (
+                          <div className={`absolute -top-10 z-10 ${mine ? 'end-0' : 'start-0'} flex gap-1 rounded-full bg-white px-2 py-1 text-xl shadow-lg`}>
+                            {REACTIONS.map((e) => <button key={e} onClick={() => reactTo(m, e)} className={`transition hover:scale-125 ${myR === e ? 'rounded-full bg-brand-100' : ''}`}>{e}</button>)}
+                          </div>)}
                       </div>
-                    </div>))}
+                      <button onClick={() => setPicker(picker === m.id ? null : m.id)} className="rounded-full p-1 text-slate-400 opacity-60 hover:bg-white hover:text-amber-500 group-hover:opacity-100" aria-label="React"><Smile size={15} /></button>
+                    </div>); })}
+                  {!msgs.length && <div className="flex justify-center gap-2">{['👋', '😊', '🙏', '🔥'].map((e) => <button key={e} onClick={() => setText(e)} className="rounded-full bg-white px-3 py-1 text-2xl shadow-sm hover:scale-110">{e}</button>)}</div>}
+                  {msgs.length > 0 && msgs.length < 4 && <p className="text-center text-[11px] text-slate-400">Tip: double-tap a message to ❤️ it, or tap 🙂 to react</p>}
                   {!msgs.length && <p className="text-center text-sm text-slate-400">Say hello 👋 Keep it friendly — never share bank details or pay anyone through chat.</p>}
                   <p className="pt-2 text-center text-[11px] text-slate-400">Messages are deleted automatically after 6 months.</p>
                   <div ref={bottom} />
                 </div>
-                {emoji && <div className="flex flex-wrap gap-1 border-t border-slate-100 px-3 pt-2">{EMOJI.map((em) => <button key={em} type="button" onClick={() => setText((t) => t + em)} className="rounded-lg p-1 text-xl hover:bg-slate-100">{em}</button>)}</div>}
+                {emoji && <div className="flex max-h-32 flex-wrap gap-1 overflow-y-auto border-t border-slate-100 px-3 pt-2">{EMOJI.map((em) => <button key={em} type="button" onClick={() => setText((t) => t + em)} className="rounded-lg p-1 text-xl hover:bg-slate-100">{em}</button>)}</div>}
                 <form onSubmit={send} className="flex gap-2 border-t border-slate-100 p-3">
                   <button type="button" onClick={() => setEmoji(!emoji)} className="btn-ghost px-2" aria-label="Emoji"><Smile size={18} className="text-amber-500" /></button>
                   <textarea value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(e as any); } }}
