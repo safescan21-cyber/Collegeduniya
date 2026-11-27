@@ -100,6 +100,15 @@ const CHECKS = [
     if (freePct < 5) throw new Error(`memory almost full (${(os.freemem() / 1073741824).toFixed(1)} GB free)`);
     return `${(os.freemem() / 1073741824).toFixed(1)} GB free of ${(os.totalmem() / 1073741824).toFixed(0)} GB · load ${os.loadavg()[0].toFixed(1)}`;
   } },
+  { name: 'Database queries', group: 'Server', warn: true, run: async () => {
+    // what the database is busy with right now (slowest first); the watchdog stops app queries over 5 minutes
+    const { data, error } = await supabase.rpc('admin_db_activity');
+    if (error) throw new Error(error.message);
+    const slow = (data || []).filter((q) => q.seconds >= 10);
+    if (!slow.length) return `${(data || []).length} running, none slow`;
+    const fmt = (q) => `${q.seconds >= 60 ? `${Math.floor(q.seconds / 60)}m${q.seconds % 60}s` : `${q.seconds}s`} [${q.role}${q.app ? `/${q.app}` : ''}${q.waiting ? `, waiting ${q.waiting}` : ''}] ${q.query.slice(0, 160)}`;
+    throw new Error(`${slow.length} slow: ${slow.slice(0, 4).map(fmt).join(' · ')}`);
+  } },
   ...['www.collegeolo.com', 'db.collegeolo.com'].map((h) => ({ name: `SSL ${h}`, group: 'Server', run: async () => {
     const d = await certDays(h);
     if (d < 10) throw new Error(`certificate expires in ${d} days`);

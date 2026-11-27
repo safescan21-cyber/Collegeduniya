@@ -118,6 +118,13 @@ const server = app.listen(PORT, () => {
   startStudyNews();
   startCollegeNews();
   startWebsiteCheck();
+// database watchdog: every 2 minutes stop any app query that has run for more than 5 minutes (they pile up and freeze the site)
+setInterval(async () => {
+  try {
+    const { data } = await sbAdmin.rpc('db_watchdog', { p_max_seconds: 300 });
+    for (const q of data || []) console.warn(`[db-watchdog] stopped query after ${q.seconds}s: ${q.query}`);
+  } catch { /* database busy or function not deployed yet */ }
+}, 120_000).unref();
   startHealthMonitor();
   startErrorWatch();
   // chats (messages + call log) older than CHAT_RETENTION_MONTHS (default 6) are deleted daily; posts are kept
