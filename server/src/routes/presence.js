@@ -27,6 +27,10 @@ const hdr = (req, ...names) => {
   }
   return null;
 };
+// Not a person: crawlers, link previews, page-speed / testing tools (Google's run from Mountain View as "Chrome on Android"),
+// scripts — and anything without a browser language header (every real browser and phone sends one).
+const ROBOT_UA = /bot|crawler|spider|preview|headless|lighthouse|pagespeed|inspectiontool|pagerenderer|googleother|read-aloud|feedfetcher|gtmetrix|ptst|pingdom|uptime|monitor|facebookexternalhit|whatsapp|slurp|curl|wget|python|axios|node-fetch|go-http|okhttp|java\//i;
+export const isRobot = (req) => ROBOT_UA.test(String(req.headers['user-agent'] || '')) || !req.headers['accept-language'];
 export const geoFromReq = (req) => ({
   city: hdr(req, 'cf-ipcity', 'x-city', 'x-geo-city'),
   region: hdr(req, 'cf-region', 'x-region', 'x-geo-region'),
@@ -53,7 +57,7 @@ router.post('/presence', ipLimit, tabLimit, async (req, res) => {
   const parsed = beat.safeParse(req.body);
   if (!parsed.success) return res.status(422).json({ error: 'Invalid' });
   const ua = String(req.headers['user-agent'] || '');
-  if (/bot|crawler|spider|preview|headless/i.test(ua)) return res.json({ ok: true });
+  if (isRobot(req)) return res.json({ ok: true });
   const { session_id, path } = parsed.data;
   const uid = req.user?.id || null;
   const geo = geoFromReq(req);
