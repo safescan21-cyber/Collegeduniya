@@ -93,11 +93,16 @@ export function matcher(rows) {
     for (const src of [inst, noAbbr]) {
       const need = [...words(src)]; if (need.length < 3) continue;
       const has = (x, w) => x.w.has(w) || (w.length >= 7 && [...x.w].some((v) => near(v, w)));
-      const hits = list.filter((x) => need.filter((w) => !x.w.has(w)).length <= 1 && need.every((w) => has(x, w))).map((x) => ({ c: x.c, extra: x.w.size - need.length }))
-        .sort((a, b) => Number(a.c.source === 'josaa') - Number(b.c.source === 'josaa') || a.extra - b.extra);
+      // rank: colleges already on the site first, then fewest near-spellings, then fewest extra words
+      const hits = list.filter((x) => need.filter((w) => !x.w.has(w)).length <= 1 && need.every((w) => has(x, w)))
+        .map((x) => ({ c: x.c, fuzzy: need.filter((w) => !x.w.has(w)).length, extra: x.w.size - need.length }))
+        .sort((a, b) => Number(a.c.source === 'josaa') - Number(b.c.source === 'josaa') || a.fuzzy - b.fuzzy || a.extra - b.extra);
+      const better = (a, b) => !b || a.fuzzy < b.fuzzy || (a.fuzzy === b.fuzzy && a.extra < b.extra);
       const own = hits.filter((h) => h.c.source !== 'josaa');
-      if (own.length === 1 || (own.length > 1 && own[0].extra < own[1].extra)) return own[0].c;
-      if (hits.length && (hits.length === 1 || hits[0].extra < hits[1].extra)) return hits[0].c;
+      if (own.length && better(own[0], own[1])) return own[0].c;
+      const copies = hits.filter((h) => h.c.source === 'josaa');
+      if (!own.length && copies.length && better(copies[0], copies[1])) return copies[0].c;
+      if (own.length) continue;   // two equally good colleges on the site — don't guess
     }
     return null;
   };
