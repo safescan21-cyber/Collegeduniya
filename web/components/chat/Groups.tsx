@@ -10,6 +10,7 @@ import Verified from '@/components/campus/Verified';
 import ReportButton from '@/components/community/ReportButton';
 import SharedPost from './SharedPost';
 import { EMOJI, REACTIONS, POST_LINK, onlyEmoji } from './chatUtils';
+import { usePresence, lastSeenText, OnlineDot } from './usePresence';
 
 export type MyGroup = { id: string; name: string; emoji: string; is_public: boolean; member_count: number; my_role: string; last_message: string | null; last_sender: string | null; last_message_at: string; unread: number };
 type GMsg = { id: string; sender_id: string; sender_name: string; sender_username: string | null; sender_verified: boolean; body: string; reactions: Record<string, string> | null; created_at: string };
@@ -158,6 +159,8 @@ export function GroupRoom({ id, reloadList }: { id: string; reloadList: () => vo
   const [text, setText] = useState(''); const [emoji, setEmoji] = useState(false); const [picker, setPicker] = useState<string | null>(null);
   const [panel, setPanel] = useState(false); const [busy, setBusy] = useState(''); const [err, setErr] = useState(''); const [copied, setCopied] = useState(false);
   const bottom = useRef<HTMLDivElement>(null);
+  const live = usePresence(info?.members?.map((m) => m.id) || []);
+  const onlineCount = Object.values(live).filter((p) => p.online).length;
 
   const loadInfo = useCallback(async () => { const { data } = await sb.rpc('group_info', { p_group: id }); setInfo((data as Info) || null); }, [id, sb]);
   const loadMsgs = useCallback(async () => {
@@ -210,7 +213,7 @@ export function GroupRoom({ id, reloadList }: { id: string; reloadList: () => vo
         <button onClick={() => setPanel(!panel)} className="flex min-w-0 items-center gap-2 text-start">
           <span onClick={(e) => { e.stopPropagation(); router.push('/messages?tab=groups'); }} className="md:hidden" aria-label="Back"><ArrowLeft size={18} /></span>
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-lg">{info.emoji}</span>
-          <span className="min-w-0"><b className="block truncate text-slate-900">{info.name}</b><span className="block truncate text-xs text-slate-500">{info.member_count} members · tap for info</span></span>
+          <span className="min-w-0"><b className="block truncate text-slate-900">{info.name}</b><span className="block truncate text-xs text-slate-500">{info.member_count} members{onlineCount > 0 ? <span className="font-semibold text-emerald-600"> · {onlineCount} online</span> : ''} · tap for info</span></span>
         </button>
         <div className="flex items-center gap-1">
           <button onClick={invite} className="btn-ghost px-2 py-1.5 text-xs" title="Invite friends">{copied ? <Check size={15} /> : <Share2 size={15} />}<span className="hidden sm:inline">{copied ? 'Link copied' : 'Invite'}</span></button>
@@ -236,7 +239,8 @@ export function GroupRoom({ id, reloadList }: { id: string; reloadList: () => vo
             <li key={m.id} className="flex items-center gap-2 py-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {m.avatar ? <img src={m.avatar} alt="" className="h-8 w-8 rounded-full object-cover" /> : <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">{m.name[0]?.toUpperCase()}</span>}
-              <span className="flex min-w-0 flex-1 items-center gap-1 text-sm">{m.username ? <Link href={`/u/${m.username}`} className="truncate hover:underline">{m.name}</Link> : <span className="truncate">{m.name}</span>}<Verified on={m.verified} size={12} />{m.id === user.id && <span className="text-xs text-slate-400">(you)</span>}</span>
+              <span className="flex min-w-0 flex-1 items-center gap-1 text-sm"><OnlineDot on={live[m.id]?.online} />{m.username ? <Link href={`/u/${m.username}`} className="truncate hover:underline">{m.name}</Link> : <span className="truncate">{m.name}</span>}<Verified on={m.verified} size={12} />{m.id === user.id && <span className="text-xs text-slate-400">(you)</span>}
+                {m.id !== user.id && live[m.id] && !live[m.id].online && <span className="truncate text-[11px] text-slate-400">· {lastSeenText(live[m.id])?.replace('Last seen ', '')}</span>}</span>
               {m.role === 'owner' && <span className="flex items-center gap-0.5 text-[11px] font-semibold text-amber-600"><Crown size={12} />Owner</span>}
               {m.role === 'admin' && <span className="flex items-center gap-0.5 text-[11px] font-semibold text-sky-600"><ShieldCheck size={12} />Admin</span>}
               {isAdmin && m.id !== user.id && m.role !== 'owner' && (

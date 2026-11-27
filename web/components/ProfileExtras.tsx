@@ -15,12 +15,12 @@ const slugUser = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[^a-z
 export function PublicProfileSettings() {
   const { user, profile, refreshProfile } = useAuth();
   const sb = supabaseBrowser();
-  const [f, setF] = useState({ username: '', headline: '', bio: '', public_profile: true, show_mock_scores: false, show_online: false });
+  const [f, setF] = useState({ username: '', headline: '', bio: '', public_profile: true, show_mock_scores: false, show_online: false, show_last_seen: true });
   const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   useEffect(() => {
     if (!profile) return;
     const p = profile as any;
-    setF({ username: p.username || '', headline: p.headline || '', bio: p.bio || '', public_profile: p.public_profile !== false, show_mock_scores: !!p.show_mock_scores, show_online: !!p.show_online });
+    setF({ username: p.username || '', headline: p.headline || '', bio: p.bio || '', public_profile: p.public_profile !== false, show_mock_scores: !!p.show_mock_scores, show_online: !!p.show_online, show_last_seen: p.show_last_seen !== false });
   }, [profile]);
   if (!user) return null;
   const save = async () => {
@@ -49,6 +49,7 @@ export function PublicProfileSettings() {
         <label className="flex items-start gap-2"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-brand-600" checked={f.public_profile} onChange={(e) => setF({ ...f, public_profile: e.target.checked })} /><span><b>Anyone can see my profile</b> — name, headline, about, city and education. Your email and phone are never shown.</span></label>
         <label className="flex items-start gap-2"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-brand-600" checked={f.show_mock_scores} onChange={(e) => setF({ ...f, show_mock_scores: e.target.checked })} /><span>Show my best mock-test scores on my profile</span></label>
         <label className="flex items-start gap-2"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-brand-600" checked={f.show_online} onChange={(e) => setF({ ...f, show_online: e.target.checked })} /><span>Show my first name and city in “is online” alerts (otherwise you appear as “A student”)</span></label>
+        <label className="flex items-start gap-2"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-brand-600" checked={f.show_last_seen} onChange={(e) => setF({ ...f, show_last_seen: e.target.checked })} /><span>Show when I’m active in chats (“Active now” / “Last seen”) to people I chat with. If you turn this off, you won’t see theirs either.</span></label>
       </div>
       <div className="flex items-center gap-3"><button onClick={save} disabled={busy} className="btn-primary">{busy ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}Save</button>{msg && <span className="text-sm text-slate-600">{msg}</span>}</div>
     </section>

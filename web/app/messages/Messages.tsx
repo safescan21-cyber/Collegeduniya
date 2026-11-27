@@ -14,6 +14,7 @@ import ReportButton from '@/components/community/ReportButton';
 import SharedPost from '@/components/chat/SharedPost';
 import { EMOJI, REACTIONS, POST_LINK, onlyEmoji } from '@/components/chat/chatUtils';
 import { GroupList, GroupRoom, JoinGroup, type MyGroup } from '@/components/chat/Groups';
+import { usePresence, lastSeenText, OnlineDot } from '@/components/chat/usePresence';
 
 type Conv = { id: string; status: 'active' | 'pending' | 'declined'; i_requested: boolean; request_note: string | null; context_type: string; context_label: string | null;
   other_id: string; other_name: string; other_username: string | null; other_verified: boolean; other_last_seen: string | null; other_calls: boolean;
@@ -69,6 +70,7 @@ export default function Messages() {
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs.length]);
 
   if (loading) return <div className="card h-96 animate-pulse" />;
+  const live = usePresence(user ? convs.map((c) => c.other_id) : []);   // before the early return (hooks rule)
   if (!user || (user as any).is_anonymous) return <div className="py-20 text-center"><Link href={`/login?next=${encodeURIComponent(joinCode ? `/messages?join=${joinCode}` : '/messages')}`} className="btn-primary">{joinCode ? 'Log in to join the group' : 'Log in to see your messages'}</Link></div>;
 
   const conv = convs.find((c) => c.id === active);
@@ -114,7 +116,7 @@ export default function Messages() {
 
   const Item = ({ c }: { c: Conv }) => (
     <button onClick={() => open(c.id)} className={`block w-full border-b border-slate-50 p-4 text-start hover:bg-slate-50 ${c.id === active ? 'bg-brand-50' : ''}`}>
-      <p className="flex items-center justify-between gap-2 font-semibold text-slate-900"><span className="flex items-center gap-1 truncate">{c.other_name}<Verified on={c.other_verified} size={13} /></span>
+      <p className="flex items-center justify-between gap-2 font-semibold text-slate-900"><span className="flex items-center gap-1 truncate"><OnlineDot on={live[c.other_id]?.online} />{c.other_name}<Verified on={c.other_verified} size={13} /></span>
         {c.unread > 0 ? <span className="rounded-full bg-brand-600 px-2 text-xs text-white">{c.unread}</span> : <span className="text-[11px] font-normal text-slate-400">{timeAgo(c.last_message_at)}</span>}</p>
       <p className="truncate text-sm text-slate-600">{c.status === 'pending' ? (c.i_requested ? 'Request sent · waiting' : c.request_note || 'Wants to chat with you') : c.status === 'declined' ? 'Request declined' : c.last_message || 'Say hello 👋'}</p>
     </button>);
@@ -169,7 +171,7 @@ export default function Messages() {
                 <button onClick={() => router.push('/messages')} className="md:hidden" aria-label="Back"><ArrowLeft size={18} /></button>
                 <div className="min-w-0">
                   <p className="flex items-center gap-1 font-bold text-slate-900">{conv.other_username ? <Link href={`/u/${conv.other_username}`} className="truncate hover:underline">{conv.other_name}</Link> : conv.other_name}<Verified on={conv.other_verified} /></p>
-                  <p className="truncate text-xs text-slate-500">{seen(conv.other_last_seen) || conv.context_label}</p>
+                  <p className={`truncate text-xs ${live[conv.other_id]?.online ? 'font-semibold text-emerald-600' : 'text-slate-500'}`}>{live[conv.other_id] ? <span className="inline-flex items-center gap-1"><OnlineDot on={live[conv.other_id].online} />{lastSeenText(live[conv.other_id])}</span> : seen(conv.other_last_seen) || conv.context_label}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
