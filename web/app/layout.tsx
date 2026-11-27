@@ -15,6 +15,7 @@ import ChunkReload from '@/components/ChunkReload';
 import { CallProvider } from '@/components/calls/CallProvider';
 import { orgJsonLd } from '@/lib/org';
 import PwaRegister from '@/components/PwaRegister';
+import InstallPrompt from '@/components/InstallPrompt';
 import { ListTray } from '@/components/ActionButtons';
 import { SITE_URL } from '@/lib/format';
 import { getT } from '@/lib/i18n-server';
@@ -52,6 +53,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <NoCopy />
             <ChunkReload />
             <PwaRegister />
+            <InstallPrompt />
             <main className="flex-1">{children}</main>
             <Footer />
             <ListTray />

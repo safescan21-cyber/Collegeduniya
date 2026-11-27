@@ -84,6 +84,18 @@ function pickHeaderRow(matrix) {
   return 0;
 }
 
+const cellHtml = (s) => String(s || '').replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
+  .replace(/&#39;|&#039;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim();
+export function htmlTable(html) {
+  let best = [];
+  for (const t of html.matchAll(/<table[^>]*>([\s\S]*?)<\/table>/gi)) {
+    const rows = [...t[1].matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].map((tr) => [...tr[1].matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi)].map((m) => cellHtml(m[1])))
+      .filter((r) => r.some(Boolean));
+    if (rows.length > best.length) best = rows;
+  }
+  return best;
+}
+
 export async function parseSheet(buffer, filename) {
   let matrix = [];
   if (/\.xlsx$/i.test(filename)) {
@@ -98,8 +110,12 @@ export async function parseSheet(buffer, filename) {
     const text = buffer.toString('utf8').replace(/^﻿/, '');
     const delimiter = /\.tsv$/i.test(filename) || (text.split('\n')[0].split('\t').length > text.split('\n')[0].split(',').length) ? '\t' : ',';
     matrix = parseCsv(text, { delimiter, relax_column_count: true, skip_empty_lines: true });
+  } else if (/\.html?$/i.test(filename)) {
+    // an official results page saved from the browser (e.g. JoSAA "Opening and Closing Ranks"): use its biggest table
+    matrix = htmlTable(buffer.toString('utf8'));
+    if (!matrix.length) throw new Error('No table found in this HTML page');
   } else {
-    throw new Error('Upload a .xlsx or .csv file (old .xls: open in Excel and “Save as” .xlsx)');
+    throw new Error('Upload a .xlsx, .csv or saved .html page (old .xls: open in Excel and “Save as” .xlsx)');
   }
   const h = pickHeaderRow(matrix);
   const headers = matrix[h].map((x, i) => String(x || '').trim() || `Column ${i + 1}`);

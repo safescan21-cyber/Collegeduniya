@@ -71,6 +71,7 @@ export default async function Footer() {
           <Link href="/about" className="hover:text-white">About us</Link>
           <Link href="/founder" className="hover:text-white">Founder</Link>
           <Link href="/editorial-policy" className="hover:text-white">How we work</Link>
+          <Link href="/trust" className="hover:text-white">Why trust us</Link>
           <Link href="/community-guidelines" className="hover:text-white">Community guidelines</Link>
           <Link href="/privacy" className="hover:text-white">Privacy</Link>
           <Link href="/terms" className="hover:text-white">Terms</Link>

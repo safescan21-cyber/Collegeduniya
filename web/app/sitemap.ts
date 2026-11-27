@@ -34,7 +34,7 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
     return rows.map((r) => ({ url: `${SITE_URL}/city/${r.slug}`, priority: 0.6 }));
   }
 
-  const base: MetadataRoute.Sitemap = ['', '/colleges', '/hostels', '/jobs', '/exams', '/news', '/questions', '/predictor', '/rank-predictor', '/rankings', '/streams', '/compare', '/apply', '/management-quota', '/recommend', '/career-quiz', '/roommates', '/scholarships', '/study-abroad/visa', '/counselling', '/study-abroad/calculator', '/near-me', '/cities', '/partners', '/top', '/mock-tests', '/community', '/about', '/founder', '/editorial-policy', '/contact', '/privacy', '/terms', '/community-guidelines', '/papers', '/trends', '/rewards', '/ambassador', '/exams/calendar', '/education-loan', '/community/shots', '/courses/search'].map((p) => ({
+  const base: MetadataRoute.Sitemap = ['', '/colleges', '/hostels', '/jobs', '/exams', '/news', '/questions', '/predictor', '/ask', '/trust', '/rank-predictor', '/rankings', '/streams', '/compare', '/apply', '/management-quota', '/recommend', '/career-quiz', '/roommates', '/scholarships', '/study-abroad/visa', '/counselling', '/study-abroad/calculator', '/near-me', '/cities', '/partners', '/top', '/mock-tests', '/community', '/about', '/founder', '/editorial-policy', '/contact', '/privacy', '/terms', '/community-guidelines', '/papers', '/trends', '/rewards', '/ambassador', '/exams/calendar', '/education-loan', '/community/shots', '/courses/search'].map((p) => ({
     url: `${SITE_URL}${p}`, changeFrequency: 'daily', priority: p ? 0.8 : 1,
   }));
   const [h, j, e, a, q, qs, qc, cc] = await Promise.all([
@@ -80,6 +80,7 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
     ...(h.data || []).map((r) => ({ url: `${SITE_URL}/hostels/${r.id}`, lastModified: r.updated_at, priority: 0.6 })),
     ...(j.data || []).map((r) => ({ url: `${SITE_URL}/jobs/${r.id}`, lastModified: r.updated_at, priority: 0.6 })),
     ...(e.data || []).map((r) => ({ url: `${SITE_URL}/exams/${r.slug}`, lastModified: r.updated_at, priority: 0.8 })),
+    ...(e.data || []).flatMap((r) => [new Date().getFullYear(), new Date().getFullYear() + 1].map((y) => ({ url: `${SITE_URL}/exams/${r.slug}/${y}`, lastModified: r.updated_at, priority: 0.8 }))),
     ...(a.data || []).map((r) => ({ url: `${SITE_URL}/news/${r.slug}`, lastModified: r.updated_at, priority: 0.7 })),
     ...(q.data || []).map((r) => ({ url: `${SITE_URL}/questions/${r.id}`, lastModified: r.created_at, priority: 0.5 })),
     ...((qs.data || []) as any[]).map((r) => ({ url: `${SITE_URL}/management-quota/${r.id}`, lastModified: r.created_at, priority: 0.7 })),

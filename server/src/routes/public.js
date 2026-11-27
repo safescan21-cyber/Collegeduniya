@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { supabase } from '../supabase.js';
 import { leadSchema, newsletterSchema, contactSchema } from '../schemas.js';
 import { autoShare } from '../services/leadShare.js';
+import { answerQuestion } from '../services/ask.js';
 
 const router = Router();
 
@@ -64,3 +65,10 @@ router.get('/newsletter/unsubscribe', async (req, res) => {
 });
 
 export default router;
+
+// "Ask Collegeolo" — answers only from our own data, with the pages it used
+const askLimit = rateLimit({ windowMs: 60_000, limit: 8, standardHeaders: 'draft-7', legacyHeaders: false, message: { error: 'Too many questions — wait a minute.' } });
+router.post('/ask', askLimit, async (req, res) => {
+  try { res.json(await answerQuestion(req.body?.q)); }
+  catch (e) { res.status(e.status || 500).json({ error: e.status ? e.message : 'Could not answer right now — try again.' }); if (!e.status) console.error('[ask]', e.message); }
+});

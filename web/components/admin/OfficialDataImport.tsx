@@ -33,7 +33,7 @@ export default function OfficialDataImport() {
   return (
     <div className="card p-5">
       <h2 className="font-bold text-slate-900">🎯 Official cutoffs & rankings</h2>
-      <p className="mt-1 text-sm text-slate-500">Upload the opening/closing rank table from JoSAA, MCC or your state counselling site, or the NIRF ranking table (save as .xlsx or .csv). Institutes are matched to your colleges by name; unmatched names are listed so you can fix them.</p>
+      <p className="mt-1 text-sm text-slate-500">Upload the opening/closing rank table from JoSAA, MCC or your state counselling site, or the NIRF ranking table (.xlsx, .csv, or the results page itself — in your browser press Ctrl+S / “Save page as” and upload the .html). Upload each round separately (Round 1 … Round 6) so students see how ranks move between rounds. Institutes are matched to your colleges by name; unmatched names are listed so you can fix them.</p>
       <div className="mt-3 flex gap-2">
         <button type="button" onClick={() => setKind('cutoffs')} className={kind === 'cutoffs' ? 'btn-primary py-1.5' : 'btn-ghost py-1.5'}>Cutoffs</button>
         <button type="button" onClick={() => setKind('rankings')} className={kind === 'rankings' ? 'btn-primary py-1.5' : 'btn-ghost py-1.5'}>NIRF rankings</button>
@@ -50,7 +50,7 @@ export default function OfficialDataImport() {
           <label className="text-sm"><span className="label">Category</span><input className="input" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })} placeholder="Overall, Engineering…" /></label>
           <label className="text-sm"><span className="label">Official page</span><input className="input" value={f.source_url} onChange={(e) => setF({ ...f, source_url: e.target.value })} /></label>
         </>}
-        <label className="text-sm"><span className="label">File</span><input type="file" accept=".xlsx,.xls,.csv" className="input py-1.5" onChange={(e) => setFile(e.target.files?.[0] || null)} /></label>
+        <label className="text-sm"><span className="label">File</span><input type="file" accept=".xlsx,.xls,.csv,.html,.htm" className="input py-1.5" onChange={(e) => setFile(e.target.files?.[0] || null)} /></label>
         <button className="btn-primary sm:col-span-4" disabled={busy}>{busy ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}Import</button>
       </form>
       {err && <p className="mt-3 text-sm text-rose-600">{err}</p>}

@@ -11,6 +11,7 @@ import TopCollegesTable, { type TopRow } from '@/components/home/TopCollegesTabl
 import WorldCollegesTable, { type WorldRow } from '@/components/home/WorldCollegesTable';
 import FutureCoursesTable from '@/components/home/FutureCoursesTable';
 import EnquiryForm from '@/components/EnquiryForm';
+import AskBox from '@/components/ask/AskBox';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 import { counters, ratingsFor } from '@/lib/data';
 import { getT } from '@/lib/i18n-server';
@@ -123,6 +124,15 @@ export default async function HomePage() {
               <p className="text-xs font-medium text-slate-500">{s.label}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ASK */}
+      <section className="container-x mt-10">
+        <div className="card p-5 sm:p-6">
+          <h2 className="text-xl font-extrabold text-slate-900">Ask Collegeolo ✨</h2>
+          <p className="mb-3 text-sm text-slate-500">Answers only from official data — closing ranks, fees, rankings, exam notices — with the source pages.</p>
+          <AskBox compact />
         </div>
       </section>
 

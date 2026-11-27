@@ -1,13 +1,13 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Target, Loader2, Info } from 'lucide-react';
+import { Target, Loader2, Info, TrendingDown, TrendingUp } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { CompareButton, SaveButton } from '@/components/ActionButtons';
 import EnquiryForm from '@/components/EnquiryForm';
 
-type Row = { college_id: string; slug: string; name: string; city: string; state?: string | null; home_state?: string | null; country: string; course: string; category: string; quota: string | null; year: number; opening_rank: number | null; closing_rank: number; chance: 'High' | 'Medium' | 'Low' };
+type Row = { college_id: string; slug: string; name: string; city: string; state?: string | null; home_state?: string | null; country: string; course: string; category: string; quota: string | null; year: number; opening_rank: number | null; closing_rank: number; prev_closing?: number | null; gender?: string; round?: string | null; chance: 'High' | 'Medium' | 'Low' };
 const CHANCE = { High: 'chip-green', Medium: 'chip-amber', Low: 'chip-red' } as const;
 
 export default function Predictor({ exams, categories, quotas, states = [], title, hideHeader = false }: { exams: { slug: string; short_name: string }[]; categories: string[]; quotas: string[]; states?: string[]; title?: string; hideHeader?: boolean }) {
@@ -22,6 +22,16 @@ export default function Predictor({ exams, categories, quotas, states = [], titl
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [filter, setFilter] = useState<'' | Row['chance']>('');
+  const [gender, setGender] = useState(params.get('gender') || '');
+  const [round, setRound] = useState('');
+  const [opts, setOpts] = useState<{ latest_year: number | null; rounds: string[] | null; genders: string[] | null } | null>(null);
+  useEffect(() => {
+    if (!exam) return;
+    setRound('');
+    supabase.rpc('cutoff_options', { p_exam: exam }).then(({ data }: { data: any }) => setOpts(((data || []) as any[])[0] || null));
+  }, [exam]); // eslint-disable-line react-hooks/exhaustive-deps
+  const hasFemaleSeats = (opts?.genders || []).some((g) => /female/i.test(g));
+  const rounds = opts?.rounds || [];
 
   const run = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +39,7 @@ export default function Predictor({ exams, categories, quotas, states = [], titl
     if (!exam) return setErr('Choose an exam.');
     if (!r || r < 1) return setErr('Enter your rank (a positive number).');
     setBusy(true); setErr('');
-    const { data, error } = await supabase.rpc('predict_colleges', { p_exam: exam, p_rank: r, p_category: category, p_quota: quota || null, p_state: homeState || null });
+    const { data, error } = await supabase.rpc('predict_colleges_v2', { p_exam: exam, p_rank: r, p_category: category, p_quota: quota || null, p_state: homeState || null, p_gender: gender || null, p_round: round || null });
     setBusy(false);
     if (error) return setErr(error.message);
     setRows((data || []) as Row[]);
@@ -64,6 +74,14 @@ export default function Predictor({ exams, categories, quotas, states = [], titl
               <div className="sm:col-span-2"><label className="label">Your home state (for state-quota seats)</label>
                 <select className="input" value={homeState} onChange={(e) => setHomeState(e.target.value)}><option value="">Not needed / outside India</option>{states.map((s) => <option key={s}>{s}</option>)}</select></div>
             )}
+            {hasFemaleSeats && (
+              <div><label className="label">Gender</label>
+                <select className="input" value={gender} onChange={(e) => setGender(e.target.value)}><option value="">Male / other</option><option value="Female">Female</option></select></div>
+            )}
+            {rounds.length > 1 && (
+              <div><label className="label">Counselling round</label>
+                <select className="input" value={round} onChange={(e) => setRound(e.target.value)}><option value="">Last round (default)</option>{rounds.map((x) => <option key={x}>{x}</option>)}</select></div>
+            )}
             {err && <p className="text-sm text-rose-600 sm:col-span-4">{err}</p>}
             <button disabled={busy} className="btn-primary sm:col-span-4">{busy ? <Loader2 size={16} className="animate-spin" /> : <Target size={16} />}Predict my colleges</button>
           </form>
@@ -85,7 +103,12 @@ export default function Predictor({ exams, categories, quotas, states = [], titl
                     <div className="min-w-0 flex-1">
                       <Link href={`/colleges/${r.slug}#cutoffs`} className="font-semibold text-slate-900 hover:text-brand-700">{r.name}</Link>
                       <p className="text-sm text-slate-600">{r.course}</p>
-                      <p className="text-xs text-slate-400">{r.city}, {r.country} · {r.year} closing rank {r.closing_rank.toLocaleString()} ({r.category}{r.quota ? `, ${r.quota}` : ''}{r.home_state && r.quota === 'Home State' ? ` · ${r.home_state}` : ''})</p>
+                      <p className="text-xs text-slate-400">{r.city}, {r.country} · {r.year}{r.round && r.round !== 'Final' ? ` ${r.round}` : ''} closing rank {r.closing_rank.toLocaleString()} ({r.category}{r.quota ? `, ${r.quota}` : ''}{r.home_state && r.quota === 'Home State' ? ` · ${r.home_state}` : ''}{r.gender && /female/i.test(r.gender) ? ' · female-only seat' : ''})</p>
+                      {r.prev_closing ? (
+                        <p className={`mt-0.5 flex items-center gap-1 text-xs ${r.prev_closing > r.closing_rank ? 'text-rose-600' : 'text-emerald-700'}`}>
+                          {r.prev_closing > r.closing_rank ? <TrendingDown size={12} /> : <TrendingUp size={12} />}
+                          {r.year - 1}: {r.prev_closing.toLocaleString()} → {r.year}: {r.closing_rank.toLocaleString()} {r.prev_closing > r.closing_rank ? '(got harder)' : r.prev_closing < r.closing_rank ? '(got easier)' : '(same)'}</p>
+                      ) : null}
                     </div>
                     <span className={CHANCE[r.chance]}>{r.chance} chance</span>
                     <CompareButton item={{ id: r.college_id, slug: r.slug, name: r.name, city: r.city }} />

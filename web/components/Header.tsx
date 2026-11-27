@@ -23,6 +23,7 @@ const MAIN: { href: string; key: DictKey }[] = [
 ];
 
 const MORE: { href: string; key: DictKey; icon: any }[] = [
+  { href: '/ask', key: 'nav.ask', icon: Sparkles },
   { href: '/mock-tests', key: 'nav.mock', icon: ClipboardCheck },
   { href: '/top', key: 'nav.top', icon: Trophy },
   { href: '/rankings', key: 'nav.nirf', icon: Trophy },

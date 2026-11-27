@@ -42,6 +42,9 @@ export default function ReviewSection({ collegeId, collegeName, reviews, avg, co
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [proof, setProof] = useState<File | null>(null);
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const verifiedCount = reviews.filter((r) => r.is_verified).length;
+  const shownReviews = verifiedOnly ? reviews.filter((r) => r.is_verified) : reviews;
   const reward = process.env.NEXT_PUBLIC_REVIEW_REWARD;
   const [form, setForm] = useState({ rating: 0, rating_faculty: 0, rating_campus: 0, rating_placement: 0, title: '', body: '', course: '', batch_year: '' });
 
@@ -127,7 +130,7 @@ export default function ReviewSection({ collegeId, collegeName, reviews, avg, co
       {reward && (
         <div className="mt-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <Gift size={20} className="mt-0.5 shrink-0 text-amber-600" />
-          <p><strong>Earn {reward}</strong> for a genuine, detailed review. Upload your college ID or fee receipt so we can verify you studied here. Verified reviews get a <BadgeCheck size={14} className="inline text-emerald-600" /> badge.</p>
+          <p><strong>Earn {reward}</strong> for a genuine, detailed review. Upload your college ID or fee receipt so we can verify you studied here. Verified reviews get a <BadgeCheck size={14} className="inline text-emerald-600" /> badge. The reward never depends on your rating — honest bad reviews are paid the same.</p>
         </div>
       )}
 
@@ -183,7 +186,14 @@ export default function ReviewSection({ collegeId, collegeName, reviews, avg, co
 
       <div className="mt-5 space-y-4">
         {reviews.length === 0 && <p className="text-sm text-slate-500">No reviews yet — be the first.</p>}
-        {reviews.map((r) => (
+        {reviews.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <button type="button" onClick={() => setVerifiedOnly(false)} className={!verifiedOnly ? 'btn-primary py-1.5' : 'btn-ghost py-1.5'}>All ({reviews.length})</button>
+            <button type="button" onClick={() => setVerifiedOnly(true)} disabled={!verifiedCount} className={verifiedOnly ? 'btn-primary py-1.5' : 'btn-ghost py-1.5'}><BadgeCheck size={14} />Verified students ({verifiedCount})</button>
+            <a href="/trust" className="text-xs text-slate-500 underline">How we check reviews</a>
+          </div>
+        )}
+        {shownReviews.map((r) => (
           <article key={r.id} className="card p-5">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">

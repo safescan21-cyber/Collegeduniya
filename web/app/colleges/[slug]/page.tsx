@@ -14,6 +14,7 @@ import QuotaSeatCard from '@/components/QuotaSeatCard';
 import CollegeCommunity from '@/components/CollegeCommunity';
 import CollegeStudents from '@/components/college/CollegeStudents';
 import CollegeNews from '@/components/college/CollegeNews';
+import IntakeGroups from '@/components/college/IntakeGroups';
 import CollegePosts from '@/components/community/CollegePosts';
 import EnquiryForm from '@/components/EnquiryForm';
 import { SaveButton, CompareButton, ShareButtons, ApplyCartButton } from '@/components/ActionButtons';
@@ -389,6 +390,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             <section id="community" className="scroll-mt-32">
               <h2 className="mb-1 text-xl font-bold text-slate-900">Talk to students of {c.short_name || c.name}</h2>
               <p className="mb-4 text-sm text-slate-500">Ask seniors about hostels, faculty and placements, or find classmates and roommates who are also applying.</p>
+              {c.country && c.country !== 'India' && <div className="mb-4"><IntakeGroups collegeId={c.id} collegeName={c.short_name || c.name} /></div>}
               <CollegeStudents collegeId={c.id} collegeName={c.short_name || c.name} />
               <CollegeCommunity collegeId={c.id} collegeName={c.short_name || c.name} />
               <div className="mt-6"><CollegePosts collegeId={c.id} collegeName={c.short_name || c.name} /></div>

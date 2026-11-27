@@ -66,6 +66,7 @@ export default async function ExamPage({ params }: { params: Promise<{ slug: str
             {facts.map((f) => <div key={f.label} className="card flex items-center gap-3 p-4"><f.icon className="text-brand-600" size={20} /><div><p className="text-xs text-slate-500">{f.label}</p><p className="font-semibold text-slate-900">{f.value}</p></div></div>)}
           </div>
         )}
+        <div className="flex flex-wrap gap-2 text-sm">{[new Date().getFullYear(), new Date().getFullYear() + 1].map((y) => <Link key={y} href={`/exams/${e.slug}/${y}`} className="chip-brand hover:opacity-90">{e.short_name} {y}: dates, cutoffs & predictor →</Link>)}</div>
         <ExamDates slug={e.slug} name={e.short_name} />
         <Block title="About the exam" text={e.description} />
         <Block title="Eligibility" text={e.eligibility} />
