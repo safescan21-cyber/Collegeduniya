@@ -28,6 +28,7 @@ export default function About() {
       ) : (
         <p>Collegeolo is an independent website{ORG.legalName ? <> operated by <strong>{ORG.legalName}</strong></> : null}{ORG.city ? <>, run from {ORG.city}</> : null}. It is not owned by any college, coaching institute or exam body.</p>
       )}
+      <p><strong>Our motive: no student should give up studying because of money.</strong> Our founder wanted to do research at a foreign university after college, but his finances didn’t allow it — so Collegeolo helps every student find the right college, scholarships, education loans, part-time jobs and an affordable place to stay, for free.</p>
       {ORG.founderLinkedin && <p><Link href="/founder">Meet the founder</Link> · <a href={ORG.founderLinkedin} target="_blank" rel="noopener noreferrer">{ORG.founder} on LinkedIn</a></p>}
       {ORG.founderNote && <blockquote className="border-s-4 border-brand-200 ps-4 italic text-slate-600">{ORG.founderNote}</blockquote>}
       <p>We are not linked to any government body, university or exam conducting authority. Always confirm dates, fees and seat details on the official website before you pay or apply.</p>

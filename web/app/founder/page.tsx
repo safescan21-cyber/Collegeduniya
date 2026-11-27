@@ -36,7 +36,12 @@ export default function Founder() {
             </div>
           </div>
 
-          <blockquote className="mt-8 rounded-2xl border-s-4 border-brand-500 bg-brand-50/60 p-5">
+          <p className="mt-8 text-center text-2xl font-extrabold leading-snug text-slate-900 sm:text-3xl">
+            <span className="block text-xs font-bold uppercase tracking-widest text-brand-600">My motive</span>
+            “No student should give up studying because of money.”
+          </p>
+
+          <blockquote className="mt-6 rounded-2xl border-s-4 border-brand-500 bg-brand-50/60 p-5">
             <p className="text-xs font-bold uppercase tracking-wide text-brand-700">Why I started Collegeolo</p>
             <p className="mt-2 text-lg font-medium leading-relaxed text-slate-800">“When I graduated from college, I wanted to go abroad and do research at a foreign university — but my finances didn’t allow it. I built Collegeolo so that every student can study: with free help to find the right college, scholarships, education loans, part-time jobs and an affordable place to stay.”</p>
             <p className="mt-2 text-sm font-semibold text-slate-600">— {ORG.founder}</p>
