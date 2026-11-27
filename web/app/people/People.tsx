@@ -8,6 +8,7 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 import FollowButton from '@/components/community/FollowButton';
 import Verified from '@/components/campus/Verified';
 import MessageButton, { type ChatMode } from '@/components/chat/MessageButton';
+import PushPrompt from '@/components/chat/PushPrompt';
 
 type Person = { id: string; name: string; username: string | null; verified: boolean; avatar_url: string | null; college_name: string | null; college_slug: string | null;
   same_college: boolean; course: string | null; batch_year: number | null; relation: string; mode: ChatMode; last_seen: string | null; i_follow: boolean; follows_me: boolean;
@@ -63,6 +64,7 @@ export default function People() {
         <Link href="/messages" className="btn-ghost py-2 text-sm">My chats →</Link>
       </div>
 
+      <PushPrompt className="mt-4" />
       <div className="relative mt-5"><Search size={16} className="absolute start-3 top-3 text-slate-400" />
         <input className="input ps-9" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search @username, course or college — e.g. CSE, IIT Delhi, MBBS" /></div>
       {!q.trim() && <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1">{TABS.map(({ k, l, I }) => (

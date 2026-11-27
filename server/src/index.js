@@ -29,6 +29,7 @@ import { startHealthMonitor } from './services/health.js';
 import { errorWatch, startErrorWatch } from './services/errorWatch.js';
 import { supabase as sbAdmin } from './supabase.js';
 import { loadSecrets } from './services/secrets.js';
+import { initPush, pushPublicKey } from './services/push.js';
 import { startNearbyPrefill } from './services/geo.js';
 import { startAutoCountries } from './services/autoCountries.js';
 import { startBundledCourses } from './services/bundledCourses.js';
@@ -71,6 +72,7 @@ app.get('/api/whatsapp/status', (_req, res) => res.json({ login: otpReady(), not
 app.use('/api', rateLimit({ windowMs: 60_000, limit: Number(process.env.API_RATE_PER_MIN || 600), standardHeaders: 'draft-7', legacyHeaders: false,
   skip: (req) => req.path === '/health' || req.path.startsWith('/hooks') || req.path.startsWith('/payments/razorpay'),
   message: { error: 'Too many requests from your network — please wait a minute and try again.' } }));
+app.get('/api/push/key', (_req, res) => { const key = pushPublicKey(); res.set('Cache-Control', 'public, max-age=3600'); res.json({ key }); });   // public: browsers need it to subscribe
 app.use('/api', loadUser);
 app.use('/api/track', trackRoutes);
 app.use('/api', publicRoutes);       // /api/leads, /api/newsletter
@@ -139,7 +141,7 @@ const server = app.listen(PORT, () => {
   startExamDates();
   startFxSync();
   startOfficialFees();
-  loadSecrets().then((n) => n && console.log(`[secrets] ${n} key(s) from the admin panel`)).finally(() =>
+  loadSecrets().then((n) => n && console.log(`[secrets] ${n} key(s) from the admin panel`)).then(() => initPush()).finally(() =>
     console.log(`[ai] ${llmReady() ? `${llmProvider()} · ${llmModel()}` : 'not configured — mock-test generation and AI feedback are off (rule-based feedback still works)'}`));
 });
 

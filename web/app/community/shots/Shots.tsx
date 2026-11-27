@@ -7,6 +7,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { uploadMedia, uploadPoster, mediaUrl, MAX_VIDEO_MB } from '@/lib/media';
 import { shotPath } from '@/lib/shotUrl';
+import MessageButton from '@/components/chat/MessageButton';
 import { timeAgo } from '@/lib/format';
 import Verified from '@/components/campus/Verified';
 import Watermark from '@/components/Watermark';
@@ -135,6 +136,7 @@ function Shot({ shot, muted, setMuted, onNear, onDeleted }: { shot: FeedPost; mu
           {p.author_username ? <Link href={`/u/${p.author_username}`} className="font-bold hover:underline">@{p.author_username}</Link> : <span className="font-bold">{p.author_name}</span>}
           <Verified on={p.author_verified} size={14} />
           {!p.is_mine && <FollowButton userId={p.author_id} initial={loggedIn ? !!p.author_followed : undefined} variant="dark" onChange={(f) => setP((x) => ({ ...x, author_followed: f }))} />}
+          {!p.is_mine && loggedIn && <MessageButton key={`${p.author_id}-${!!p.author_followed}`} userId={p.author_id} size="sm" />}
         </div>
         <p className="mt-0.5 truncate text-xs text-white/70">{p.college_name && <>{p.college_slug ? <Link href={`/colleges/${p.college_slug}`} className="hover:underline">{p.college_name}</Link> : p.college_name} · </>}
           <Link href={shotPath(p.id, p.body)} className="hover:underline" title="This shot's own page — link to share">{timeAgo(p.created_at)}</Link></p>

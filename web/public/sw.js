@@ -36,3 +36,31 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
+
+// ---- notifications (new messages, chat requests, comments) — sent by the API with Web Push
+self.addEventListener('push', (event) => {
+  let d = {};
+  try { d = event.data ? event.data.json() : {}; } catch { d = { title: 'Collegeolo', body: event.data ? event.data.text() : '' }; }
+  const title = d.title || 'Collegeolo';
+  event.waitUntil((async () => {
+    // already looking at that chat? don't buzz
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    if (d.url && wins.some((w) => w.focused && new URL(w.url).pathname + new URL(w.url).search === d.url)) return;
+    await self.registration.showNotification(title, {
+      body: d.body || '', icon: '/icons/icon-192.png', badge: '/icons/icon-192.png',
+      tag: d.tag || undefined, renotify: !!d.tag, data: { url: d.url || '/' },
+    });
+  })());
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin).href;
+  event.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const w of wins) {
+      if (new URL(w.url).origin === self.location.origin && 'focus' in w) { await w.focus(); if ('navigate' in w) await w.navigate(target); return; }
+    }
+    await self.clients.openWindow(target);
+  })());
+});
