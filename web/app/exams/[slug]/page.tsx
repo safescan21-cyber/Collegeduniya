@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import { ExternalLink, Target, CalendarDays, Building2, Monitor, Repeat } from 'lucide-react';
 import EnquiryForm from '@/components/EnquiryForm';
 import FollowExam from '@/components/exams/FollowExam';
+import { prepFor } from '@/lib/prepMaterial';
 import ExamDates from '@/components/exams/ExamDates';
 import ExamNewsList, { type ExamNewsItem } from '@/components/exams/ExamNewsList';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
@@ -98,6 +99,7 @@ export default async function ExamPage({ params }: { params: Promise<{ slug: str
         )}
       </div>
       <aside className="space-y-5">
+        {prepFor(e.slug) && <Link href={`/exams/${e.slug}/study-material`} className="btn-primary w-full">Free {e.short_name} study material</Link>}
         {mockBp && <Link href={`/mock-tests/${e.slug}`} className="btn-primary w-full">Take a free {e.short_name} mock test</Link>}
         {e.level !== 'Abroad' && <Link href={`/rank-predictor/${e.slug}`} className="btn-ghost w-full">{e.short_name} rank predictor</Link>}
         {extUrl(e.website) && <a href={extUrl(e.website)!} target="_blank" rel="noopener noreferrer" className={mockBp ? 'btn-ghost w-full' : 'btn-primary w-full'}><ExternalLink size={16} />Official website</a>}
