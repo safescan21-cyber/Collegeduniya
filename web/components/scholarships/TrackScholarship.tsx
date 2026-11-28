@@ -35,6 +35,7 @@ export default function TrackScholarship({ id, deadline }: { id: string; deadlin
         <option value="remove">Stop tracking</option>
       </select>
       {status === 'planning' && deadline && <span className="flex items-center gap-1 text-xs text-emerald-700"><Check size={13} />We’ll remind you 7 days and 1 day before the deadline</span>}
+      {status === 'won' && <a href="#stories" className="text-xs font-semibold text-emerald-700 hover:underline">Congratulations! Share how you got it →</a>}
       <Link href="/scholarships#mine" className="text-xs font-semibold text-brand-700 hover:underline">My scholarships →</Link>
     </span>
   );

@@ -22,6 +22,7 @@ import presenceRoutes, { startPresenceCleanup } from './routes/presence.js';
 import { llmReady, llmProvider, llmModel } from './services/llm.js';
 import hookRoutes from './routes/hooks.js';
 import verifyRoutes from './routes/verify.js';
+import storyRoutes from './routes/stories.js';
 import callRoutes from './routes/calls.js';
 import accountRoutes from './routes/account.js';
 import { startCollegeAutofill } from './services/collegeAutofill.js';
@@ -87,6 +88,7 @@ app.use('/api', geoRoutes);         // /api/cities, /api/nearby, /api/local-jobs
 app.use('/api/payments', paymentRoutes);
 app.use('/api/mock', mockRoutes);
 app.use('/api/verify', verifyRoutes);
+app.use('/api', storyRoutes);        // /api/scholarships/:id/stories, /api/admin/scholarship-stories
 app.use('/api/calls', callRoutes);
 app.use('/api/account', accountRoutes);
 app.use('/api', presenceRoutes);   // /api/presence, /api/session/login

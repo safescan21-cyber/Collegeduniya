@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ExternalLink, GraduationCap, Wallet, CalendarDays, Lightbulb, School } from 'lucide-react';
+import { ExternalLink, GraduationCap, Wallet, CalendarDays, Lightbulb, School, Award } from 'lucide-react';
 import VisaNews from '@/components/abroad/VisaNews';
 import EnquiryForm from '@/components/EnquiryForm';
 import { GUIDES, CHECKED, type Guide, type Step } from '@/lib/admissionGuides';
 import { money } from '@/lib/format';
+import ApplySteps from '@/components/scholarships/ApplySteps';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
 
 const bySlug = (slug: string): Guide | null => Object.values(GUIDES).find((g) => g.slug === slug) || null;
@@ -39,10 +40,13 @@ function Steps({ steps }: { steps: Step[] }) {
 export default async function CountryGuidePage({ params }: { params: Promise<{ country: string }> }) {
   const g = bySlug((await params).country);
   if (!g) notFound();
-  let top: any[] = [];
+  let top: any[] = []; let sch: any[] = [];
   if (hasSupabase) {
-    const { data } = await supabasePublic().rpc('world_top_table', { p_country: g.country, p_lim: 25 });
-    top = (data || []) as any[];
+    const [t, s] = await Promise.all([
+      supabasePublic().rpc('world_top_table', { p_country: g.country, p_lim: 25 }),
+      supabasePublic().from('scholarships').select('slug, name, provider, levels, amount_note, how_to_apply, official_url').eq('host_country', g.code).eq('is_published', true).order('name').limit(12),
+    ]);
+    top = (t.data || []) as any[]; sch = (s.data || []) as any[];
   }
   const faq = [
     { q: `Can Indian students study in ${g.country} after Class 12?`, a: g.ugSteps[0].text },
@@ -105,6 +109,21 @@ export default async function CountryGuidePage({ params }: { params: Promise<{ c
               </table>
             </div>
             <p className="p-4 text-xs text-slate-400">World rank: CWTS Leiden Ranking (research output). Fees from official university / government data.</p>
+          </section>
+        )}
+
+        {sch.length > 0 && (
+          <section id="scholarships" className="card scroll-mt-24 space-y-5 p-6">
+            <h2 className="flex items-center gap-2 text-xl font-bold text-slate-900"><Award size={20} className="text-brand-600" />Scholarships for {g.country} — how to apply</h2>
+            {sch.map((x) => (
+              <div key={x.slug} className="border-t border-slate-100 pt-4 first:border-0 first:pt-0">
+                <Link href={`/scholarships/${x.slug}`} className="font-semibold text-brand-700 hover:underline">{x.name}</Link>
+                <p className="text-sm text-slate-500">{[x.provider, (x.levels || []).join(', ')].filter(Boolean).join(' · ')}</p>
+                {x.amount_note && <p className="mt-1 text-sm text-emerald-700">{x.amount_note}</p>}
+                <div className="mt-2"><ApplySteps text={x.how_to_apply} compact /></div>
+                <p className="mt-2 text-sm"><Link href={`/scholarships/${x.slug}#stories`} className="text-brand-700 hover:underline">Stories from students who got it →</Link></p>
+              </div>
+            ))}
           </section>
         )}
 
