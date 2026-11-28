@@ -122,7 +122,7 @@ export async function collectOfficialFees({ limit = Number(env('FEES_PER_RUN', 1
   let q = supabase.from('colleges').select('id, name, city, country, website').eq('is_published', true).not('website', 'is', null);
   if (collegeId) q = q.eq('id', collegeId);
   else {
-    const countries = String(env('FEES_COUNTRIES', 'India,United Kingdom')).split(',').map((s) => s.trim()).filter(Boolean);
+    const countries = String(env('FEES_COUNTRIES', 'India,United Kingdom,Germany,Japan,Canada,Australia,Ireland,New Zealand,Singapore,France,Netherlands,Italy,Spain,Sweden,South Korea')).split(',').map((s) => s.trim()).filter(Boolean);
     if (countries.length && env('FEES_ALL_COUNTRIES', 'off') !== 'on') q = q.in('country', countries);
     q = q.order('fees_checked_at', { ascending: true, nullsFirst: true }).order('ranking', { ascending: true, nullsFirst: false });
   }

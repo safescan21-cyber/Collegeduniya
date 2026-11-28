@@ -307,7 +307,7 @@ export default async function CollegePage({ params }: { params: Promise<{ slug: 
             ) : <EmptyState title="Courses not added yet" />}
           </section>}
 
-          <CountryGuide c={{ name: c.name, short_name: c.short_name, country_code: (c as any).country_code, state: c.state, type: c.type, website: site, admission_rate: (c as any).admission_rate, facts: (c as any).facts }} />
+          <CountryGuide c={{ name: c.name, short_name: c.short_name, country_code: (c as any).country_code, state: c.state, type: c.type, website: site, admission_rate: (c as any).admission_rate, facts: (c as any).facts, country: (c as any).country }} />
           {show('admission') && <Admission name={c.short_name || c.name} process={cx.admission_process} dates={dates} exams={cx.exams_accepted || []} examNames={examNames}
             eligibility={courseList.filter((x: any) => x.eligibility).slice(0, 15).map((x: any) => ({ course: x.name, text: x.eligibility }))} />}
           {show('placements') && placementList.length > 0 && (

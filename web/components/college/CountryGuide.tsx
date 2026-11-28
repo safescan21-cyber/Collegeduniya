@@ -3,9 +3,9 @@ import { Globe2, ArrowRight, ExternalLink } from 'lucide-react';
 import { guideFor, germanFeeRule, japanFeeRule, CHECKED } from '@/lib/admissionGuides';
 
 // "How to get admission" for colleges in countries with a guide (US, DE, JP, GB, CA, AU) — the country's official process + the fee rule for this college
-export default function CountryGuide({ c }: { c: { name: string; short_name?: string | null; country_code?: string | null; state?: string | null; type?: string | null; website?: string | null; admission_rate?: number | null; facts?: any } }) {
+export default function CountryGuide({ c }: { c: { name: string; short_name?: string | null; country_code?: string | null; state?: string | null; type?: string | null; website?: string | null; admission_rate?: number | null; facts?: any; country?: string | null } }) {
   const g = guideFor(c.country_code);
-  if (!g) return null;
+  if (!g) return c.country_code && c.country_code !== 'IN' ? <GeneralGuide c={c} /> : null;
   const fee = g.code === 'DE' ? germanFeeRule(c) : g.code === 'JP' ? japanFeeRule(c) : null;
   const name = c.short_name || c.name;
   // Last year's entry (U.S. only — IPEDS via College Scorecard): the closest thing to a "previous cutoff" abroad
@@ -49,6 +49,39 @@ export default function CountryGuide({ c }: { c: { name: string; short_name?: st
         {c.website && <a href={c.website} target="_blank" rel="noopener nofollow" className="btn-ghost py-2">{name} admissions website<ExternalLink size={14} /></a>}
       </div>
       <p className="text-xs text-slate-400">From official sources, checked {CHECKED}. Rules change — always confirm on the university’s and embassy’s websites.</p>
+    </section>
+  );
+}
+
+// Any other country: the general route every foreign university follows, pointing to the university's own pages (no made-up facts)
+function GeneralGuide({ c }: { c: { name: string; short_name?: string | null; website?: string | null; country?: string | null } }) {
+  const name = c.short_name || c.name;
+  const where = c.country || 'this country';
+  const site = c.website ? (/^https?:\/\//i.test(c.website) ? c.website : `https://${c.website}`) : null;
+  const steps: [string, string][] = [
+    ['Pick the course and check entry requirements', `On ${name}’s official website, open the international admissions page for your course. It lists the marks needed (Class 12 for a bachelor’s, a bachelor’s degree for a master’s), the documents, and whether the course is taught in English or the local language.`],
+    ['Prepare the tests and documents', 'Usually: mark sheets and certificates, passport, statement of purpose, references (master’s), and an English test (IELTS, TOEFL, PTE or Duolingo — check which one the university accepts). Courses taught in the local language need a language certificate.'],
+    ['Apply before the deadline', 'Apply on the university’s own portal (or the national portal it names). Many universities have one main intake a year; deadlines are often 6–9 months before the course starts.'],
+    ['Get the offer and pay the deposit', 'Read the offer conditions, pay any deposit the university asks for, and keep the official acceptance letter — you need it for the visa.'],
+    [`Apply for the ${where} student visa`, `Apply at ${where}’s embassy or consulate in India (or its visa centre). Usually you show the acceptance letter, proof of money for fees and living costs, health insurance and your passport.`],
+  ];
+  return (
+    <section id="how-to-apply" className="card scroll-mt-32 space-y-4 p-6">
+      <h2 className="flex items-center gap-2 text-xl font-bold text-slate-900"><Globe2 size={20} className="text-brand-600" />How Indian students get admission to {name}</h2>
+      <p className="text-sm text-slate-600">The general steps for studying in {where}. Fees, deadlines and requirements differ for each course — always confirm them on the university’s official pages before paying anything.</p>
+      <ol className="space-y-3">
+        {steps.map(([t, x], i) => (
+          <li key={t} className="flex gap-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">{i + 1}</span>
+            <div><p className="font-semibold text-slate-900">{t}</p><p className="text-sm text-slate-600">{x}</p></div>
+          </li>
+        ))}
+      </ol>
+      <div className="flex flex-wrap gap-2 text-sm">
+        {site && <a href={site} target="_blank" rel="noopener nofollow" className="btn-primary py-1.5"><ExternalLink size={14} />{name} official website</a>}
+        <Link href="/study-abroad/visa" className="btn-ghost py-1.5">Student visa guides<ArrowRight size={14} /></Link>
+        <Link href="/scholarships" className="btn-ghost py-1.5">Scholarships<ArrowRight size={14} /></Link>
+      </div>
     </section>
   );
 }
