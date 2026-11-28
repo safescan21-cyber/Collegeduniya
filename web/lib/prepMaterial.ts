@@ -11,6 +11,7 @@ export type Prep = {
   plan: { week: string; focus: string }[];
   free: { label: string; href: string; note: string }[];
   checked: string;
+  examPage?: boolean;   // false when the site has no /exams/<slug> page for this exam
 };
 
 export const PREP: Record<string, Prep> = {
@@ -331,6 +332,372 @@ export const PREP: Record<string, Prep> = {
     ],
     checked: '28 November 2026',
   },
+  xat: {
+    slug: 'xat', exam: 'XAT', title: 'XAT free study material',
+    intro: 'Notes, strategy and solved questions for XAT (Xavier Aptitude Test), conducted by XLRI Jamshedpur and accepted by XLRI and over 160 other B-schools. XAT is known for its Decision Making section — practise it the most.',
+    pattern: {
+      rows: [
+        ['Part 1 — Verbal & Logical Ability', 'about 26', 'shared 170 min', 'Reading comprehension, critical reasoning, para-jumbles, poems'],
+        ['Part 1 — Decision Making', 'about 21', 'shared 170 min', 'Business and ethical situations, sets with conditions'],
+        ['Part 1 — Quantitative Ability & DI', 'about 28', 'shared 170 min', 'Arithmetic, algebra, geometry, data interpretation'],
+        ['Part 2 — General Knowledge', 'about 20', '10 min', 'Current affairs and static GK (not used in the main score)'],
+      ],
+      notes: [
+        'XAT 2026: about 95 multiple-choice questions in 180 minutes; Part 1 has no separate time limit per section.',
+        'Part 1 marking: +1 correct, −0.25 wrong, and a small deduction for leaving more than 8 questions unanswered. GK has no negative marking.',
+        'The essay was dropped from the test in 2025 (colleges may ask for it at interview). Check the bulletin on xatonline.in every year.',
+      ],
+      source: { label: 'xatonline.in (official XAT website)', href: 'https://xatonline.in/' },
+    },
+    sections: [
+      {
+        name: 'Decision Making', short: 'DM',
+        about: 'You are a manager in a situation and must pick the most reasonable action. There are no formulas — it tests judgement.',
+        topics: [
+          { title: 'How to judge options', points: [
+            'Identify who is affected (company, employees, customers, society) and what the real problem is.',
+            'Prefer options that solve the root cause over ones that only fix the symptom.',
+            'Prefer fair, legal and ethical actions that are also practical; avoid extreme steps (firing everyone, ignoring the issue).',
+            'Prefer steps that gather facts or talk to people before a final judgement when information is missing.',
+          ] },
+          { title: 'Analytical DM sets', points: [
+            'Some sets are logic puzzles in a business story (allocating tasks, choosing suppliers). Draw a table of conditions.',
+            'Check every condition against the chosen option — one broken rule makes it wrong.',
+          ] },
+        ],
+        strategy: [
+          'Attempt DM first or second — it often decides the overall percentile.',
+          'Read the last line of the question first: is it asking for the best, the worst, or the first step?',
+          'Discuss DM answers with friends after practice; understanding why an option is better teaches the most.',
+        ],
+        practice: [
+          { q: 'A store manager finds that a long-serving, well-liked employee has been coming in late for two weeks. What should the manager do first?', options: [
+            'Issue a written warning immediately.',
+            'Talk to the employee privately to understand the reason.',
+            'Ignore it because the employee is valuable.',
+            'Announce a strict late-coming rule to all staff.'], answer: 'Talk to the employee privately to understand the reason.',
+            solution: 'The first step should find the cause before acting. A warning or a blanket rule skips that; ignoring it is unfair to others.' },
+          { q: 'A supplier offers a large discount if the company switches all orders to it, but its quality checks are not yet proven. What is the most sensible decision?', options: [
+            'Switch all orders at once to save money.',
+            'Reject the offer completely.',
+            'Run a trial order, check quality, then decide how much to move.',
+            'Ask the current supplier to match the price without checking anything.'], answer: 'Run a trial order, check quality, then decide how much to move.',
+            solution: 'It captures the saving while controlling the quality risk; the other options are either reckless or close the door without information.' },
+        ],
+      },
+      {
+        name: 'Verbal & Logical Ability', short: 'VALR',
+        about: 'Reading-heavy and often abstract; XAT also asks questions on short poems and on the logic of arguments.',
+        topics: [
+          { title: 'Reading & arguments', points: [
+            'Find the main point and the author\'s attitude; answers that are too strong or off-topic are usually wrong.',
+            'For critical reasoning, separate the conclusion from the evidence and look for the gap between them.',
+            'For poems, read twice: first for the picture, then for the feeling or message.',
+          ] },
+          { title: 'Para-jumbles & vocabulary', points: [
+            'Start with the sentence that introduces the topic; pair a claim with its example.',
+            'Learn words from reading, not lists — note new words with the sentence they came in.',
+          ] },
+        ],
+        strategy: ['Read editorials and long essays daily (economics, philosophy, literature).', 'Leave very long or very abstract passages for the end.'],
+        practice: [
+          { q: '"All managers in the firm have an MBA. Riya has an MBA. So Riya is a manager in the firm." What is wrong with this argument?', options: [
+            'Nothing — it is valid.',
+            'Having an MBA does not mean someone is a manager; the rule only works the other way.',
+            'Riya may not have an MBA.',
+            'Managers do not need MBAs.'], answer: 'Having an MBA does not mean someone is a manager; the rule only works the other way.',
+            solution: '"All managers have an MBA" says nothing about every MBA holder being a manager.' },
+        ],
+      },
+      {
+        name: 'Quantitative Ability & Data Interpretation', short: 'QADI',
+        about: 'Similar topics to CAT quant, with more data interpretation and some lengthy calculations.',
+        topics: [
+          { title: 'Core topics', points: [
+            'Arithmetic: percentages, ratio, time-speed-distance, work, interest — see the CAT notes for formulas.',
+            'Algebra: equations, inequalities, progressions, functions.',
+            'Geometry and mensuration: triangles, circles, areas and volumes.',
+            'DI: tables and charts — estimate with round numbers before calculating.',
+          ] },
+        ],
+        strategy: ['Skip questions that need long calculation in the first round.', 'With −0.25 per wrong answer, guess only when you can remove two options.'],
+        practice: [
+          { q: 'A sum doubles in 8 years at simple interest. What is the rate per year?', options: ['8%', '10%', '12.5%', '25%'], answer: '12.5%',
+            solution: 'Interest equals the principal in 8 years: P × R × 8 / 100 = P → R = 12.5%.' },
+          { q: 'The ratio of boys to girls is 3 : 2. If 10 girls join, the ratio becomes 1 : 1. How many boys are there?', options: ['20', '30', '25', '15'], answer: '30',
+            solution: 'Boys 3k, girls 2k. 3k = 2k + 10 → k = 10, so boys = 30.' },
+        ],
+      },
+    ],
+    plan: [
+      { week: 'Months 1–2', focus: 'Quant and verbal basics (shared with CAT); one DM set a day.' },
+      { week: 'Month 3', focus: 'Two DM sets and one RC a day; weekly sectional test.' },
+      { week: 'Last 6 weeks', focus: 'Full mocks with the 170 + 10 minute timing; GK 20 minutes a day from news.' },
+    ],
+    free: [
+      { label: 'XAT official website (bulletin, mock test)', href: 'https://xatonline.in/', note: 'Official pattern, dates and the free official mock.' },
+      { label: 'CAT notes (quant & verbal formulas)', href: '/exams/cat/study-material', note: 'Most quant and verbal topics are shared with CAT.' },
+      { label: 'XAT exam page', href: '/exams/xat', note: 'Dates and notices on Collegeolo.' },
+    ],
+    checked: '28 November 2026',
+  },
+
+  snap: {
+    slug: 'snap', exam: 'SNAP', title: 'SNAP free study material', examPage: false,
+    intro: 'Notes, strategy and solved questions for SNAP (Symbiosis National Aptitude Test) — the entrance test for Symbiosis MBA colleges such as SIBM Pune and SCMHRD. SNAP is about speed: 60 questions in 60 minutes.',
+    pattern: {
+      rows: [
+        ['General English', '15', 'no sectional limit', 'Reading comprehension, verbal reasoning, verbal ability'],
+        ['Analytical & Logical Reasoning', '25', 'no sectional limit', 'Puzzles, arrangements, series, coding, critical reasoning'],
+        ['Quantitative, DI & Data Sufficiency', '20', 'no sectional limit', 'Arithmetic, algebra, data interpretation, data sufficiency'],
+      ],
+      notes: [
+        'SNAP 2025: 60 multiple-choice questions in 60 minutes, computer-based; you can move between sections freely.',
+        'Marking: +1 for a correct answer, −0.25 for a wrong answer.',
+        'Candidates may take more than one SNAP test and the best score counts — check the current rules on snaptest.org.',
+      ],
+      source: { label: 'snaptest.org (official SNAP website)', href: 'https://www.snaptest.org/' },
+    },
+    sections: [
+      {
+        name: 'Analytical & Logical Reasoning', short: 'LR',
+        about: 'The biggest section (25 questions). Many questions are short and can be solved in under a minute.',
+        topics: [
+          { title: 'Quick-win question types', points: [
+            'Number and letter series: check differences, then ratios, then alternate terms.',
+            'Coding-decoding: compare the position of each letter (A = 1 … Z = 26).',
+            'Blood relations: draw a small family tree with + for male and − for female.',
+            'Direction sense: draw arrows; remember right of north is east.',
+          ] },
+          { title: 'Puzzles & arrangements', points: [
+            'Fix definite information first, then cases.',
+            'If a puzzle has more than five conditions and no fixed point, leave it for the end.',
+          ] },
+        ],
+        strategy: ['Target 18–20 of the 25 here — it is the easiest place to score in SNAP.', 'Do not spend more than 90 seconds on a single question.'],
+        practice: [
+          { q: 'Find the next number: 2, 6, 12, 20, 30, ?', options: ['40', '42', '44', '36'], answer: '42',
+            solution: 'Differences are 4, 6, 8, 10, so the next is 12: 30 + 12 = 42. (Also n × (n + 1): 6 × 7 = 42.)' },
+          { q: 'If CAT is written as DBU, how is DOG written?', options: ['EPH', 'EPG', 'CNF', 'FQI'], answer: 'EPH',
+            solution: 'Each letter moves one step forward: D→E, O→P, G→H.' },
+          { q: 'Ravi walks 5 km north, turns right and walks 3 km, then turns right and walks 5 km. How far is he from the start?', options: ['3 km', '5 km', '8 km', '13 km'], answer: '3 km',
+            solution: 'North 5, east 3, then south 5 — he ends 3 km east of the start.' },
+        ],
+      },
+      {
+        name: 'Quantitative, DI & Data Sufficiency', short: 'QA',
+        about: 'Mostly arithmetic at moderate difficulty, plus a few data interpretation and data sufficiency questions.',
+        topics: [
+          { title: 'Core topics', points: [
+            'Percentages, profit and loss, ratio, averages, simple and compound interest.',
+            'Time-speed-distance and work; quadratic equations; permutations and probability.',
+            'Data sufficiency: decide whether the information is enough — you rarely need the final number.',
+          ] },
+        ],
+        strategy: ['Solve easy arithmetic first; skip long DI sets if time is short.', 'Use the options: substitute rather than solve fully.'],
+        practice: [
+          { q: 'An item bought for ₹800 is sold for ₹920. What is the profit percentage?', options: ['12%', '15%', '13%', '20%'], answer: '15%',
+            solution: 'Profit = 120; 120 / 800 = 15%.' },
+          { q: 'What is the average of the first 10 natural numbers?', options: ['5', '5.5', '6', '10'], answer: '5.5',
+            solution: 'Average of an arithmetic sequence = (first + last)/2 = (1 + 10)/2 = 5.5.' },
+        ],
+      },
+      {
+        name: 'General English', short: 'GE',
+        about: '15 questions — reading comprehension plus grammar and vocabulary.',
+        topics: [
+          { title: 'What to revise', points: [
+            'Subject-verb agreement, tenses, prepositions and articles.',
+            'Synonyms, antonyms and commonly confused words (affect/effect, principal/principle).',
+            'Short reading passages: answer from the text, not general knowledge.',
+          ] },
+        ],
+        strategy: ['Spend about 12–15 minutes here; grammar questions are quick wins.'],
+        practice: [
+          { q: 'Choose the correct sentence.', options: ['Each of the students have a book.', 'Each of the students has a book.', 'Each of the student has books.', 'Each students have a book.'], answer: 'Each of the students has a book.',
+            solution: '"Each" is singular, so the verb is "has".' },
+        ],
+      },
+    ],
+    plan: [
+      { week: 'Weeks 1–3', focus: 'Reasoning question types daily; quant basics; grammar rules.' },
+      { week: 'Weeks 4–6', focus: '60-minute mock twice a week; analyse speed — target about 1 minute per question.' },
+    ],
+    free: [
+      { label: 'SNAP official website (mock test, pattern)', href: 'https://www.snaptest.org/', note: 'Official pattern, dates and the free official mock.' },
+      { label: 'CAT notes (quant formulas)', href: '/exams/cat/study-material', note: 'Quant formulas apply to SNAP too.' },
+    ],
+    checked: '28 November 2026',
+  },
+
+  nmat: {
+    slug: 'nmat', exam: 'NMAT', title: 'NMAT free study material', examPage: false,
+    intro: 'Notes, strategy and solved questions for NMAT by GMAC — accepted by NMIMS and many other B-schools. NMAT has no negative marking and you can take it up to three times in the testing window, so answer every question.',
+    pattern: {
+      rows: [
+        ['Language Skills', '36', '28 min', 'Reading comprehension, grammar, vocabulary, para-jumbles'],
+        ['Quantitative Skills', '36', '52 min', 'Arithmetic, algebra, data interpretation, data sufficiency'],
+        ['Logical Reasoning', '36', '40 min', 'Puzzles, arrangements, critical reasoning, series, coding'],
+      ],
+      notes: [
+        '108 multiple-choice questions in 120 minutes; each section is timed separately and you choose the order of sections.',
+        'No negative marking. Scaled score 36–360 (each section 12–120).',
+        'You can take NMAT up to three times in the testing window and schedule your own date — check mba.com/nmat for the current rules.',
+      ],
+      source: { label: 'NMAT by GMAC (official)', href: 'https://www.mba.com/exams/nmat' },
+    },
+    sections: [
+      {
+        name: 'Language Skills', short: 'LS',
+        about: '36 questions in 28 minutes — under a minute each, so speed matters most.',
+        topics: [
+          { title: 'What to revise', points: [
+            'Grammar: agreement, tenses, modifiers, parallel structure.',
+            'Vocabulary in context and fill-in-the-blanks.',
+            'Short reading passages and para-jumbles.',
+          ] },
+        ],
+        strategy: ['Answer every question — no negative marking.', 'Do grammar and vocabulary first; RC last.'],
+        practice: [
+          { q: 'Fill in the blank: The committee ___ its decision after a long meeting.', options: ['have announced', 'announced', 'were announcing', 'announce'], answer: 'announced',
+            solution: '"Committee" is treated as a single body here, and the past action needs the past tense: "announced".' },
+        ],
+      },
+      {
+        name: 'Quantitative Skills', short: 'QS',
+        about: 'The section with the most time per question; arithmetic and data interpretation dominate.',
+        topics: [
+          { title: 'Core topics', points: [
+            'Percentages, ratio, averages, profit and loss, interest.',
+            'Equations, inequalities, progressions; probability and counting.',
+            'Data interpretation tables and charts; data sufficiency.',
+          ] },
+        ],
+        strategy: ['Use the 52 minutes for accuracy; guess the last few if time runs out — no penalty.'],
+        practice: [
+          { q: 'A number is increased by 20% and the result is 150. What was the number?', options: ['120', '125', '130', '180'], answer: '125',
+            solution: '1.2 × n = 150 → n = 125.' },
+          { q: 'A bag has 3 red and 5 blue balls. One is drawn at random. What is the probability it is red?', options: ['3/5', '3/8', '5/8', '1/3'], answer: '3/8',
+            solution: '3 red out of 8 balls: 3/8.' },
+        ],
+      },
+      {
+        name: 'Logical Reasoning', short: 'LR',
+        about: 'Puzzles, arrangements and critical reasoning — set-based questions take the most time.',
+        topics: [
+          { title: 'Question types', points: [
+            'Seating and scheduling puzzles: draw the grid first.',
+            'Syllogisms: use simple circles (Venn diagrams).',
+            'Critical reasoning: assumption, strengthen, weaken, conclusion.',
+          ] },
+        ],
+        strategy: ['Solve single questions before long puzzle sets.', 'Guess any question left at the end — no negative marking.'],
+        practice: [
+          { q: 'All pens are blue. Some blue things are bags. Which must be true?', options: ['Some pens are bags.', 'All bags are blue.', 'All pens are blue things.', 'No pen is a bag.'], answer: 'All pens are blue things.',
+            solution: 'Only the first statement is certain; nothing links pens and bags for sure.' },
+        ],
+      },
+    ],
+    plan: [
+      { week: 'Weeks 1–4', focus: 'Basics of all three sections; timed 10-question drills to build speed.' },
+      { week: 'Weeks 5–8', focus: 'Full mocks with NMAT section timings; use the first attempt to learn and the next to improve.' },
+    ],
+    free: [
+      { label: 'NMAT by GMAC — official site and free practice test', href: 'https://www.mba.com/exams/nmat', note: 'Registration, scheduling and the official practice test.' },
+      { label: 'CAT notes (quant formulas)', href: '/exams/cat/study-material', note: 'Quant formulas apply to NMAT too.' },
+    ],
+    checked: '28 November 2026',
+  },
+
+  gre: {
+    slug: 'gre', exam: 'GRE', title: 'GRE free study material',
+    intro: 'Notes, strategy and solved questions for the GRE General Test (by ETS) — used for master’s, PhD and many MBA admissions abroad. Start with ETS’s free POWERPREP practice tests, then use these notes.',
+    pattern: {
+      rows: [
+        ['Analytical Writing', '1 task', '30 min', 'One "Analyze an Issue" essay'],
+        ['Verbal Reasoning (2 sections)', '27 (12 + 15)', '41 min (18 + 23)', 'Reading comprehension, text completion, sentence equivalence'],
+        ['Quantitative Reasoning (2 sections)', '27 (12 + 15)', '47 min (21 + 26)', 'Arithmetic, algebra, geometry, data analysis; on-screen calculator'],
+      ],
+      notes: [
+        'About 1 hour 58 minutes in total (the shorter GRE since September 2023).',
+        'Verbal and Quant are scored 130–170 each; Analytical Writing 0–6. The second section of Verbal and Quant adapts to your performance on the first.',
+        'You can skip and return to questions within a section. Check ets.org/gre for current fees and rules.',
+      ],
+      source: { label: 'ETS — GRE test structure', href: 'https://www.ets.org/gre/test-takers/general-test/prepare/test-structure.html' },
+    },
+    sections: [
+      {
+        name: 'Quantitative Reasoning', short: 'Quant',
+        about: 'School-level maths with tricky wording. Quantitative comparison questions are special to the GRE.',
+        topics: [
+          { title: 'Quantitative comparison', points: [
+            'Answers: A is greater, B is greater, they are equal, or the relationship cannot be determined.',
+            'Try simple numbers including 0, 1, negatives and fractions — if different values give different results, the answer is "cannot be determined".',
+            'Do the same operation to both quantities (add, subtract, multiply by a positive) to simplify.',
+          ] },
+          { title: 'Core formulas', points: [
+            'Percent change = (new − old) / old; successive changes multiply.',
+            'Circle area πr², circumference 2πr; triangle angles add to 180°.',
+            'Mean = sum / count; median = middle value; range = largest − smallest.',
+            'Probability of independent events A and B = P(A) × P(B).',
+          ] },
+        ],
+        strategy: ['Read every word — "integer", "positive" and "distinct" change answers.', 'Use the calculator only for heavy arithmetic; estimate first.'],
+        practice: [
+          { q: 'Quantity A: x²   Quantity B: x   (x is a number). Which is greater?', options: ['A', 'B', 'Equal', 'Cannot be determined'], answer: 'Cannot be determined',
+            solution: 'If x = 2, A is greater; if x = 0.5, B is greater; if x = 1, they are equal. So it cannot be determined.' },
+          { q: 'The mean of 4 numbers is 15. Three of them are 10, 12 and 20. What is the fourth?', options: ['15', '18', '20', '22'], answer: '18',
+            solution: 'Sum = 4 × 15 = 60; 60 − (10 + 12 + 20) = 18.' },
+        ],
+      },
+      {
+        name: 'Verbal Reasoning', short: 'Verbal',
+        about: 'Vocabulary in context and careful reading. Sentence equivalence needs two answers that give the same meaning.',
+        topics: [
+          { title: 'Text completion & sentence equivalence', points: [
+            'Read the whole sentence and predict the missing word in your own words before looking at options.',
+            'Clue words: "although", "despite" signal a contrast; "because", "and" signal the same direction.',
+            'Sentence equivalence: pick two words that make sentences with the same meaning — two synonyms that do not fit are both wrong.',
+          ] },
+          { title: 'Reading comprehension', points: [
+            'Note each paragraph’s role; answers must be supported by the passage.',
+            'Some questions ask you to select all correct options or click a sentence in the passage.',
+          ] },
+        ],
+        strategy: ['Learn words in groups by meaning (praise, criticism, change).', 'Read long-form English articles daily.'],
+        practice: [
+          { q: 'Although the scientist’s early work was widely ______, her later findings were praised by her peers.', options: ['admired', 'criticised', 'copied', 'published'], answer: 'criticised',
+            solution: '"Although" signals a contrast with "praised", so the early work was criticised.' },
+        ],
+      },
+      {
+        name: 'Analytical Writing', short: 'AW',
+        about: 'One 30-minute essay giving your view on an issue.',
+        topics: [
+          { title: 'Essay structure', points: [
+            'Take a clear position in the first paragraph.',
+            'Two or three body paragraphs, each with one reason and a specific example.',
+            'Address one counter-argument and explain why your view still holds.',
+            'Short conclusion; save 2–3 minutes to fix typos.',
+          ] },
+        ],
+        strategy: ['Practise with the official topic pool published by ETS — the real prompt comes from it.'],
+        practice: [],
+      },
+    ],
+    plan: [
+      { week: 'Week 1', focus: 'Take a free POWERPREP test to find your baseline.' },
+      { week: 'Weeks 2–6', focus: 'Quant concepts and 20 new words a day; one essay a week.' },
+      { week: 'Weeks 7–8', focus: 'Second POWERPREP test; timed sections; review errors.' },
+    ],
+    free: [
+      { label: 'ETS free GRE prep (POWERPREP practice tests)', href: 'https://www.ets.org/gre/test-takers/general-test/prepare/powerprep.html', note: 'Free official full-length practice tests from ETS.' },
+      { label: 'GRE test structure (ETS)', href: 'https://www.ets.org/gre/test-takers/general-test/prepare/test-structure.html', note: 'Official sections and timing.' },
+      { label: 'Study abroad guides', href: '/study-abroad/usa', note: 'How to apply to universities abroad.' },
+    ],
+    checked: '28 November 2026',
+  },
+
 };
 
 export const prepFor = (slug: string) => PREP[slug.toLowerCase()] || null;

@@ -19,7 +19,7 @@ export default async function StudyMaterial({ params }: { params: Promise<{ slug
   if (!p) notFound();
   return (
     <div className="container-x space-y-6 py-8">
-      <nav className="text-sm text-slate-500"><Link href="/exams" className="hover:underline">Exams</Link> › <Link href={`/exams/${p.slug}`} className="hover:underline">{p.exam}</Link> › Study material</nav>
+      <nav className="text-sm text-slate-500"><Link href="/study-material" className="hover:underline">Free study material</Link> › {p.examPage === false ? p.exam : <Link href={`/exams/${p.slug}`} className="hover:underline">{p.exam}</Link>}</nav>
       <header className="space-y-2">
         <h1 className="flex items-center gap-2 text-3xl font-bold text-slate-900"><BookOpen className="text-brand-600" />{p.title}</h1>
         <p className="max-w-3xl text-slate-600">{p.intro}</p>
@@ -57,6 +57,7 @@ export default async function StudyMaterial({ params }: { params: Promise<{ slug
           <div>
             <h3 className="flex items-center gap-1.5 font-semibold text-slate-900"><Target size={16} className="text-brand-600" />Solved practice questions</h3>
             <ol className="mt-3 space-y-3">
+              {!s.practice.length && <li className="text-sm text-slate-500">Practise with the official topic list linked below.</li>}
               {s.practice.map((q, i) => (
                 <li key={i} className="rounded-xl border border-slate-200 p-4 text-sm">
                   <p className="font-medium text-slate-900">{i + 1}. {q.q}</p>
