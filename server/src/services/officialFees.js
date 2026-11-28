@@ -117,7 +117,7 @@ async function saveFindings(college, page, found) {
   return added;
 }
 
-export async function collectOfficialFees({ limit = Number(env('FEES_PER_RUN', 12)), collegeId = null } = {}) {
+export async function collectOfficialFees({ limit = Number(env('FEES_PER_RUN', 12)), collegeId = null, force = false } = {}) {
   if (!llmReady()) return { skipped: 'no AI key' };
   let q = supabase.from('colleges').select('id, name, city, country, website').eq('is_published', true).not('website', 'is', null);
   if (collegeId) q = q.eq('id', collegeId);
@@ -138,9 +138,9 @@ export async function collectOfficialFees({ limit = Number(env('FEES_PER_RUN', 1
     const { data } = await q.limit(limit - colleges.length);
     colleges.push(...(data || []).filter((c) => !colleges.some((x) => x.id === c.id)));
   }
-  let checked = 0, added = 0, blocked = 0;
+  let checked = 0, added = 0, blocked = 0, paused = null;
   for (const college of colleges) {
-    if (!collegeId && serverBusy()) break;
+    if (!collegeId && !force && serverBusy()) { paused = 'server busy'; break; }
     await supabase.from('colleges').update({ fees_checked_at: new Date().toISOString() }).eq('id', college.id);
     const home = /^https?:\/\//i.test(college.website) ? college.website : `https://${college.website}`;
     if (!(await allowedByRobots(home))) { blocked++; continue; }
@@ -159,7 +159,7 @@ export async function collectOfficialFees({ limit = Number(env('FEES_PER_RUN', 1
     for (const page of pages) added += await saveFindings(college, page, await extract(college, page));
   }
   if (added || checked) console.log(`[official-fees] ${checked} college site(s) read · ${added} new fee(s) · ${blocked} skipped by robots.txt`);
-  return { checked, added, blocked };
+  return { checked, added, blocked, ...(paused ? { paused } : {}) };
 }
 
 export function startOfficialFees() {

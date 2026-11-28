@@ -91,7 +91,7 @@ async function save(college, page, items, cfg, cc) {
   return added;
 }
 
-export async function collectCourses(cc, { limit, collegeId = null } = {}) {
+export async function collectCourses(cc, { limit, collegeId = null, force = false } = {}) {
   const cfg = COUNTRIES[cc]; if (!cfg) return { error: `no course reader for ${cc}` };
   if (!llmReady()) return { skipped: 'no AI key' };
   limit = limit ?? Number(env(cfg.perRun, 4));
@@ -104,9 +104,10 @@ export async function collectCourses(cc, { limit, collegeId = null } = {}) {
     if (error) { console.warn(`[${cfg.tag}] queue:`, error.message); return { error: error.message }; }
     colleges = data || [];
   }
-  let read = 0, saved = 0, blocked = 0;
+  let read = 0, saved = 0, blocked = 0, paused = null;
   for (const college of colleges) {
-    if (!collegeId && serverBusy()) break;
+    // scheduled runs stop when the server is busy; a run started by an admin click carries on (force)
+    if (!collegeId && !force && serverBusy()) { paused = 'server busy'; break; }
     await supabase.from('colleges').update({ courses_checked_at: new Date().toISOString() }).eq('id', college.id);
     const home = /^https?:\/\//i.test(college.website) ? college.website : `https://${college.website}`;
     if (!(await allowedByRobots(home))) { blocked++; continue; }
@@ -132,7 +133,7 @@ export async function collectCourses(cc, { limit, collegeId = null } = {}) {
     for (const page of pages) saved += await save(college, page, await extractProgrammes(college, page, cfg), cfg, cc);
   }
   if (read || saved) console.log(`[${cfg.tag}] ${read} university site(s) read · ${saved} programme(s) saved · ${blocked} skipped by robots.txt`);
-  return { read, saved, blocked };
+  return { read, saved, blocked, ...(paused ? { paused } : {}), ...(colleges.length ? {} : { note: 'no universities left to check (all done in the last 90 days)' }) };
 }
 
 // kept for existing callers

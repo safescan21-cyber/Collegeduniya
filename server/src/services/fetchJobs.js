@@ -4,9 +4,9 @@ import { supabase } from '../supabase.js';
 
 const COUNTRY = /^[A-Za-z][A-Za-z .'-]{1,40}$/;
 export const JOBS = {
-  courses_jp: { label: 'Japan: courses from university websites', hint: '6 universities a click', run: async () => (await import('./officialCourses.js')).collectCourses('JP', { limit: 6 }) },
-  courses_de: { label: 'Germany: courses from university websites', hint: '6 universities a click', run: async () => (await import('./officialCourses.js')).collectCourses('DE', { limit: 6 }) },
-  fees: { label: 'Fees from official fee pages', hint: '10 colleges a click — review them in Official fees', run: async () => (await import('./officialFees.js')).collectOfficialFees({ limit: 10 }) },
+  courses_jp: { label: 'Japan: courses from university websites', hint: '6 universities a click', run: async () => (await import('./officialCourses.js')).collectCourses('JP', { limit: 6, force: true }) },
+  courses_de: { label: 'Germany: courses from university websites', hint: '6 universities a click', run: async () => (await import('./officialCourses.js')).collectCourses('DE', { limit: 6, force: true }) },
+  fees: { label: 'Fees from official fee pages', hint: '10 colleges a click — review them in Official fees', run: async () => (await import('./officialFees.js')).collectOfficialFees({ limit: 10, force: true }) },
   photos: { label: 'Photos, logos & descriptions', hint: 'Wikipedia / Wikimedia — 200 colleges of the country you type (blank = any)', param: 'country code, e.g. JP',
     run: async (p, log) => (await import('./wikimedia.js')).enrichMany({ country: /^[A-Za-z]{2}$/.test(p || '') ? p.toUpperCase() : null, limit: 200, onlyMissingPhotos: true, log }) },
   autofill: { label: 'Fill missing details (any country)', hint: 'one batch of photos/descriptions', run: async () => (await import('./collegeAutofill.js')).runAutofill({ reason: 'admin' }) },
