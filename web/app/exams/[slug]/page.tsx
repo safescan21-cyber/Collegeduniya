@@ -7,6 +7,7 @@ import { ExternalLink, Target, CalendarDays, Building2, Monitor, Repeat } from '
 import EnquiryForm from '@/components/EnquiryForm';
 import FollowExam from '@/components/exams/FollowExam';
 import { prepFor } from '@/lib/prepMaterial';
+import { breadcrumbLd, ldScript, abs } from '@/lib/jsonld';
 import ExamDates from '@/components/exams/ExamDates';
 import ExamNewsList, { type ExamNewsItem } from '@/components/exams/ExamNewsList';
 import { supabasePublic, hasSupabase } from '@/lib/supabase/server';
@@ -24,7 +25,7 @@ async function getExam(slug: string) {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const e = await getExam((await params).slug);
   if (!e) return { title: 'Exam not found' };
-  return { title: `${e.short_name} — eligibility, pattern, dates & accepting colleges`, description: (e.description || e.full_name || e.short_name).slice(0, 160) };
+  return { title: `${e.short_name} — eligibility, pattern, dates & accepting colleges`, description: (e.description || e.full_name || e.short_name).slice(0, 160), alternates: { canonical: `/exams/${e.slug}` } };
 }
 
 function Block({ title, text }: { title: string; text: string | null }) {
@@ -54,6 +55,12 @@ export default async function ExamPage({ params }: { params: Promise<{ slug: str
 
   return (
     <div className="container-x grid gap-8 py-10 lg:grid-cols-[1fr_340px]">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldScript(
+        { '@type': 'WebPage', name: `${e.short_name}${e.full_name && e.full_name !== e.short_name ? ` (${e.full_name})` : ''}`, url: abs(`/exams/${e.slug}`),
+          description: (e.description || e.full_name || e.short_name || '').slice(0, 300), about: { '@type': 'Thing', name: e.full_name || e.short_name },
+          ...(e.conducting_body ? { mentions: { '@type': 'Organization', name: e.conducting_body } } : {}), isPartOf: { '@id': abs('/#site') } },
+        breadcrumbLd([['Home', '/'], ['Exams', '/exams'], [e.short_name, `/exams/${e.slug}`]]),
+      ) }} />
       <div className="min-w-0 space-y-6">
         <div>
           <Link href="/exams" className="text-sm text-slate-500 hover:underline">← All exams</Link>

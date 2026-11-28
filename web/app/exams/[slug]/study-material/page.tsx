@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { BookOpen, ExternalLink, CheckCircle2, Lightbulb, CalendarDays, Target } from 'lucide-react';
 import { prepFor, PREP } from '@/lib/prepMaterial';
+import { breadcrumbLd, ldScript, abs } from '@/lib/jsonld';
 
 // Free study material (original notes) for exams that have it: /exams/cat/study-material, /exams/gmat/study-material
 export function generateStaticParams() { return Object.keys(PREP).map((slug) => ({ slug })); }
@@ -19,6 +20,12 @@ export default async function StudyMaterial({ params }: { params: Promise<{ slug
   if (!p) notFound();
   return (
     <div className="container-x space-y-6 py-8">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldScript(
+        { '@type': 'LearningResource', name: p.title, description: p.intro, url: abs(`/exams/${p.slug}/study-material`), inLanguage: 'en',
+          learningResourceType: ['Study guide', 'Practice questions'], educationalLevel: 'Postgraduate entrance', isAccessibleForFree: true,
+          about: { '@type': 'Thing', name: `${p.exam} exam` }, teaches: p.sections.map((x) => x.name), provider: { '@id': abs('/#org') } },
+        breadcrumbLd([['Home', '/'], ['Free study material', '/study-material'], [p.exam, `/exams/${p.slug}/study-material`]]),
+      ) }} />
       <nav className="text-sm text-slate-500"><Link href="/study-material" className="hover:underline">Free study material</Link> › {p.examPage === false ? p.exam : <Link href={`/exams/${p.slug}`} className="hover:underline">{p.exam}</Link>}</nav>
       <header className="space-y-2">
         <h1 className="flex items-center gap-2 text-3xl font-bold text-slate-900"><BookOpen className="text-brand-600" />{p.title}</h1>

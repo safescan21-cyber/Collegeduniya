@@ -28,7 +28,14 @@ export const metadata: Metadata = {
   description:
     'Search colleges worldwide with courses, fees, placements and real student reviews. Predict colleges from your rank, find PG and hostels near campus and apply for part-time jobs — Collegeolo.com',
   keywords: ['colleges', 'universities', 'college fees', 'college predictor', 'compare colleges', 'PG near college', 'student hostel', 'part-time jobs for students', 'study abroad'],
-  openGraph: { siteName: 'Collegeolo', type: 'website', url: SITE_URL },
+  openGraph: { siteName: 'Collegeolo', type: 'website', url: SITE_URL, locale: 'en_IN' },
+  twitter: { card: 'summary_large_image', site: process.env.NEXT_PUBLIC_TWITTER_HANDLE || undefined },
+  // Search Console / Bing Webmaster ownership tags — paste the codes in web/.env.local (NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION, NEXT_PUBLIC_BING_SITE_VERIFICATION)
+  verification: {
+    ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION } : {}),
+    ...(process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION ? { other: { 'msvalidate.01': process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION } } : {}),
+  },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 } },
   appleWebApp: { capable: true, title: 'Collegeolo', statusBarStyle: 'default' },
 };
 

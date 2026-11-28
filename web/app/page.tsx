@@ -64,6 +64,8 @@ async function load() {
   };
 }
 
+export const metadata = { alternates: { canonical: '/' } };
+
 export default async function HomePage() {
   const [{ colleges, hostels, jobs, articles, top, exams, courses, cities, streams, trending, shots, world, worldCountries }, stats, { t }] = await Promise.all([load(), counters(), getT()]);
   const examNames: Record<string, string> = Object.fromEntries(exams.map((e: any) => [e.slug, e.short_name]));

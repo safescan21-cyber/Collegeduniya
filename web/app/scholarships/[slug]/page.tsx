@@ -8,6 +8,7 @@ import { money } from '@/lib/format';
 import TrackScholarship from '@/components/scholarships/TrackScholarship';
 import HowToApply from '@/components/scholarships/HowToApply';
 import { extUrl } from '@/lib/extUrl';
+import { breadcrumbLd, ldScript, abs } from '@/lib/jsonld';
 import ApplySteps from '@/components/scholarships/ApplySteps';
 import Stories from '@/components/scholarships/Stories';
 
@@ -18,13 +19,18 @@ async function get(slug: string) {
 }
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const s = await get((await params).slug);
-  return s ? { title: `${s.name} — amount, eligibility, deadline`, description: `${s.name} by ${s.provider || 'the provider'}: ${s.amount_note || ''} Eligibility, deadline and official link.`.slice(0, 160) } : { title: 'Scholarship not found' };
+  return s ? { title: `${s.name} — amount, eligibility, deadline`, description: `${s.name} by ${s.provider || 'the provider'}: ${s.amount_note || ''} Eligibility, deadline and official link.`.slice(0, 160), alternates: { canonical: `/scholarships/${s.slug}` } } : { title: 'Scholarship not found' };
 }
 export default async function ScholarshipPage({ params }: { params: Promise<{ slug: string }> }) {
   const s = await get((await params).slug);
   if (!s) notFound();
   return (
     <div className="container-x max-w-3xl py-10">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldScript(
+        { '@type': 'MonetaryGrant', name: s.name, url: abs(`/scholarships/${s.slug}`), ...(s.provider ? { funder: { '@type': 'Organization', name: s.provider } } : {}),
+          ...(s.amount_note ? { description: s.amount_note } : {}), ...(extUrl(s.official_url) ? { sameAs: extUrl(s.official_url) } : {}) },
+        breadcrumbLd([['Home', '/'], ['Scholarships', '/scholarships'], [s.name, `/scholarships/${s.slug}`]]),
+      ) }} />
       <Link href="/scholarships" className="text-sm text-slate-500">← All scholarships</Link>
       <h1 className="mt-2 flex items-center gap-2 text-3xl font-extrabold text-slate-900"><Award className="text-brand-600" />{s.name}</h1>
       <p className="text-slate-500">{s.provider}{s.host_country ? ` · Study in ${s.host_country}` : ''}{s.field ? ` · ${s.field}` : ''}</p>

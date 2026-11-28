@@ -54,7 +54,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     alternates: { canonical: `/colleges/${c.slug}` },
     // thin pages stay usable for students but out of Google until they have real information (see migration 018)
     robots: ok === true ? { index: true, follow: true } : { index: false, follow: true },
-    openGraph: { images: c.cover_url ? [c.cover_url] : [] },
+    ...(c.cover_url ? { openGraph: { images: [c.cover_url] } } : {}),   // no photo → the site's default share image
   };
 }
 
