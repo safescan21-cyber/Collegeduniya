@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import type { User } from '@supabase/supabase-js';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import type { Profile } from '@/lib/types';
+import { api } from '@/lib/api';
 
 type Ctx = {
   user: User | null;
@@ -38,8 +39,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await loadProfile(data.user);
       setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event: string, session: { user: User } | null) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event: string, session: { user: User } | null) => {
       const u = session?.user ?? null;
+      if (event === 'SIGNED_IN' && u) api('/api/session/login', { method: 'POST', body: '{}' }).catch(() => undefined);   // login history (deduped on the server)
       setUser(u);
       loadProfile(u);
     });

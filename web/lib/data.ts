@@ -17,10 +17,24 @@ export async function counters() {
   return { ...empty, ...(data || {}) } as typeof empty;
 }
 
-export async function distinctValues(table: 'colleges' | 'hostels' | 'jobs', column: 'country' | 'city') {
+export async function distinctValues(table: 'colleges' | 'hostels' | 'jobs', column: 'country' | 'city' | 'state', where?: Record<string, string>) {
   if (!hasSupabase) return [] as string[];
-  const { data } = await supabasePublic().from(table).select(column).eq('is_published', true).limit(2000);
+  let q = supabasePublic().from(table).select(column).eq('is_published', true);
+  for (const [k, v] of Object.entries(where || {})) if (v) q = q.eq(k, v);
+  const { data } = await q.limit(5000);
   return Array.from(new Set((data || []).map((r: any) => r[column]).filter(Boolean))).sort() as string[];
+}
+
+// /colleges dropdowns — distinct values straight from the database (cached with the other public reads)
+export async function collegeCountries() {
+  if (!hasSupabase) return [] as string[];
+  const { data } = await supabasePublic().rpc('college_countries');
+  return ((data || []) as { country: string }[]).map((r) => r.country);
+}
+export async function collegeStates(country: string) {
+  if (!hasSupabase || !country) return [] as string[];
+  const { data } = await supabasePublic().rpc('college_states', { p_country: country });
+  return ((data || []) as { state: string }[]).map((r) => r.state);
 }
 
 // Strip characters that would break a PostgREST or() filter

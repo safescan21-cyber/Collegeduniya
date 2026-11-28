@@ -1,0 +1,17 @@
+{
+  "_about": "Countries the API imports by itself (open university lists + Wikidata) when they have fewer than 20 colleges. Add a country name to import it on the next restart; Admin → Import does the same by hand.",
+  "countries": [
+    "Japan",
+    "United Arab Emirates",
+    "Russia",
+    "South Korea",
+    "Spain",
+    "Sweden",
+    "Ireland",
+    "New Zealand",
+    "Singapore",
+    "France",
+    "Netherlands",
+    "Italy"
+  ]
+}

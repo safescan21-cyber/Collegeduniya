@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import { Search, Loader2, Ban, CheckCircle2 } from 'lucide-react';
+import { Search, Loader2, Ban, CheckCircle2, Activity, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import { timeAgo } from '@/lib/format';
@@ -15,6 +15,8 @@ export default function AdminUsers() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [act, setAct] = useState<{ user: any; logins: any[]; mocks: any[] } | null>(null);
+  const openActivity = async (u: any) => { const r = await api(`/api/admin/users/${u.id}/activity`).catch(() => ({ logins: [], mocks: [] })); setAct({ user: u, ...r }); };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -56,7 +58,8 @@ export default function AdminUsers() {
                 const self = u.id === profile?.id;
                 return (
                   <tr key={u.id}>
-                    <td className="px-4 py-3"><p className="font-semibold text-slate-900">{u.full_name || '—'} {self && <span className="chip ml-1">you</span>}</p><p className="text-xs text-slate-500">{u.email}</p></td>
+                    <td className="px-4 py-3"><p className="font-semibold text-slate-900">{u.full_name || '—'} {self && <span className="chip ml-1">you</span>}</p><p className="text-xs text-slate-500">{u.email}{u.username ? <> · <a href={`/u/${u.username}`} target="_blank" className="underline">@{u.username}</a></> : ''}</p>
+                      <p className="text-xs text-slate-400">{u.last_seen_at ? `last seen ${timeAgo(u.last_seen_at)}` : 'not seen yet'} · <button onClick={() => openActivity(u)} className="inline-flex items-center gap-0.5 text-brand-700 underline"><Activity size={11} />logins & mock tests</button></p></td>
                     <td className="px-4 py-3 text-slate-600">{u.phone || '—'}</td>
                     <td className="px-4 py-3 text-slate-500">{timeAgo(u.created_at)}</td>
                     <td className="px-4 py-3">
@@ -77,6 +80,19 @@ export default function AdminUsers() {
           </tbody>
         </table>
       </div>
+      {act && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/50" onClick={() => setAct(null)}>
+          <div className="h-full w-full max-w-lg overflow-y-auto bg-white p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between"><h3 className="text-lg font-bold">{act.user.full_name || act.user.email}</h3><button onClick={() => setAct(null)} aria-label="Close"><X /></button></div>
+            <p className="mt-4 font-semibold">Recent logins</p>
+            <ul className="mt-1 divide-y divide-slate-100 text-sm">{act.logins.map((l) => <li key={l.id} className="flex justify-between gap-2 py-1.5"><span>{l.device}{l.city ? ` · ${l.city}` : ''}{l.country ? `, ${l.country}` : ''} <span className="text-xs text-slate-400">{l.method}</span></span><span className="text-xs text-slate-500">{new Date(l.created_at).toLocaleString()}</span></li>)}
+              {!act.logins.length && <li className="py-2 text-slate-400">None recorded</li>}</ul>
+            <p className="mt-5 font-semibold">Mock tests</p>
+            <ul className="mt-1 divide-y divide-slate-100 text-sm">{act.mocks.map((m) => <li key={m.id} className="flex justify-between gap-2 py-1.5"><span>{m.title}</span><span className="text-xs text-slate-500">{m.score != null ? `${Number(m.score)}/${Number(m.max_score)} · ${Number(m.percentile)} pct` : m.status} · {timeAgo(m.started_at)}</span></li>)}
+              {!act.mocks.length && <li className="py-2 text-slate-400">No tests yet</li>}</ul>
+          </div>
+        </div>
+      )}
       {count > 25 && (
         <div className="mt-4 flex justify-end gap-2 text-sm">
           <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="btn-ghost">Prev</button>

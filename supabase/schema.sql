@@ -1,5 +1,5 @@
 -- =====================================================================
--- StudyEarnstay.com — Supabase schema
+-- Collegeolo.com — Supabase schema
 -- Run this whole file once in Supabase Dashboard → SQL Editor.
 -- Safe to re-run: uses IF NOT EXISTS / OR REPLACE / DROP POLICY IF EXISTS.
 -- =====================================================================

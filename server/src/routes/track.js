@@ -1,3 +1,4 @@
+import { isRobot } from './presence.js';
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { supabase } from '../supabase.js';
@@ -13,7 +14,7 @@ router.post('/', async (req, res) => {
   const parsed = trackSchema.safeParse(req.body);
   if (!parsed.success) return res.status(422).json({ error: 'Invalid payload' });
   const ua = String(req.headers['user-agent'] || '').slice(0, 300);
-  if (/bot|crawler|spider|preview|headless/i.test(ua)) return res.json({ ok: true, skipped: 'bot' });
+  if (isRobot(req)) return res.json({ ok: true, skipped: 'bot' });
 
   const { error } = await supabase.from('site_visits').insert({
     visitor_id: parsed.data.visitor_id,
@@ -22,7 +23,7 @@ router.post('/', async (req, res) => {
     user_agent: ua,
     user_id: req.user?.id || null,
     // Cloudflare / Nginx GeoIP header if available
-    country: req.headers['cf-ipcountry'] || req.headers['x-country'] || null,
+    country: req.headers['cf-ipcountry'] || req.headers['x-country'] || req.headers['x-geo-country'] || null,
   });
   if (error) {
     console.error('[track]', error.message);

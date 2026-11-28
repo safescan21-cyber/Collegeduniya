@@ -12,7 +12,9 @@ async function token() {
 export async function api<T = any>(path: string, init: RequestInit = {}): Promise<T> {
   const t = await token();
   const isForm = typeof FormData !== 'undefined' && init.body instanceof FormData;
-  const res = await fetch(`${API_URL}${path}`, {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: {
       ...(isForm ? {} : { 'Content-Type': 'application/json' }),
@@ -20,6 +22,9 @@ export async function api<T = any>(path: string, init: RequestInit = {}): Promis
       ...(init.headers || {}),
     },
   });
+  } catch {
+    throw new Error('Cannot reach the server right now. Please check your internet and try again.');
+  }
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
     const issues = body?.issues?.fieldErrors
@@ -35,5 +40,13 @@ export async function uploadImages(files: FileList | File[], folder: string): Pr
   Array.from(files).forEach((f) => fd.append('files', f));
   fd.append('folder', folder);
   const { urls } = await api<{ urls: string[] }>('/api/admin/upload', { method: 'POST', body: fd });
+  return urls;
+}
+
+export async function uploadDocs(files: FileList | File[], folder: string): Promise<string[]> {
+  const fd = new FormData();
+  Array.from(files).forEach((f) => fd.append('files', f));
+  fd.append('folder', folder);
+  const { urls } = await api<{ urls: string[] }>('/api/admin/upload-doc', { method: 'POST', body: fd });
   return urls;
 }

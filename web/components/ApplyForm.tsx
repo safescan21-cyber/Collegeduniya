@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CheckCircle2, Upload } from 'lucide-react';
+import { CheckCircle2, Upload, FileText } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { supabaseBrowser } from '@/lib/supabase/client';
 
@@ -15,6 +15,8 @@ export default function ApplyForm({ jobId, jobTitle, closed }: { jobId: string; 
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [built, setBuilt] = useState<any | null>(null);
+  const [attachBuilt, setAttachBuilt] = useState(true);
 
   useEffect(() => {
     if (profile) setForm((f) => ({ ...f, full_name: f.full_name || profile.full_name || '', phone: f.phone || profile.phone || '' }));
@@ -24,6 +26,7 @@ export default function ApplyForm({ jobId, jobTitle, closed }: { jobId: string; 
     if (!user) return;
     supabase.from('job_applications').select('status, created_at').eq('job_id', jobId).eq('user_id', user.id).maybeSingle()
       .then(({ data }: { data: { status: string; created_at: string } | null }) => setExisting(data));
+    supabase.from('student_resumes').select('*').eq('user_id', user.id).maybeSingle().then(({ data }: { data: any }) => setBuilt(data));
   }, [user, jobId, supabase]);
 
   if (loading) return <div className="card h-64 animate-pulse" />;
@@ -68,6 +71,7 @@ export default function ApplyForm({ jobId, jobTitle, closed }: { jobId: string; 
     const { error } = await supabase.from('job_applications').insert({
       job_id: jobId, user_id: user.id, full_name: form.full_name.trim(), phone: form.phone.trim(),
       email: user.email, cover_letter: form.cover_letter.trim() || null, resume_path,
+      resume_snapshot: built && attachBuilt ? { ...built, user_id: undefined, snapshot_at: new Date().toISOString() } : null,
     });
     setBusy(false);
     if (error) return setErr(error.message.includes('duplicate') ? 'You already applied for this job.' : error.message);
@@ -84,6 +88,14 @@ export default function ApplyForm({ jobId, jobTitle, closed }: { jobId: string; 
       <div><label className="label">Phone *</label><input required className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+91 98765 43210" /></div>
       <div><label className="label">Email</label><input disabled className="input bg-slate-50" value={user.email || ''} /></div>
       <div><label className="label">Why are you a good fit?</label><textarea rows={4} maxLength={2000} className="input" value={form.cover_letter} onChange={(e) => setForm({ ...form, cover_letter: e.target.value })} placeholder="Your availability, experience, skills…" /></div>
+      {built ? (
+        <label className="flex items-center gap-2 rounded-xl bg-brand-50 px-4 py-3 text-sm text-slate-700">
+          <input type="checkbox" className="h-4 w-4 accent-brand-600" checked={attachBuilt} onChange={(e) => setAttachBuilt(e.target.checked)} />
+          <FileText size={16} className="text-brand-600" />Attach my Collegeolo resume <Link href="/resume" className="ml-auto text-xs text-brand-700 underline">edit</Link>
+        </label>
+      ) : (
+        <p className="text-xs text-slate-500">No resume? <Link href="/resume" className="text-brand-700 underline">Build one free in 5 minutes</Link> — or upload a file below.</p>
+      )}
       <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-600 hover:border-brand-400">
         <Upload size={16} />{file ? file.name : 'Upload resume (PDF/DOC, optional)'}
         <input type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
