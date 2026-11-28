@@ -655,6 +655,21 @@ router.post('/official-fees/run', wrap(async (req, res) => {
   res.json(await collectOfficialFees({ limit: Math.min(Number(req.query.limit) || 3, 10), collegeId: req.query.college || null }));
 }));
 
+// ---- Admin → Fetch data: one-click collectors (services/fetchJobs.js)
+router.get('/fetch/status', wrap(async (_req, res) => {
+  const { jobStatus } = await import('../services/fetchJobs.js');
+  const count = async (f) => { let q = supabase.from('colleges').select('id', { count: 'exact', head: true }).eq('is_published', true); if (f) q = f(q); return (await q).count ?? 0; };
+  const [colleges, withPhoto, courses, official] = await Promise.all([count(), count((q) => q.not('cover_url', 'is', null)),
+    supabase.from('courses').select('id', { count: 'exact', head: true }).then((r) => r.count ?? 0),
+    supabase.from('courses').select('id', { count: 'exact', head: true }).eq('source', 'official_site').then((r) => r.count ?? 0)]);
+  res.json({ jobs: jobStatus(), totals: { colleges, withPhoto, courses, official } });
+}));
+router.post('/fetch/:job', wrap(async (req, res) => {
+  const { startJob } = await import('../services/fetchJobs.js');
+  try { res.status(202).json({ ok: true, run: startJob(req.params.job, String(req.body?.param || '').slice(0, 60)) }); }
+  catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+}));
+
 // ---- student visa news (services/visaNews.js): list, hide/show, collect now; guides flagged "needs review"
 router.get('/visa-news', wrap(async (req, res) => {
   let q = supabase.from('visa_news').select('id, country_code, title, url, source, official, topic, published_at, is_hidden', { count: 'exact' })

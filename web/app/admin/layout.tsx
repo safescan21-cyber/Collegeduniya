@@ -7,6 +7,7 @@ import {
   MessageSquareHeart, Building2, DatabaseZap, Armchair, ClipboardList, ChartColumn, Trophy, Award, Plane, Handshake, Rocket, CreditCard, Flag, UsersRound,
   CalendarCheck, FileStack, Gift, Megaphone, ClipboardCheck, Radio, BadgeCheck, Rss, Inbox, Activity, Search, ChevronDown, ChevronsLeft, ChevronsRight,
   Menu, X, ExternalLink, LayoutDashboard, School, PenSquare, ShieldCheck, Settings, Sparkles, type LucideIcon,
+  Download,
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { supabaseBrowser } from '@/lib/supabase/client';
@@ -37,6 +38,7 @@ const GROUPS: Group[] = [
     { href: '/admin/rankings', label: 'Rankings', icon: Trophy, keywords: 'nirf world leiden' },
     { href: '/admin/rank-bands', label: 'Marks → rank', icon: ChartColumn, keywords: 'predictor' },
     { href: '/admin/rank-reports', label: 'Rank results (students)', icon: Users },
+    { href: '/admin/fetch-data', label: 'Fetch data', icon: Download, keywords: 'import collect courses fees photos run refresh scrape' },
     { href: '/admin/scholarships', label: 'Scholarships', icon: Award },
     { href: '/admin/scholarship-stories', label: 'Scholarship stories', icon: Award, keywords: 'testimonials winners recipients' },
     { href: '/admin/visa-guides', label: 'Visa guides', icon: Plane, keywords: 'study abroad' },
